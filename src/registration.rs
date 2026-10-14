@@ -35,8 +35,10 @@ const PG_ROLES: &[PgRole] = &[PgRole {
 /// use the full vocabulary form (bare forms + missing grants fail-closed
 /// every bus/policy/stat DCR).
 /// - `bank8:payments` — inbox-first event emission via the shared inbox
+///
 /// (bus produce) + Shield hot-reload transport.
 /// - `bank8:payments-policy` — Shield hot-reload consumer
+///
 /// (policy_bus_client, full colon identity).
 /// - `payments-policy` — Shield stat emitter (stat_emit short form).
 const M2M_GRANTS: &[M2mGrant] = &[

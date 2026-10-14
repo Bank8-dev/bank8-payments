@@ -27,6 +27,7 @@ use uuid::Uuid;
 /// States follow the card-issuing lifecycle described in
 /// `services/payments/DESIGN.md`:
 /// - `PendingCreation` — card record created but not yet confirmed by the
+///
 /// issuer.
 /// - `Inactive` — card exists but is not usable for transactions.
 /// - `Active` — card may authorise.
@@ -1143,9 +1144,11 @@ impl ThreeDSAuthResult {
 /// Evaluate the 3DS risk of a transaction.
 /// Rules (Story ):
 /// - **Green** (frictionless) — `risk_score < 0.2` AND `amount < 50` AND
+///
 /// `merchant_trusted`.
 /// - **Amber** (challenge) — `risk_score < 0.7` (and not Green).
 /// - **Red** (decline) — `risk_score >= 0.7` OR `amount > 5000`.
+///
 /// `Red` takes priority over the other bands.
 pub fn evaluate_3ds_risk(
     risk_score: f64,

@@ -247,6 +247,7 @@ impl Default for SearchQuery {
 /// - `field IS NULL`, `field IS NOT NULL`
 /// - `AND`, `OR` between conditions (default AND)
 /// - `ORDER_BY field` or `ORDER_BY field DESC`
+///
 /// Story.
 pub fn parse_search_query(query_str: &str) -> Result<SearchQuery, String> {
     let mut query = SearchQuery::default();

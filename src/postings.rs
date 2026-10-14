@@ -119,6 +119,7 @@ fn default_denom() -> String {
 /// * `source` — the account the value comes from (debtor / payer side).
 /// * `destination` — the account the value goes to (creditor / payee side).
 /// * For authorisation holds the "debit" side is the ledger's PENDING_OUT
+///
 /// bucket, which the ledger models via the instruction type.
 pub fn build_instruction(
     posting_type: PostingType,

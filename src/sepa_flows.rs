@@ -78,6 +78,7 @@ impl SepaRecallType {
 /// Get the recall deadline for the given recall type.
 /// - DUPL/TECH: 10 business days
 /// - FRAD: 13 months
+///
 /// Story.
 pub fn get_recall_deadline(recall_type: &SepaRecallType) -> Duration {
     match recall_type {

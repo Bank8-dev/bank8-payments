@@ -325,6 +325,7 @@ pub fn sepa_credit_transfer_pack() -> ConfigPack {
 /// - `credit_transfer_outbound` (pain.001 → pacs.008)
 /// - `credit_transfer_inbound` (pacs.008)
 /// - `credit_transfer_recall` (camt.056)
+///
 /// Story.
 pub fn b8_credit_transfer_pack() -> ConfigPack {
     let logics = vec![
@@ -420,6 +421,7 @@ pub fn b8_credit_transfer_pack() -> ConfigPack {
 /// - `direct_debit_inbound` (pacs.003)
 /// - `mandate_outbound` (pain.009)
 /// - `mandate_inbound` (pain.009 received)
+///
 /// Story.
 pub fn b8_direct_debit_pack() -> ConfigPack {
     let logics = vec![

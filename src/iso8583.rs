@@ -27,6 +27,7 @@ pub struct Iso8583Message {
 /// - `0100` → `AUTHORISATION_INITIATION` (pacs.008 style)
 /// - `0220` → `FINANCIAL_INITIATION`
 /// - `0400` → `REVERSAL_INITIATION` (pacs.004 style)
+///
 /// Mapped fields:
 /// - Field 2 (PAN) → `card_number`
 /// - Field 4 (Amount) → `amount`

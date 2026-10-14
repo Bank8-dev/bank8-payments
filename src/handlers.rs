@@ -5066,6 +5066,7 @@ pub async fn get_membership_directory(
 /// Verify an internal proxy-back caller. Accepts:
 /// - a platform-admin M2M token (`sys:admin`), or
 /// - a service M2M token carrying the `bank8:payments:internal:read` scope
+///
 /// (granted to the Flow/Func identities at enrollment).
 pub(crate) async fn require_internal_caller(
     state: &AppState,

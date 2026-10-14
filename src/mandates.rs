@@ -83,6 +83,7 @@ impl MandateFlow {
 /// - A `CstmrDrctDbtMndgtn` (CustomerDirectDebitMandate) container
 /// - At least one `Mndt` (mandate) entry
 /// - Each mandate has a `MndtId` (mandate ID) and a `Cdtr` (creditor) block
+///
 /// This is a simplified structural validator; production deployments should
 /// use a full ISO 20022 schema validator.
 pub fn validate_mandate_pain009(pain009: &serde_json::Value) -> Result<(), String> {

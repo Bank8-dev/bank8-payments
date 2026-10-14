@@ -91,6 +91,7 @@ pub struct DirectoryEntry {
 /// - BIC: characters 1..=11
 /// - Name: characters 12..=156
 /// - Country (ISO-3166 alpha-2): characters 157..=158
+///
 /// Lines that are too short are skipped. Blank lines are skipped.
 pub fn parse_tips_xml(content: &str) -> Result<Vec<DirectoryEntry>, String> {
     let mut entries = Vec::new();
@@ -146,6 +147,7 @@ pub fn parse_tips_xml(content: &str) -> Result<Vec<DirectoryEntry>, String> {
 /// Expected formats:
 /// - `{ "achParticipants": [{ "routingNumber": "...", "customerName": "...", "institutionTypeCode": "... }] }`
 /// - `[ { "routingNumber": "...", "customerName": "..." } ]`
+///
 /// BIC is derived from the routing number (9-digit ABA). Country defaults
 /// to "US" for FedACH entries.
 pub fn parse_fedach_json(content: &str) -> Result<Vec<DirectoryEntry>, String> {

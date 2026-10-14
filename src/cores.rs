@@ -153,6 +153,7 @@ pub struct CoreMigrationConfig {
 /// - `BigBang` requires a `cutover_at` timestamp in the future.
 /// - `Gradual` may optionally specify a `cutover_at`.
 /// - `DualWrite` should not set `cutover_at` (it has no single cutover
+///
 /// point); if set, validation still passes.
 pub fn validate_migration(config: &CoreMigrationConfig) -> Result<(), String> {
     if config.source_core_id == config.target_core_id {

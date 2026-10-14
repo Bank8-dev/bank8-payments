@@ -132,6 +132,7 @@ pub fn map_receive_indication_to_instruction(indication: ReceiveIndication) -> I
 /// - `pacs.004` → `payment_return_logic`
 /// - `pain.001` → `pain001_initiation_logic`
 /// - `camt.054` → `camt054_logic`
+///
 /// Unknown message types yield an error.
 pub fn map_message_to_logic(message: &SwiftAgiMessage) -> Result<String, String> {
     let logic = match message.message_type.as_str() {

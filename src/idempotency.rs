@@ -24,6 +24,7 @@ pub const BANK8_PAYMENTS_SCHEME_NAMESPACE: Uuid = Uuid::from_bytes([
 /// - message_type (e.g., pacs.008)
 /// - sender BIC
 /// - creation timestamp (message-level, not delivery-level)
+///
 /// This ensures that the same logical message always produces the same
 /// idempotency key, regardless of how many times it is delivered.
 pub fn derive_idempotency_key(name: &str) -> Uuid {

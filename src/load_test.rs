@@ -90,6 +90,7 @@ impl LoadTestResult {
 /// - `failed` = the remainder
 /// - `avg_latency_ms` ≈ `1000 / target_rps` (capped at 500 ms)
 /// - `p99_latency_ms` ≈ `avg_latency_ms * 5` (capped at 2000 ms)
+///
 /// Returns an error when the configuration is invalid.
 pub fn run_load_test(config: &LoadTestConfig) -> Result<LoadTestResult, String> {
     config.validate()?;

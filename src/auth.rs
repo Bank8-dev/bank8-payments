@@ -22,6 +22,7 @@ pub use sentin8::auth::client::AuthContext;
 
 /// Verify the Bearer token and return the auth context (steps 1–4: identity
 /// + signature + expiry + tenant). NO scope check — step 5
+///
 /// (`crate::policy::require`) is the authorization decision.
 pub async fn verify_token(
     config: &PaymentsConfig,

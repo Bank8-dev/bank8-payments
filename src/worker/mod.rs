@@ -253,8 +253,10 @@ async fn sse_consume_loop(state: Arc<WorkerState>) {
 /// - `waiting` → `resume_workflow` (async callback / manual decision path)
 /// - `failed` → `retry_workflow` (engine re-runs from current_step)
 /// 4. A pending/running Flow workflow is already executing in the engine
+///
 /// (spawned at workflow creation) — nothing to do.
 /// 5. An instruction with **no** Flow workflow cannot progress by itself;
+///
 /// it is marked `failed` with a reason instead of being silently
 /// completed (a fictional completion is the most dangerous state in a
 /// payments system).

@@ -111,6 +111,7 @@ pub fn parse_config_pack(
 /// - every resource type is in `SUPPORTED_RESOURCES`
 /// - every resource has a non-empty `resource_id`
 /// - manifest `resources` list matches the actual resource files
+///
 /// Story.
 pub fn validate_config_pack(pack: &CluConfigPack) -> Result<(), String> {
     if pack.manifest.name.trim().is_empty() {

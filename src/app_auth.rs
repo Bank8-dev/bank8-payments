@@ -287,7 +287,9 @@ pub struct AbacPolicy {
 /// - `resource_type` equals `context.resource_type`
 /// - `action` equals `context.action`
 /// - Every key in `conditions` is present in `context` with a matching value
+///
 /// (scalar equality, or membership when the condition is an array).
+///
 /// Returns `Ok(true)` when the policy matches and the effect is `Allow`,
 /// `Ok(false)` when it matches and the effect is `Deny` or when it does not
 /// match. Returns `Err` only when the context is not a JSON object.
