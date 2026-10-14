@@ -120,16 +120,15 @@ pub async fn transition_with_audit(
     let mut tx = pool.begin().await.map_err(|e| format!("begin: {e}"))?;
 
     // Load current state.
-    let current: String = sqlx::query_scalar(
-        "SELECT state FROM instructions WHERE id = $1 FOR UPDATE",
-    )
-    .bind(instruction_id)
-    .fetch_one(&mut *tx)
-    .await
-    .map_err(|e| format!("load state: {e}"))?;
+    let current: String =
+        sqlx::query_scalar("SELECT state FROM instructions WHERE id = $1 FOR UPDATE")
+            .bind(instruction_id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(|e| format!("load state: {e}"))?;
 
-    let from = InstructionState::from_str(&current)
-        .ok_or_else(|| format!("unknown state: {current}"))?;
+    let from =
+        InstructionState::from_str(&current).ok_or_else(|| format!("unknown state: {current}"))?;
 
     // Self-transition is idempotent no-op.
     if from == to {

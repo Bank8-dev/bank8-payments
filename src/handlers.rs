@@ -15,8 +15,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
-use uuid::Uuid;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 use crate::auth;
 use crate::config::PaymentsConfig;
@@ -53,14 +53,22 @@ pub(crate) fn bearer_token_of(headers: &HeaderMap) -> Option<String> {
 
 /// Extended tenant context — passes admin flags +
 /// Auth user id for holder-scoped RLS on `cardholders`.
-pub(crate) async fn set_tenant_context_ext(conn: &mut sqlx::PgConnection, auth: &crate::auth::AuthContext) {
-    let _ = sqlx::query("SELECT sentin8_set_tenant_context($1, $2, $3, $4, $5, false, $6, $7, 'payments')")
-        .bind(auth.env_id())
-        .bind(&auth.claims.sub).bind(&auth.claims.token_tp)
-        .bind(&auth.claims.scope).bind(auth.is_platform_admin())
-        .bind(auth.claims.is_env_admin())
-        .bind(auth.claims.sentin8_auth_user_uuid())
-        .execute(conn).await;
+pub(crate) async fn set_tenant_context_ext(
+    conn: &mut sqlx::PgConnection,
+    auth: &crate::auth::AuthContext,
+) {
+    let _ = sqlx::query(
+        "SELECT sentin8_set_tenant_context($1, $2, $3, $4, $5, false, $6, $7, 'payments')",
+    )
+    .bind(auth.env_id())
+    .bind(&auth.claims.sub)
+    .bind(&auth.claims.token_tp)
+    .bind(&auth.claims.scope)
+    .bind(auth.is_platform_admin())
+    .bind(auth.claims.is_env_admin())
+    .bind(auth.claims.sentin8_auth_user_uuid())
+    .execute(conn)
+    .await;
 }
 
 /// Resolve the caller's `ledger.customers` id for holder callers (§4.3c).
@@ -167,22 +175,32 @@ pub async fn create_instruction(
     Json(req): Json<CreateInstructionRequest>,
 ) -> Result<Json<InstructionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::InstructionsSync)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::InstructionsSync)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:write"),
+    )
+    .await?;
     let mut tx = state.pool.begin().await.map_err(err_db)?;
     set_tenant_context(&mut tx, a.env_id()).await;
 
     // Idempotency check. If an explicit key is not provided, derive one from
     // the input payload using UUIDv5 (Story ).
-    let idempotency_key = req.idempotency_key.clone().unwrap_or_else(|| {
-        crate::idempotency::derive_from_payload(&req.input).to_string()
-    });
+    let idempotency_key = req
+        .idempotency_key
+        .clone()
+        .unwrap_or_else(|| crate::idempotency::derive_from_payload(&req.input).to_string());
 
     let existing: Option<Uuid> = sqlx::query_scalar(
         "SELECT id FROM instructions WHERE idempotency_key = $1 AND env_id = $2",
     )
-    .bind(&idempotency_key).bind(a.env_id())
-    .fetch_optional(&mut *tx).await.map_err(err_db)?;
+    .bind(&idempotency_key)
+    .bind(a.env_id())
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(err_db)?;
     if let Some(id) = existing {
         let row = sqlx::query(
             r#"SELECT id, instruction_logic_id, state, correlation_id, input, output, created_at, completed_at
@@ -222,7 +240,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     tx.commit().await.map_err(err_db)?;
 
@@ -239,7 +258,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
 
     // Story — interruption mode for urgent instructions.
     if crate::interruption::should_interrupt(&req.input) {
-        let _ = crate::interruption::interrupt_pending(&state.pool, _payment_id, instruction_id).await;
+        let _ =
+            crate::interruption::interrupt_pending(&state.pool, _payment_id, instruction_id).await;
     }
 
     // Delegate to Flow if inline logic provided.
@@ -249,7 +269,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                 &state.config.sentin8_flow_url,
                 sentin8::middleware::http_client::Sentin8HttpClient::from_client(http.clone()),
             ),
-            None => sentin8_flow_sdk::client::FlowClient::new_dev_plain(state.config.sentin8_flow_url.clone()),
+            None => sentin8_flow_sdk::client::FlowClient::new_dev_plain(
+                state.config.sentin8_flow_url.clone(),
+            ),
         };
         let callback = sentin8_flow_sdk::client::CallbackConfig {
             base_url: format!("http://localhost:{}", state.config.port),
@@ -296,7 +318,13 @@ pub async fn list_instructions(
     Query(q): Query<ListInstructionsQuery>,
 ) -> Result<Json<Vec<InstructionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -335,7 +363,13 @@ pub async fn get_instruction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<InstructionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -365,12 +399,22 @@ pub async fn retry_instruction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<InstructionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    crate::state_machine::transition(&state.pool, id, crate::state_machine::InstructionState::Pending)
-        .await
-        .map_err(|e| (StatusCode::CONFLICT, e))?;
+    crate::state_machine::transition(
+        &state.pool,
+        id,
+        crate::state_machine::InstructionState::Pending,
+    )
+    .await
+    .map_err(|e| (StatusCode::CONFLICT, e))?;
 
     let row = sqlx::query(
         r#"SELECT id, instruction_logic_id, state, correlation_id, input, output, created_at, completed_at
@@ -390,7 +434,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_instruction(&row)))
 }
@@ -414,7 +459,13 @@ pub async fn cancel_instruction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<InstructionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     crate::state_machine::transition_with_audit(
@@ -445,7 +496,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_instruction(&row)))
 }
@@ -468,14 +520,22 @@ pub async fn list_payments(
     headers: HeaderMap,
 ) -> Result<Json<Vec<PaymentResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payments:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payments:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
         r#"SELECT id, instruction_id, payment_type, amount, currency, status, created_at
              FROM payments ORDER BY created_at DESC LIMIT 100"#,
     )
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_payment).collect()))
 }
 
@@ -498,14 +558,23 @@ pub async fn get_payment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<PaymentResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payments:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payments:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
         r#"SELECT id, instruction_id, payment_type, amount, currency, status, created_at
              FROM payments WHERE id = $1"#,
     )
-    .bind(id).fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(id)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(row_to_payment(&row)))
 }
 
@@ -529,7 +598,13 @@ pub async fn create_logic(
     Json(req): Json<CreateLogicRequest>,
 ) -> Result<Json<LogicResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:logics:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:logics:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -537,8 +612,12 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
            VALUES ($1, $2, $3, 'active')
            RETURNING id, name, version, steps, status, created_at"#,
     )
-    .bind(a.env_id()).bind(&req.name).bind(&req.steps)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(a.env_id())
+    .bind(&req.name)
+    .bind(&req.steps)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let logic_id: Uuid = row.get("id");
 
     let _ = event_streaming::emit_event_tx(
@@ -553,7 +632,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_logic(&row)))
 }
@@ -574,7 +654,13 @@ pub async fn list_logics(
     headers: HeaderMap,
 ) -> Result<Json<Vec<LogicResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:logics:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:logics:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -593,7 +679,13 @@ pub async fn create_payment_instrument(
     Json(req): Json<crate::routing::CreatePaymentInstrumentRequest>,
 ) -> Result<Json<crate::routing::PaymentInstrumentResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payment-instruments:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payment-instruments:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -605,10 +697,16 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
               AND status = 'active'"#,
     )
     .bind(a.env_id())
-    .bind(&req.bank_identifier).bind(&req.instrument_identifier)
-    .fetch_optional(&mut *conn).await.map_err(err_db)?;
+    .bind(&req.bank_identifier)
+    .bind(&req.instrument_identifier)
+    .fetch_optional(&mut *conn)
+    .await
+    .map_err(err_db)?;
     if let Some(id) = existing {
-        return Err((StatusCode::CONFLICT, format!("active payment instrument already exists: {id}")));
+        return Err((
+            StatusCode::CONFLICT,
+            format!("active payment instrument already exists: {id}"),
+        ));
     }
 
     let row = sqlx::query(
@@ -625,7 +723,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .bind(&req.instrument_identifier)
     .bind(&req.display_name)
     .bind(req.routing_information.unwrap_or(serde_json::json!({})))
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let instrument_id: Uuid = row.get("id");
 
     let _ = event_streaming::emit_event_tx(
@@ -640,7 +740,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(crate::routing::row_to_payment_instrument(&row)))
 }
@@ -651,7 +752,13 @@ pub async fn list_payment_instruments(
     headers: HeaderMap,
 ) -> Result<Json<Vec<crate::routing::PaymentInstrumentResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payment-instruments:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payment-instruments:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -660,8 +767,14 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
              FROM payment_instruments
             ORDER BY created_at DESC LIMIT 100"#,
     )
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
-    Ok(Json(rows.iter().map(crate::routing::row_to_payment_instrument).collect()))
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
+    Ok(Json(
+        rows.iter()
+            .map(crate::routing::row_to_payment_instrument)
+            .collect(),
+    ))
 }
 
 /// `GET /v1/payment-instruments/{id}` — get a payment instrument.
@@ -671,7 +784,13 @@ pub async fn get_payment_instrument(
     Path(id): Path<Uuid>,
 ) -> Result<Json<crate::routing::PaymentInstrumentResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payment-instruments:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payment-instruments:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -679,7 +798,10 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                   status, display_name, routing_information, created_at, updated_at
              FROM payment_instruments WHERE id = $1"#,
     )
-    .bind(id).fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(id)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(crate::routing::row_to_payment_instrument(&row)))
 }
 
@@ -691,7 +813,13 @@ pub async fn update_payment_instrument(
     Json(req): Json<crate::routing::UpdatePaymentInstrumentRequest>,
 ) -> Result<Json<crate::routing::PaymentInstrumentResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payment-instruments:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payment-instruments:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -713,7 +841,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .bind(req.status.as_deref())
     .bind(req.display_name.as_deref())
     .bind(req.routing_information.as_ref())
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
 
     let _ = event_streaming::emit_event_tx(
         &mut *conn,
@@ -727,7 +857,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(crate::routing::row_to_payment_instrument(&row)))
 }
@@ -739,14 +870,23 @@ pub async fn delete_payment_instrument(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payment-instruments:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payment-instruments:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     sqlx::query(
         r#"UPDATE payment_instruments SET status = 'inactive', updated_at = now()
            WHERE id = $1"#,
     )
-    .bind(id).execute(&mut *conn).await.map_err(err_db)?;
+    .bind(id)
+    .execute(&mut *conn)
+    .await
+    .map_err(err_db)?;
 
     let _ = event_streaming::emit_event_tx(
         &mut *conn,
@@ -760,7 +900,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(serde_json::json!({ "id": id, "status": "inactive" })))
 }
@@ -774,7 +915,13 @@ pub async fn create_account_link(
     Json(req): Json<crate::routing::CreateAccountLinkRequest>,
 ) -> Result<Json<crate::routing::AccountLinkResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:account-links:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:account-links:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -784,8 +931,11 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             r#"UPDATE account_links SET is_default = false, updated_at = now()
                WHERE account_id = $1 AND env_id = $2"#,
         )
-        .bind(req.account_id).bind(a.env_id())
-        .execute(&mut *conn).await.map_err(err_db)?;
+        .bind(req.account_id)
+        .bind(a.env_id())
+        .execute(&mut *conn)
+        .await
+        .map_err(err_db)?;
     }
 
     let row = sqlx::query(
@@ -802,7 +952,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .bind(&req.core_account_id)
     .bind(req.is_default)
     .bind(&req.display_name)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let account_link_id: Uuid = row.get("id");
 
     let _ = event_streaming::emit_event_tx(
@@ -817,7 +969,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(crate::routing::row_to_account_link(&row)))
 }
@@ -828,7 +981,13 @@ pub async fn list_account_links(
     headers: HeaderMap,
 ) -> Result<Json<Vec<crate::routing::AccountLinkResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:account-links:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:account-links:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -837,8 +996,14 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
              FROM account_links
             ORDER BY created_at DESC LIMIT 100"#,
     )
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
-    Ok(Json(rows.iter().map(crate::routing::row_to_account_link).collect()))
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
+    Ok(Json(
+        rows.iter()
+            .map(crate::routing::row_to_account_link)
+            .collect(),
+    ))
 }
 
 /// `GET /v1/account-links/{id}` — get an account link.
@@ -848,7 +1013,13 @@ pub async fn get_account_link(
     Path(id): Path<Uuid>,
 ) -> Result<Json<crate::routing::AccountLinkResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:account-links:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:account-links:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -856,7 +1027,10 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                   is_default, status, display_name, created_at, updated_at
              FROM account_links WHERE id = $1"#,
     )
-    .bind(id).fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(id)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(crate::routing::row_to_account_link(&row)))
 }
 
@@ -867,13 +1041,20 @@ pub async fn delete_account_link(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:account-links:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:account-links:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    sqlx::query(
-        "UPDATE account_links SET status = 'inactive', updated_at = now() WHERE id = $1",
-    )
-    .bind(id).execute(&mut *conn).await.map_err(err_db)?;
+    sqlx::query("UPDATE account_links SET status = 'inactive', updated_at = now() WHERE id = $1")
+        .bind(id)
+        .execute(&mut *conn)
+        .await
+        .map_err(err_db)?;
 
     let _ = event_streaming::emit_event_tx(
         &mut *conn,
@@ -887,7 +1068,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(serde_json::json!({ "id": id, "status": "inactive" })))
 }
@@ -915,7 +1097,13 @@ pub async fn create_rule(
     Json(req): Json<crate::rules::CreateRuleRequest>,
 ) -> Result<Json<crate::rules::RuleResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rule_type = req.rule_type.unwrap_or_else(|| "basic".into());
@@ -926,10 +1114,15 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
            RETURNING id, name, rule_type, expression, action, status, version,
                      active_version_id, expected_parameters, created_at, updated_at"#,
     )
-    .bind(a.env_id()).bind(&req.name)
-    .bind(&rule_type).bind(&req.expression).bind(&req.action)
+    .bind(a.env_id())
+    .bind(&req.name)
+    .bind(&rule_type)
+    .bind(&req.expression)
+    .bind(&req.action)
     .bind(req.expected_parameters.unwrap_or(serde_json::json!([])))
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let rule_id: Uuid = row.get("id");
 
     let _ = event_streaming::emit_event_tx(
@@ -944,7 +1137,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(crate::rules::row_to_rule(&row)))
 }
@@ -965,7 +1159,13 @@ pub async fn list_rules(
     headers: HeaderMap,
 ) -> Result<Json<Vec<crate::rules::RuleResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -973,7 +1173,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                   active_version_id, expected_parameters, created_at, updated_at
              FROM rules ORDER BY created_at DESC"#,
     )
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(rows.iter().map(crate::rules::row_to_rule).collect()))
 }
 
@@ -997,7 +1199,13 @@ pub async fn publish_rule_version(
     Json(req): Json<crate::rules::PublishRuleVersionRequest>,
 ) -> Result<Json<crate::rules::RuleVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:publish")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:publish"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -1016,8 +1224,13 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
            VALUES ($1, $2, $3, $4, $5, 'published')
            RETURNING id, rule_id, version, implementation, status, created_at"#,
     )
-    .bind(a.env_id()).bind(id).bind(next_version).bind(&req.implementation)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(a.env_id())
+    .bind(id)
+    .bind(next_version)
+    .bind(&req.implementation)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
 
     // Update the active_version_id on the rule.
     let version_id: Uuid = row.get("id");
@@ -1025,8 +1238,12 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         r#"UPDATE rules SET active_version_id = $2, version = $3, updated_at = now()
            WHERE id = $1"#,
     )
-    .bind(id).bind(version_id).bind(next_version)
-    .execute(&mut *conn).await.map_err(err_db)?;
+    .bind(id)
+    .bind(version_id)
+    .bind(next_version)
+    .execute(&mut *conn)
+    .await
+    .map_err(err_db)?;
 
     let _ = event_streaming::emit_event_tx(
         &mut *conn,
@@ -1040,7 +1257,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(crate::rules::RuleVersionResponse {
         id: row.get("id"),
@@ -1059,7 +1277,13 @@ pub async fn create_rule_set(
     Json(req): Json<crate::rules::CreateRuleSetRequest>,
 ) -> Result<Json<crate::rules::RuleSetResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -1067,8 +1291,12 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
            VALUES ($1, $2, $3, 'active')
            RETURNING id, name, description, status, version, created_at, updated_at"#,
     )
-    .bind(a.env_id()).bind(&req.name).bind(&req.description)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(a.env_id())
+    .bind(&req.name)
+    .bind(&req.description)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let rule_set_id: Uuid = row.get("id");
 
     // Add rules to the rule set.
@@ -1077,17 +1305,23 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             sqlx::query(
                 "INSERT INTO rule_set_rules (rule_set_id, rule_id, sort_order) VALUES ($1, $2, $3)",
             )
-            .bind(rule_set_id).bind(rule_id).bind(i as i32)
-            .execute(&mut *conn).await.ok();
+            .bind(rule_set_id)
+            .bind(rule_id)
+            .bind(i as i32)
+            .execute(&mut *conn)
+            .await
+            .ok();
         }
         // Create a version with these rule IDs.
         let _ = sqlx::query(
             r#"INSERT INTO rule_set_versions (env_id, rule_set_id, version, rule_ids, status)
                VALUES ($1, $2, 1, $3, 'published')"#,
         )
-        .bind(a.env_id()).bind(rule_set_id)
+        .bind(a.env_id())
+        .bind(rule_set_id)
         .bind(serde_json::json!(rule_ids))
-        .execute(&mut *conn).await;
+        .execute(&mut *conn)
+        .await;
     }
 
     let _ = event_streaming::emit_event_tx(
@@ -1102,7 +1336,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(crate::rules::row_to_rule_set(&row)))
 }
@@ -1113,15 +1348,25 @@ pub async fn list_rule_sets(
     headers: HeaderMap,
 ) -> Result<Json<Vec<crate::rules::RuleSetResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
         r#"SELECT id, name, description, status, version, created_at, updated_at
              FROM rule_sets ORDER BY created_at DESC"#,
     )
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
-    Ok(Json(rows.iter().map(crate::rules::row_to_rule_set).collect()))
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
+    Ok(Json(
+        rows.iter().map(crate::rules::row_to_rule_set).collect(),
+    ))
 }
 
 // ── Parameters API (Story ) ──────────────────────────────────────
@@ -1188,7 +1433,13 @@ pub async fn create_parameter(
     Json(req): Json<CreateParameterRequest>,
 ) -> Result<Json<ParameterResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:parameters:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:parameters:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -1201,13 +1452,12 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         crate::parameters::ParameterType::String | crate::parameters::ParameterType::DateTime => {
             serde_json::Value::String(req.value.clone())
         }
-        crate::parameters::ParameterType::Decimal => {
-            serde_json::Value::String(req.value.clone())
-        }
+        crate::parameters::ParameterType::Decimal => serde_json::Value::String(req.value.clone()),
         _ => serde_json::from_str(&req.value)
             .map_err(|e| (StatusCode::BAD_REQUEST, format!("invalid JSON value: {e}")))?,
     };
-    ptype.validate_value(&value_json)
+    ptype
+        .validate_value(&value_json)
         .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
 
     let sql = format!(
@@ -1218,9 +1468,15 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
            RETURNING {PARAM_COLUMNS}"#
     );
     let row = sqlx::query(&sql)
-        .bind(a.env_id()).bind(&req.name).bind(&req.value)
-        .bind(ptype.as_str()).bind(req.payment_instrument_id).bind(&req.description)
-        .fetch_one(&mut *conn).await.map_err(err_db)?;
+        .bind(a.env_id())
+        .bind(&req.name)
+        .bind(&req.value)
+        .bind(ptype.as_str())
+        .bind(req.payment_instrument_id)
+        .bind(&req.description)
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
     let parameter_id: Uuid = row.get("id");
 
     let _ = event_streaming::emit_event_tx(
@@ -1235,7 +1491,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_parameter(&row)))
 }
@@ -1246,13 +1503,22 @@ pub async fn list_parameters(
     headers: HeaderMap,
 ) -> Result<Json<Vec<ParameterResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:parameters:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:parameters:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
         "SELECT {PARAM_COLUMNS} FROM parameters WHERE status = 'active' ORDER BY created_at DESC LIMIT 100"
     );
-    let rows = sqlx::query(&sql).fetch_all(&mut *conn).await.map_err(err_db)?;
+    let rows = sqlx::query(&sql)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_parameter).collect()))
 }
 
@@ -1263,13 +1529,23 @@ pub async fn get_parameter(
     Path(id): Path<Uuid>,
 ) -> Result<Json<ParameterResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:parameters:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:parameters:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!("SELECT {PARAM_COLUMNS} FROM parameters WHERE id = $1");
     // Note: returns the row even if soft-deleted, so callers can see the
     // status. Resolution queries (resolve_parameter) filter on status='active'.
-    let row = sqlx::query(&sql).bind(id).fetch_one(&mut *conn).await.map_err(err_db)?;
+    let row = sqlx::query(&sql)
+        .bind(id)
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(row_to_parameter(&row)))
 }
 
@@ -1281,13 +1557,20 @@ pub async fn update_parameter(
     Json(req): Json<UpdateParameterRequest>,
 ) -> Result<Json<ParameterResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:parameters:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:parameters:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
     // If updating the value and/or type, validate the new value against the
     // (new or existing) type.
-    if let (Some(new_type), Some(new_value)) = (req.parameter_type.as_deref(), req.value.as_deref()) {
+    if let (Some(new_type), Some(new_value)) = (req.parameter_type.as_deref(), req.value.as_deref())
+    {
         let ptype = crate::parameters::ParameterType::from_str(new_type)
             .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
         let value_json = match ptype {
@@ -1299,7 +1582,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             _ => serde_json::from_str(new_value)
                 .map_err(|e| (StatusCode::BAD_REQUEST, format!("invalid JSON value: {e}")))?,
         };
-        ptype.validate_value(&value_json).map_err(|e| (StatusCode::BAD_REQUEST, e))?;
+        ptype
+            .validate_value(&value_json)
+            .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     }
 
     let sql = format!(
@@ -1319,7 +1604,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         .bind(req.parameter_type.as_deref())
         .bind(req.payment_instrument_id)
         .bind(req.description.as_deref())
-        .fetch_one(&mut *conn).await.map_err(err_db)?;
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
 
     let _ = event_streaming::emit_event_tx(
         &mut *conn,
@@ -1333,7 +1620,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_parameter(&row)))
 }
@@ -1347,7 +1635,13 @@ pub async fn delete_parameter(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:parameters:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:parameters:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     sqlx::query(
@@ -1358,7 +1652,10 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                   updated_at = now()
             WHERE id = $1"#,
     )
-    .bind(id).execute(&mut *conn).await.map_err(err_db)?;
+    .bind(id)
+    .execute(&mut *conn)
+    .await
+    .map_err(err_db)?;
 
     let _ = event_streaming::emit_event_tx(
         &mut *conn,
@@ -1372,7 +1669,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(serde_json::json!({ "id": id, "status": "deleted" })))
 }
@@ -1417,8 +1715,14 @@ pub async fn upload_file(
     Json(req): Json<UploadFileRequest>,
 ) -> Result<Json<FileResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -1439,15 +1743,23 @@ pub async fn list_files(
     headers: HeaderMap,
 ) -> Result<Json<Vec<FileResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
         r#"SELECT id, filename, content_type, size_bytes, sentin8_buck_path, status, created_at
              FROM files ORDER BY created_at DESC LIMIT 100"#,
     )
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_file).collect()))
 }
 
@@ -1458,15 +1770,24 @@ pub async fn get_file(
     Path(id): Path<Uuid>,
 ) -> Result<Json<FileResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
         r#"SELECT id, filename, content_type, size_bytes, sentin8_buck_path, status, created_at
              FROM files WHERE id = $1"#,
     )
-    .bind(id).fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(id)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(row_to_file(&row)))
 }
 
@@ -1505,8 +1826,14 @@ pub async fn create_instruction_file(
     Json(req): Json<CreateInstructionFileRequest>,
 ) -> Result<Json<InstructionFileResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     // Validate direction.
@@ -1518,8 +1845,12 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
            RETURNING id, file_id, name, direction, status, created_at"#,
     )
     .bind(a.env_id())
-    .bind(req.file_id).bind(&req.name).bind(&req.direction)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(req.file_id)
+    .bind(&req.name)
+    .bind(&req.direction)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(row_to_instruction_file(&row)))
 }
 
@@ -1529,15 +1860,23 @@ pub async fn list_instruction_files(
     headers: HeaderMap,
 ) -> Result<Json<Vec<InstructionFileResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
         r#"SELECT id, file_id, name, direction, status, created_at
              FROM instruction_files ORDER BY created_at DESC LIMIT 100"#,
     )
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_instruction_file).collect()))
 }
 
@@ -1570,7 +1909,9 @@ pub struct CreateSpecificationRequest {
     pub calendar_id: Option<Uuid>,
 }
 
-fn default_capacity_limit() -> i32 { 1000 }
+fn default_capacity_limit() -> i32 {
+    1000
+}
 
 /// `POST /v1/instruction-file-specifications` — create a specification.
 pub async fn create_specification(
@@ -1579,8 +1920,14 @@ pub async fn create_specification(
     Json(req): Json<CreateSpecificationRequest>,
 ) -> Result<Json<InstructionFileSpecificationResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -1600,15 +1947,23 @@ pub async fn list_specifications(
     headers: HeaderMap,
 ) -> Result<Json<Vec<InstructionFileSpecificationResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
         r#"SELECT id, name, capacity_limit, calendar_id, status, created_at
              FROM instruction_file_specifications ORDER BY created_at DESC LIMIT 100"#,
     )
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_specification).collect()))
 }
 
@@ -1643,15 +1998,23 @@ pub async fn list_manual_decisions(
     headers: HeaderMap,
 ) -> Result<Json<Vec<ManualDecisionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::ManualDecisions)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:manual-decisions:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::ManualDecisions)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:manual-decisions:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
         r#"SELECT id, instruction_id, decision_type, status, submitted_by, submitted_at, created_at
              FROM manual_decisions ORDER BY created_at DESC LIMIT 100"#,
     )
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_manual_decision).collect()))
 }
 
@@ -1662,15 +2025,24 @@ pub async fn get_manual_decision(
     Path(id): Path<Uuid>,
 ) -> Result<Json<ManualDecisionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::ManualDecisions)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:manual-decisions:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::ManualDecisions)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:manual-decisions:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
         r#"SELECT id, instruction_id, decision_type, status, submitted_by, submitted_at, created_at
              FROM manual_decisions WHERE id = $1"#,
     )
-    .bind(id).fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(id)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(row_to_manual_decision(&row)))
 }
 
@@ -1689,8 +2061,14 @@ pub async fn submit_manual_decision(
     Json(req): Json<SubmitManualDecisionRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::ManualDecisions)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:manual-decisions:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::ManualDecisions)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:manual-decisions:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -1702,8 +2080,11 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             WHERE id = $2
            RETURNING id, status"#,
     )
-    .bind(a.subject()).bind(id)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(a.subject())
+    .bind(id)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
 
     // Create a task for the manual decision submission.
     let task_id = crate::manual_decisions::create_task(
@@ -1755,7 +2136,13 @@ pub async fn execute_step(
 ) -> Result<Json<ProxyBackResponse>, (StatusCode, String)> {
     use sqlx::Row;
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:logics:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:logics:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     // Use system context for proxy-back — the workflow ID carries the org/env.
@@ -1763,24 +2150,37 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     match req.step_kind.as_str() {
         "MatchPaymentInstrumentStep" => {
             // Extract routing info from input, match against payment_instruments.
-            let bank_id = req.input.get("bank_identifier").and_then(|v| v.as_str()).unwrap_or("");
-            let instrument_id = req.input.get("instrument_identifier").and_then(|v| v.as_str()).unwrap_or("");
+            let bank_id = req
+                .input
+                .get("bank_identifier")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let instrument_id = req
+                .input
+                .get("instrument_identifier")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
             let row = sqlx::query(
                 r#"SELECT id, account_id FROM payment_instruments
                     WHERE status = 'active' AND (
                         bank_identifier = $1 OR instrument_identifier = $2
                     ) LIMIT 1"#,
             )
-            .bind(bank_id).bind(instrument_id)
-            .fetch_optional(&mut *conn).await;
+            .bind(bank_id)
+            .bind(instrument_id)
+            .fetch_optional(&mut *conn)
+            .await;
             match row {
                 Ok(Some(r)) => {
                     let id: Uuid = r.get("id");
                     let account_id: Uuid = r.get("account_id");
                     Ok(Json(ProxyBackResponse {
                         status: "success".into(),
-                        output: Some(serde_json::json!({ "instrument_id" : id, "account_id" : account_id })),
-                        error: None, next_step: None,
+                        output: Some(
+                            serde_json::json!({ "instrument_id" : id, "account_id" : account_id }),
+                        ),
+                        error: None,
+                        next_step: None,
                     }))
                 }
                 Ok(None) => Ok(Json(ProxyBackResponse {
@@ -1790,8 +2190,10 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                     next_step: None,
                 })),
                 Err(e) => Ok(Json(ProxyBackResponse {
-                    status: "failed".into(), output: None,
-                    error: Some(format!("db error: {e}")), next_step: None,
+                    status: "failed".into(),
+                    output: None,
+                    error: Some(format!("db error: {e}")),
+                    next_step: None,
                 })),
             }
         }
@@ -1841,10 +2243,7 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                                 ptype, src_id, dst_id, amount, denom, desc,
                             );
                             match serde_json::to_value(&instr) {
-                                Ok(v) => (
-                                    crate::postings::batch_id_for(iid, ptype),
-                                    vec![v],
-                                ),
+                                Ok(v) => (crate::postings::batch_id_for(iid, ptype), vec![v]),
                                 Err(e) => {
                                     return Ok(Json(ProxyBackResponse {
                                         status: "failed".into(),
@@ -1890,14 +2289,15 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
 
             let http = match state.config.ledger_http.clone() {
                 Some(c) => c,
-                None => {
-                    return Ok(Json(ProxyBackResponse {
-                        status: "failed".into(),
-                        output: None,
-                        error: Some("ledger posting transport absent (workload certificate not provisioned)".into()),
-                        next_step: None,
-                    }))
-                }
+                None => return Ok(Json(ProxyBackResponse {
+                    status: "failed".into(),
+                    output: None,
+                    error: Some(
+                        "ledger posting transport absent (workload certificate not provisioned)"
+                            .into(),
+                    ),
+                    next_step: None,
+                })),
             };
             let resp = http
                 .post(format!("{}/v1/postings", state.config.ledger_url))
@@ -1905,20 +2305,26 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                     "batch_id": batch_id,
                     "instructions": instructions,
                 }))
-                .send().await;
+                .send()
+                .await;
             match resp {
                 Ok(r) if r.status().is_success() => Ok(Json(ProxyBackResponse {
                     status: "success".into(),
                     output: Some(serde_json::json!({ "posted": true, "batch_id": batch_id })),
-                    error: None, next_step: None,
+                    error: None,
+                    next_step: None,
                 })),
                 Ok(r) => Ok(Json(ProxyBackResponse {
-                    status: "failed".into(), output: None,
-                    error: Some(format!("ledger posting: HTTP {}", r.status())), next_step: None,
+                    status: "failed".into(),
+                    output: None,
+                    error: Some(format!("ledger posting: HTTP {}", r.status())),
+                    next_step: None,
                 })),
                 Err(e) => Ok(Json(ProxyBackResponse {
-                    status: "failed".into(), output: None,
-                    error: Some(format!("ledger posting: {e}")), next_step: None,
+                    status: "failed".into(),
+                    output: None,
+                    error: Some(format!("ledger posting: {e}")),
+                    next_step: None,
                 })),
             }
         }
@@ -1929,20 +2335,26 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                 r#"SELECT id, account_id FROM account_links
                     WHERE status = 'active' AND is_default = true LIMIT 1"#,
             )
-            .fetch_optional(&mut *conn).await;
+            .fetch_optional(&mut *conn)
+            .await;
             match row {
                 Ok(Some(r)) => {
                     let id: Uuid = r.get("id");
                     let account_id: Uuid = r.get("account_id");
                     Ok(Json(ProxyBackResponse {
                         status: "success".into(),
-                        output: Some(serde_json::json!({ "link_id" : id, "account_id" : account_id })),
-                        error: None, next_step: None,
+                        output: Some(
+                            serde_json::json!({ "link_id" : id, "account_id" : account_id }),
+                        ),
+                        error: None,
+                        next_step: None,
                     }))
                 }
                 _ => Ok(Json(ProxyBackResponse {
-                    status: "failed".into(), output: None,
-                    error: Some("no default account link found".into()), next_step: None,
+                    status: "failed".into(),
+                    output: None,
+                    error: Some("no default account link found".into()),
+                    next_step: None,
                 })),
             }
         }
@@ -1950,127 +2362,159 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             // Submit to the payment scheme through the scheme flow processors
             // (Story ). Config selects the scheme +
             // direction; the payload comes from the step input.
-            let scheme = req.step_config.as_ref().and_then(|c| c.get("scheme"))
-                .and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let flow = req.step_config.as_ref().and_then(|c| c.get("flow"))
-                .and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let scheme = req
+                .step_config
+                .as_ref()
+                .and_then(|c| c.get("scheme"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let flow = req
+                .step_config
+                .as_ref()
+                .and_then(|c| c.get("flow"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
             match (scheme.as_str(), flow.as_str()) {
-                ("tips", "inbound") => {
-                    Ok(crate::tips_flows::process_tips_inbound(&state.pool, &req.input)
+                ("tips", "inbound") => Ok(crate::tips_flows::process_tips_inbound(
+                    &state.pool,
+                    &req.input,
+                )
+                .await
+                .map(|r| submit_response(&r))
+                .unwrap_or_else(submit_failure)),
+                ("tips", "outbound") => Ok(crate::tips_flows::process_tips_outbound(
+                    &state.pool,
+                    &req.input,
+                )
+                .await
+                .map(|r| submit_response(&r))
+                .unwrap_or_else(submit_failure)),
+                ("tips", "inbound_recall") => Ok(crate::tips_flows::process_tips_inbound_recall(
+                    &state.pool,
+                    &req.input,
+                )
+                .await
+                .map(|r| submit_response(&r))
+                .unwrap_or_else(submit_failure)),
+                ("tips", "outbound_recall") => Ok(crate::tips_flows::process_tips_outbound_recall(
+                    &state.pool,
+                    &req.input,
+                )
+                .await
+                .map(|r| submit_response(&r))
+                .unwrap_or_else(submit_failure)),
+                ("tips", "status_request") => Ok(crate::tips_flows::process_tips_status_request(
+                    &state.pool,
+                    &req.input,
+                )
+                .await
+                .map(|r| submit_response(&r))
+                .unwrap_or_else(submit_failure)),
+                ("sepa", "ct_outbound") => Ok(crate::sepa_flows::process_sepa_ct_outbound(
+                    &state.pool,
+                    &req.input,
+                )
+                .await
+                .map(|r| submit_response(&r))
+                .unwrap_or_else(submit_failure)),
+                ("sepa", "ct_inbound") => Ok(crate::sepa_flows::process_sepa_ct_inbound(
+                    &state.pool,
+                    &req.input,
+                )
+                .await
+                .map(|r| submit_response(&r))
+                .unwrap_or_else(submit_failure)),
+                ("sepa", "ct_outbound_rejection") => Ok(
+                    crate::sepa_flows::process_sepa_ct_outbound_rejection(&state.pool, &req.input)
                         .await
                         .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("tips", "outbound") => {
-                    Ok(crate::tips_flows::process_tips_outbound(&state.pool, &req.input)
+                        .unwrap_or_else(submit_failure),
+                ),
+                ("sepa", "ct_outbound_return") => Ok(
+                    crate::sepa_flows::process_sepa_ct_outbound_return(&state.pool, &req.input)
                         .await
                         .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("tips", "inbound_recall") => {
-                    Ok(crate::tips_flows::process_tips_inbound_recall(&state.pool, &req.input)
-                        .await
-                        .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("tips", "outbound_recall") => {
-                    Ok(crate::tips_flows::process_tips_outbound_recall(&state.pool, &req.input)
-                        .await
-                        .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("tips", "status_request") => {
-                    Ok(crate::tips_flows::process_tips_status_request(&state.pool, &req.input)
-                        .await
-                        .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("sepa", "ct_outbound") => {
-                    Ok(crate::sepa_flows::process_sepa_ct_outbound(&state.pool, &req.input)
-                        .await
-                        .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("sepa", "ct_inbound") => {
-                    Ok(crate::sepa_flows::process_sepa_ct_inbound(&state.pool, &req.input)
-                        .await
-                        .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("sepa", "ct_outbound_rejection") => {
-                    Ok(crate::sepa_flows::process_sepa_ct_outbound_rejection(&state.pool, &req.input)
-                        .await
-                        .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("sepa", "ct_outbound_return") => {
-                    Ok(crate::sepa_flows::process_sepa_ct_outbound_return(&state.pool, &req.input)
-                        .await
-                        .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
+                        .unwrap_or_else(submit_failure),
+                ),
                 ("sepa", "ct_inbound_automatic_return") => {
-                    let original_id = req.input.get("original_instruction_id")
+                    let original_id = req
+                        .input
+                        .get("original_instruction_id")
                         .or_else(|| req.input.get("originalInstructionId"))
                         .and_then(|v| v.as_str())
                         .and_then(|s| Uuid::parse_str(s).ok())
                         .ok_or_else(|| {
-                            (StatusCode::BAD_REQUEST, "original_instruction_id is required".into())
+                            (
+                                StatusCode::BAD_REQUEST,
+                                "original_instruction_id is required".into(),
+                            )
                         })?;
-                    Ok(crate::sepa_flows::process_sepa_ct_inbound_automatic_return(&state.pool, original_id)
-                        .await
-                        .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
+                    Ok(crate::sepa_flows::process_sepa_ct_inbound_automatic_return(
+                        &state.pool,
+                        original_id,
+                    )
+                    .await
+                    .map(|r| submit_response(&r))
+                    .unwrap_or_else(submit_failure))
                 }
                 ("sepa", "ct_recall") => {
                     let recall_type = crate::sepa_flows::SepaRecallType::from_str(
-                        req.input.get("recall_type")
+                        req.input
+                            .get("recall_type")
                             .or_else(|| req.input.get("recallType"))
                             .and_then(|v| v.as_str())
                             .unwrap_or("dupl"),
                     )
                     .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
-                    Ok(crate::sepa_flows::process_sepa_ct_recall(&state.pool, &req.input, recall_type)
+                    Ok(crate::sepa_flows::process_sepa_ct_recall(
+                        &state.pool,
+                        &req.input,
+                        recall_type,
+                    )
+                    .await
+                    .map(|r| submit_response(&r))
+                    .unwrap_or_else(submit_failure))
+                }
+                ("b8", "credit_transfer_outbound") => Ok(
+                    crate::b8_flows::process_b8_credit_transfer_outbound(&state.pool, &req.input)
                         .await
                         .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("b8", "credit_transfer_outbound") => {
-                    Ok(crate::b8_flows::process_b8_credit_transfer_outbound(&state.pool, &req.input)
+                        .unwrap_or_else(submit_failure),
+                ),
+                ("b8", "credit_transfer_inbound") => Ok(
+                    crate::b8_flows::process_b8_credit_transfer_inbound(&state.pool, &req.input)
                         .await
                         .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("b8", "credit_transfer_inbound") => {
-                    Ok(crate::b8_flows::process_b8_credit_transfer_inbound(&state.pool, &req.input)
+                        .unwrap_or_else(submit_failure),
+                ),
+                ("b8", "direct_debit_outbound") => Ok(
+                    crate::b8_flows::process_b8_direct_debit_outbound(&state.pool, &req.input)
                         .await
                         .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("b8", "direct_debit_outbound") => {
-                    Ok(crate::b8_flows::process_b8_direct_debit_outbound(&state.pool, &req.input)
+                        .unwrap_or_else(submit_failure),
+                ),
+                ("b8", "direct_debit_inbound") => Ok(
+                    crate::b8_flows::process_b8_direct_debit_inbound(&state.pool, &req.input)
                         .await
                         .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("b8", "direct_debit_inbound") => {
-                    Ok(crate::b8_flows::process_b8_direct_debit_inbound(&state.pool, &req.input)
-                        .await
-                        .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("b8", "onus_a2a_outbound") => {
-                    Ok(crate::b8_flows::process_b8_onus_a2a_outbound(&state.pool, &req.input)
-                        .await
-                        .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
-                ("b8", "onus_a2a_inbound") => {
-                    Ok(crate::b8_flows::process_b8_onus_a2a_inbound(&state.pool, &req.input)
-                        .await
-                        .map(|r| submit_response(&r))
-                        .unwrap_or_else(|e| submit_failure(e)))
-                }
+                        .unwrap_or_else(submit_failure),
+                ),
+                ("b8", "onus_a2a_outbound") => Ok(crate::b8_flows::process_b8_onus_a2a_outbound(
+                    &state.pool,
+                    &req.input,
+                )
+                .await
+                .map(|r| submit_response(&r))
+                .unwrap_or_else(submit_failure)),
+                ("b8", "onus_a2a_inbound") => Ok(crate::b8_flows::process_b8_onus_a2a_inbound(
+                    &state.pool,
+                    &req.input,
+                )
+                .await
+                .map(|r| submit_response(&r))
+                .unwrap_or_else(submit_failure)),
                 (s, f) => Ok(Json(ProxyBackResponse {
                     status: "failed".into(),
                     output: None,
@@ -2082,7 +2526,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         // ── Story : MembershipDirectoryStep ─────────────────────
         "MembershipDirectoryStep" => {
             let bic = req.input.get("bic").and_then(|v| v.as_str()).unwrap_or("");
-            let directory_type = req.input.get("directory_type")
+            let directory_type = req
+                .input
+                .get("directory_type")
                 .or_else(|| req.input.get("directoryType"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("tips");
@@ -2092,16 +2538,19 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                     WHERE directory_type = $1 AND status = 'ready' LIMIT 1"#,
             )
             .bind(directory_type)
-            .fetch_optional(&mut *conn).await;
+            .fetch_optional(&mut *conn)
+            .await;
             match row {
                 Ok(Some(r)) => {
                     let dir_id: Uuid = r.get("id");
                     let entries: serde_json::Value = r.get("entries");
                     // Check if BIC is in the directory entries.
-                    let reachable = entries.as_array()
-                        .map(|arr| arr.iter().any(|e| {
-                            e.get("bic").and_then(|v| v.as_str()) == Some(bic)
-                        }))
+                    let reachable = entries
+                        .as_array()
+                        .map(|arr| {
+                            arr.iter()
+                                .any(|e| e.get("bic").and_then(|v| v.as_str()) == Some(bic))
+                        })
                         .unwrap_or(false);
                     Ok(Json(ProxyBackResponse {
                         status: "success".into(),
@@ -2110,33 +2559,48 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                             "bic": bic,
                             "reachable": reachable,
                         })),
-                        error: None, next_step: None,
+                        error: None,
+                        next_step: None,
                     }))
                 }
                 Ok(None) => Ok(Json(ProxyBackResponse {
-                    status: "failed".into(), output: None,
-                    error: Some(format!("no ready membership directory of type '{directory_type}'")), next_step: None,
+                    status: "failed".into(),
+                    output: None,
+                    error: Some(format!(
+                        "no ready membership directory of type '{directory_type}'"
+                    )),
+                    next_step: None,
                 })),
                 Err(e) => Ok(Json(ProxyBackResponse {
-                    status: "failed".into(), output: None,
-                    error: Some(format!("db error: {e}")), next_step: None,
+                    status: "failed".into(),
+                    output: None,
+                    error: Some(format!("db error: {e}")),
+                    next_step: None,
                 })),
             }
         }
         // ── Story : InstructionFileStep ─────────────────────────
         "InstructionFileStep" => {
             // Group instructions into a file/batch for outbound processing.
-            let instruction_ids = req.input.get("instruction_ids")
+            let instruction_ids = req
+                .input
+                .get("instruction_ids")
                 .or_else(|| req.input.get("instructionIds"))
                 .cloned()
                 .unwrap_or(serde_json::Value::Array(vec![]));
-            let file_name = req.input.get("file_name")
+            let file_name = req
+                .input
+                .get("file_name")
                 .or_else(|| req.input.get("fileName"))
                 .and_then(|v| v.as_str())
-                .unwrap_or("outbound.txt").to_string();
-            let direction = req.input.get("direction")
+                .unwrap_or("outbound.txt")
+                .to_string();
+            let direction = req
+                .input
+                .get("direction")
                 .and_then(|v| v.as_str())
-                .unwrap_or("outbound").to_string();
+                .unwrap_or("outbound")
+                .to_string();
 
             let row = sqlx::query(
                 r#"INSERT INTO instruction_files (name, direction, status)
@@ -2145,7 +2609,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             )
             .bind(&file_name)
             .bind(&direction)
-            .fetch_one(&mut *conn).await;
+            .fetch_one(&mut *conn)
+            .await;
             match row {
                 Ok(r) => {
                     let file_id: Uuid = r.get("id");
@@ -2165,44 +2630,67 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                             "file_name" : file_name,
                             "direction": direction,
                         })),
-                        error: None, next_step: None,
+                        error: None,
+                        next_step: None,
                     }))
                 }
                 Err(e) => Ok(Json(ProxyBackResponse {
-                    status: "failed".into(), output: None,
-                    error: Some(format!("create instruction file: {e}")), next_step: None,
+                    status: "failed".into(),
+                    output: None,
+                    error: Some(format!("create instruction file: {e}")),
+                    next_step: None,
                 })),
             }
         }
         // ── Story : CreateMandateStep ──────────────────────────
         "CreateMandateStep" => {
-            let scheme_creditor_id = req.input.get("scheme_creditor_id")
+            let scheme_creditor_id = req
+                .input
+                .get("scheme_creditor_id")
                 .or_else(|| req.input.get("schemeCreditorId"))
                 .and_then(|v| v.as_str())
-                .unwrap_or("").to_string();
-            let debtor_name = req.input.get("debtor_name")
+                .unwrap_or("")
+                .to_string();
+            let debtor_name = req
+                .input
+                .get("debtor_name")
                 .or_else(|| req.input.get("debtorName"))
                 .and_then(|v| v.as_str())
-                .unwrap_or("").to_string();
-            let debtor_account = req.input.get("debtor_account")
+                .unwrap_or("")
+                .to_string();
+            let debtor_account = req
+                .input
+                .get("debtor_account")
                 .or_else(|| req.input.get("debtorAccount"))
                 .and_then(|v| v.as_str())
-                .unwrap_or("").to_string();
-            let creditor_name = req.input.get("creditor_name")
+                .unwrap_or("")
+                .to_string();
+            let creditor_name = req
+                .input
+                .get("creditor_name")
                 .or_else(|| req.input.get("creditorName"))
                 .and_then(|v| v.as_str())
-                .unwrap_or("").to_string();
-            let creditor_account = req.input.get("creditor_account")
+                .unwrap_or("")
+                .to_string();
+            let creditor_account = req
+                .input
+                .get("creditor_account")
                 .or_else(|| req.input.get("creditorAccount"))
                 .and_then(|v| v.as_str())
-                .unwrap_or("").to_string();
-            let amount_limit = req.input.get("amount_limit")
+                .unwrap_or("")
+                .to_string();
+            let amount_limit = req
+                .input
+                .get("amount_limit")
                 .or_else(|| req.input.get("amountLimit"))
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse::<rust_decimal::Decimal>().ok());
-            let currency = req.input.get("currency")
+            let currency = req
+                .input
+                .get("currency")
                 .and_then(|v| v.as_str())
-                .unwrap_or("CAD").to_string();
+                .unwrap_or("CAD")
+                .to_string();
 
             let row = sqlx::query(
                 r#"INSERT INTO mandates (scheme_creditor_id, debtor_name, debtor_account,
@@ -2229,22 +2717,29 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                             "scheme_mandate_id" : scheme_mandate_id,
                             "status": "active",
                         })),
-                        error: None, next_step: None,
+                        error: None,
+                        next_step: None,
                     }))
                 }
                 Err(e) => Ok(Json(ProxyBackResponse {
-                    status: "failed".into(), output: None,
-                    error: Some(format!("create mandate: {e}")), next_step: None,
+                    status: "failed".into(),
+                    output: None,
+                    error: Some(format!("create mandate: {e}")),
+                    next_step: None,
                 })),
             }
         }
         // ── Story : MatchMandateStep ────────────────────────────
         "MatchMandateStep" => {
-            let debtor_account = req.input.get("debtor_account")
+            let debtor_account = req
+                .input
+                .get("debtor_account")
                 .or_else(|| req.input.get("debtorAccount"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
-            let creditor_account = req.input.get("creditor_account")
+            let creditor_account = req
+                .input
+                .get("creditor_account")
                 .or_else(|| req.input.get("creditorAccount"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
@@ -2256,7 +2751,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             )
             .bind(debtor_account)
             .bind(creditor_account)
-            .fetch_optional(&mut *conn).await;
+            .fetch_optional(&mut *conn)
+            .await;
             match row {
                 Ok(Some(r)) => {
                     let mandate_id: Uuid = r.get("id");
@@ -2269,26 +2765,32 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                             "scheme_mandate_id" : scheme_mandate_id,
                             "mandate_status" : status,
                         })),
-                        error: None, next_step: None,
+                        error: None,
+                        next_step: None,
                     }))
                 }
                 Ok(None) => Ok(Json(ProxyBackResponse {
-                    status: "failed".into(), output: None,
-                    error: Some("no matching mandate found".into()), next_step: None,
+                    status: "failed".into(),
+                    output: None,
+                    error: Some("no matching mandate found".into()),
+                    next_step: None,
                 })),
                 Err(e) => Ok(Json(ProxyBackResponse {
-                    status: "failed".into(), output: None,
-                    error: Some(format!("db error: {e}")), next_step: None,
+                    status: "failed".into(),
+                    output: None,
+                    error: Some(format!("db error: {e}")),
+                    next_step: None,
                 })),
             }
         }
         _ => Ok(Json(ProxyBackResponse {
-            status: "failed".into(), output: None,
-            error: Some(format!("unknown step kind: {}", req.step_kind)), next_step: None,
+            status: "failed".into(),
+            output: None,
+            error: Some(format!("unknown step kind: {}", req.step_kind)),
+            next_step: None,
         })),
     }
 }
-
 
 /// Map a TIPS/SEPA/B8 flow result to a proxy-back response.
 fn submit_response(r: &impl Serialize) -> Json<ProxyBackResponse> {
@@ -2355,7 +2857,13 @@ pub async fn repair_instruction(
     Json(req): Json<RepairRequest>,
 ) -> Result<Json<InstructionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     // Load current instruction row.
@@ -2409,15 +2917,24 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     // and call the Flow repair endpoint. Best-effort: if the workflow is not
     // found or Flow is unavailable, the instruction is left in `pending` for
     // the worker or a retry to pick up.
-    if let Some(corr) = row.try_get::<Option<String>, _>("correlation_id").ok().flatten() {
+    if let Some(corr) = row
+        .try_get::<Option<String>, _>("correlation_id")
+        .ok()
+        .flatten()
+    {
         let client = match state.config.flow_http() {
             Some(http) => sentin8_flow_sdk::client::FlowClient::from_transport(
                 &state.config.sentin8_flow_url,
                 sentin8::middleware::http_client::Sentin8HttpClient::from_client(http.clone()),
             ),
-            None => sentin8_flow_sdk::client::FlowClient::new_dev_plain(state.config.sentin8_flow_url.clone()),
+            None => sentin8_flow_sdk::client::FlowClient::new_dev_plain(
+                state.config.sentin8_flow_url.clone(),
+            ),
         };
-        match client.repair_workflow(&corr, req.rewind_to, Some(&new_input)).await {
+        match client
+            .repair_workflow(&corr, req.rewind_to, Some(&new_input))
+            .await
+        {
             Ok(_) => {
                 // Mark as processing since Flow accepted the repair.
                 let _ = crate::state_machine::transition_with_audit(
@@ -2426,7 +2943,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                     crate::state_machine::InstructionState::Processing,
                     Some(&a.subject()),
                     Some("repair: flow accepted"),
-                ).await;
+                )
+                .await;
             }
             Err(e) => {
                 tracing::warn!(error = %e, instruction_id = %id, "flow repair failed; instruction left pending");
@@ -2446,7 +2964,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_instruction(&updated)))
 }
@@ -2501,7 +3020,13 @@ pub async fn list_audit_events(
     Query(q): Query<ListAuditQuery>,
 ) -> Result<Json<Vec<AuditEventResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:audit:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:audit:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let limit = q.page_size.unwrap_or(200).clamp(1, 1000);
@@ -2543,16 +3068,21 @@ pub async fn metrics(
     headers: HeaderMap,
 ) -> Result<String, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:metrics:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:metrics:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
-    let instructions_total: i64 = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*)::BIGINT FROM instructions",
-    )
-    .fetch_one(&mut *conn)
-    .await
-    .map_err(err_db)?;
+    let instructions_total: i64 =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM instructions")
+            .fetch_one(&mut *conn)
+            .await
+            .map_err(err_db)?;
     let instructions_completed: i64 = sqlx::query_scalar::<_, i64>(
         "SELECT COUNT(*)::BIGINT FROM instructions WHERE state = 'completed'",
     )
@@ -2565,12 +3095,10 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .fetch_one(&mut *conn)
     .await
     .map_err(err_db)?;
-    let payments_total: i64 = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*)::BIGINT FROM payments",
-    )
-    .fetch_one(&mut *conn)
-    .await
-    .map_err(err_db)?;
+    let payments_total: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM payments")
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
     let payments_completed: i64 = sqlx::query_scalar::<_, i64>(
         "SELECT COUNT(*)::BIGINT FROM payments WHERE status = 'completed'",
     )
@@ -2642,8 +3170,12 @@ pub struct CreateIntegrationRequest {
     pub auth_config: serde_json::Value,
 }
 
-fn default_integration_kind() -> String { "http".into() }
-fn default_empty_object() -> serde_json::Value { serde_json::json!({}) }
+fn default_integration_kind() -> String {
+    "http".into()
+}
+fn default_empty_object() -> serde_json::Value {
+    serde_json::json!({})
+}
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateIntegrationRequest {
@@ -2692,7 +3224,13 @@ pub async fn create_integration(
     Json(req): Json<CreateIntegrationRequest>,
 ) -> Result<Json<IntegrationResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:integrations:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:integrations:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
@@ -2707,7 +3245,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         .bind(&req.integration_kind)
         .bind(&req.config)
         .bind(&req.auth_config)
-        .fetch_one(&mut *conn).await.map_err(err_db)?;
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
     let integration_id: Uuid = row.get("id");
 
     let _ = event_streaming::emit_event_tx(
@@ -2722,7 +3262,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_integration(&row)))
 }
@@ -2743,13 +3284,22 @@ pub async fn list_integrations(
     headers: HeaderMap,
 ) -> Result<Json<Vec<IntegrationResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:integrations:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:integrations:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
         "SELECT {INTEGRATION_COLUMNS} FROM integrations WHERE status = 'active' ORDER BY created_at DESC LIMIT 100"
     );
-    let rows = sqlx::query(&sql).fetch_all(&mut *conn).await.map_err(err_db)?;
+    let rows = sqlx::query(&sql)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_integration).collect()))
 }
 
@@ -2772,11 +3322,21 @@ pub async fn get_integration(
     Path(id): Path<Uuid>,
 ) -> Result<Json<IntegrationResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:integrations:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:integrations:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!("SELECT {INTEGRATION_COLUMNS} FROM integrations WHERE id = $1");
-    let row = sqlx::query(&sql).bind(id).fetch_one(&mut *conn).await.map_err(err_db)?;
+    let row = sqlx::query(&sql)
+        .bind(id)
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(row_to_integration(&row)))
 }
 
@@ -2788,7 +3348,13 @@ pub async fn update_integration(
     Json(req): Json<UpdateIntegrationRequest>,
 ) -> Result<Json<IntegrationResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:integrations:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:integrations:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
@@ -2808,7 +3374,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         .bind(req.integration_kind.as_deref())
         .bind(req.config.as_ref())
         .bind(req.auth_config.as_ref())
-        .fetch_one(&mut *conn).await.map_err(err_db)?;
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
 
     let _ = event_streaming::emit_event_tx(
         &mut *conn,
@@ -2822,7 +3390,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_integration(&row)))
 }
@@ -2834,7 +3403,13 @@ pub async fn delete_integration(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:integrations:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:integrations:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     sqlx::query(
@@ -2844,7 +3419,10 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                   updated_at = now()
             WHERE id = $1"#,
     )
-    .bind(id).execute(&mut *conn).await.map_err(err_db)?;
+    .bind(id)
+    .execute(&mut *conn)
+    .await
+    .map_err(err_db)?;
 
     let _ = event_streaming::emit_event_tx(
         &mut *conn,
@@ -2858,7 +3436,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(serde_json::json!({ "id": id, "status": "inactive" })))
 }
@@ -2923,7 +3502,13 @@ pub async fn create_core(
     Json(req): Json<CreateCoreRequest>,
 ) -> Result<Json<CoreResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cores:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cores:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
@@ -2953,7 +3538,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_core(&row)))
 }
@@ -2974,13 +3560,22 @@ pub async fn list_cores(
     headers: HeaderMap,
 ) -> Result<Json<Vec<CoreResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cores:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cores:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
         "SELECT {CORE_COLUMNS} FROM cores WHERE status = 'active' ORDER BY created_at DESC LIMIT 100"
     );
-    let rows = sqlx::query(&sql).fetch_all(&mut *conn).await.map_err(err_db)?;
+    let rows = sqlx::query(&sql)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_core).collect()))
 }
 
@@ -3003,7 +3598,13 @@ pub async fn get_core(
     Path(id): Path<Uuid>,
 ) -> Result<Json<CoreResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cores:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cores:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!("SELECT {CORE_COLUMNS} FROM cores WHERE id = $1");
@@ -3023,7 +3624,13 @@ pub async fn update_core(
     Json(req): Json<UpdateCoreRequest>,
 ) -> Result<Json<CoreResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cores:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cores:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
@@ -3056,7 +3663,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_core(&row)))
 }
@@ -3068,7 +3676,13 @@ pub async fn delete_core(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cores:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cores:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     sqlx::query(
@@ -3094,7 +3708,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(serde_json::json!({ "id": id, "status": "inactive" })))
 }
@@ -3117,7 +3732,13 @@ pub async fn create_core_version(
     Json(req): Json<CreateCoreVersionRequest>,
 ) -> Result<Json<crate::cores::CoreVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cores:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cores:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -3154,7 +3775,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(crate::cores::CoreVersionResponse {
         id: row.get("id"),
@@ -3215,7 +3837,13 @@ pub async fn create_cardholder(
     Json(req): Json<CreateCardholderRequest>,
 ) -> Result<Json<CardholderResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context_ext(&mut conn, &a).await;
     let sql = format!(
@@ -3246,7 +3874,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_cardholder(&row)))
 }
@@ -3260,7 +3889,13 @@ pub async fn list_cardholders(
     headers: HeaderMap,
 ) -> Result<Json<Vec<CardholderResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context_ext(&mut conn, &a).await;
     let forced_customer_id = resolve_caller_customer_id(&mut conn, &a).await;
@@ -3291,7 +3926,13 @@ pub async fn get_cardholder(
     Path(id): Path<Uuid>,
 ) -> Result<Json<CardholderResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context_ext(&mut conn, &a).await;
     let sql = format!("SELECT {CARDHOLDER_COLUMN_LIST} FROM cardholders WHERE id = $1");
@@ -3440,10 +4081,15 @@ pub async fn create_card(
     set_tenant_context(&mut conn, a.env_id()).await;
 
     let card_type = req.card_type.as_deref().unwrap_or("virtual");
-    let pan_last_digits: Option<String> = req
-        .pan
-        .as_ref()
-        .map(|p| p.chars().rev().take(4).collect::<String>().chars().rev().collect());
+    let pan_last_digits: Option<String> = req.pan.as_ref().map(|p| {
+        p.chars()
+            .rev()
+            .take(4)
+            .collect::<String>()
+            .chars()
+            .rev()
+            .collect()
+    });
     let encrypted_pan: Option<String> = match &req.pan {
         Some(pan) => {
             let (_, priv_key) = crate::cards::CardEncryption::generate_key_pair();
@@ -3484,7 +4130,8 @@ pub async fn create_card(
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_card(&row)))
 }
@@ -3505,13 +4152,22 @@ pub async fn list_cards(
     headers: HeaderMap,
 ) -> Result<Json<Vec<CardResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
         "SELECT {CARD_COLUMN_LIST} FROM cards WHERE status <> 'disabled' ORDER BY created_at DESC LIMIT 100"
     );
-    let rows = sqlx::query(&sql).fetch_all(&mut *conn).await.map_err(err_db)?;
+    let rows = sqlx::query(&sql)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_card).collect()))
 }
 
@@ -3534,7 +4190,13 @@ pub async fn get_card(
     Path(id): Path<Uuid>,
 ) -> Result<Json<CardResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!("SELECT {CARD_COLUMN_LIST} FROM cards WHERE id = $1");
@@ -3556,24 +4218,29 @@ pub async fn update_card(
     Json(req): Json<UpdateCardRequest>,
 ) -> Result<Json<CardResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
     if let Some(ref new_status) = req.status {
-        let current: Option<String> =
-            sqlx::query_scalar("SELECT status FROM cards WHERE id = $1")
-                .bind(id)
-                .fetch_optional(&mut *conn)
-                .await
-                .map_err(err_db)?;
-        let current = current.ok_or_else(|| (StatusCode::NOT_FOUND, format!("card {id} not found")))?;
+        let current: Option<String> = sqlx::query_scalar("SELECT status FROM cards WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&mut *conn)
+            .await
+            .map_err(err_db)?;
+        let current =
+            current.ok_or_else(|| (StatusCode::NOT_FOUND, format!("card {id} not found")))?;
         let from = crate::cards::CardState::from_str(&current)
             .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
         let to = crate::cards::CardState::from_str(new_status)
             .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
-        crate::cards::validate_card_transition(from, to)
-            .map_err(|e| (StatusCode::CONFLICT, e))?;
+        crate::cards::validate_card_transition(from, to).map_err(|e| (StatusCode::CONFLICT, e))?;
     }
 
     let sql = format!(
@@ -3604,7 +4271,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_card(&row)))
 }
@@ -3619,23 +4287,23 @@ pub async fn create_encrypted_session(
     Json(req): Json<CreateEncryptedSessionRequest>,
 ) -> Result<Json<EncryptedSessionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
-    let session_type = crate::cards::EncryptedSessionType::from_str(
-        req.session_type.as_deref().unwrap_or("3ds"),
-    )
-    .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
+    let session_type =
+        crate::cards::EncryptedSessionType::from_str(req.session_type.as_deref().unwrap_or("3ds"))
+            .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
 
-    let session = crate::cards::create_encrypted_session(
-        &state.pool,
-        a.env_id(),
-        id,
-        session_type,
-    )
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let session = crate::cards::create_encrypted_session(&state.pool, a.env_id(), id, session_type)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(EncryptedSessionResponse {
         session_id: session.session_id,
@@ -3658,7 +4326,13 @@ pub async fn verify_pin(
     Json(req): Json<VerifyPinRequest>,
 ) -> Result<Json<PinVerifyResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -3683,7 +4357,13 @@ pub async fn change_pin(
     Json(req): Json<ChangePinRequest>,
 ) -> Result<Json<PinChangeResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -3739,7 +4419,13 @@ pub async fn create_card_product(
     Json(req): Json<CreateCardProductRequest>,
 ) -> Result<Json<CardProductResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
@@ -3770,7 +4456,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_card_product(&row)))
 }
@@ -3781,13 +4468,22 @@ pub async fn list_card_products(
     headers: HeaderMap,
 ) -> Result<Json<Vec<CardProductResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
         "SELECT {CARD_PRODUCT_COLUMN_LIST} FROM card_products WHERE status = 'active' ORDER BY created_at DESC LIMIT 100"
     );
-    let rows = sqlx::query(&sql).fetch_all(&mut *conn).await.map_err(err_db)?;
+    let rows = sqlx::query(&sql)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_card_product).collect()))
 }
 
@@ -3798,7 +4494,13 @@ pub async fn get_card_product(
     Path(id): Path<Uuid>,
 ) -> Result<Json<CardProductResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!("SELECT {CARD_PRODUCT_COLUMN_LIST} FROM card_products WHERE id = $1");
@@ -3855,7 +4557,13 @@ pub async fn create_account_range(
     Json(req): Json<CreateAccountRangeRequest>,
 ) -> Result<Json<AccountRangeResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
@@ -3881,20 +4589,31 @@ pub async fn list_account_ranges(
     headers: HeaderMap,
 ) -> Result<Json<Vec<AccountRangeResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
         "SELECT {ACCOUNT_RANGE_COLUMN_LIST} FROM account_ranges WHERE status = 'active' ORDER BY created_at DESC LIMIT 100"
     );
-    let rows = sqlx::query(&sql).fetch_all(&mut *conn).await.map_err(err_db)?;
+    let rows = sqlx::query(&sql)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_account_range).collect()))
 }
 
 // ── Health ───────────────────────────────────────────────────────────────
 
 pub async fn health() -> Json<serde_json::Value> {
-    Json(serde_json::json!({ "status": "ok", "service": "payments", "version": sentin8::build_info::id(), "build": sentin8::build_info::build_hash() }))
+    Json(
+        serde_json::json!({ "status": "ok", "service": "payments", "version": sentin8::build_info::id(), "build": sentin8::build_info::build_hash() }),
+    )
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -4030,13 +4749,24 @@ pub async fn create_mandate(
     Json(req): Json<CreateMandateRequest>,
 ) -> Result<Json<MandateResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Mandates)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:mandates:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Mandates)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:mandates:write"),
+    )
+    .await?;
     // Parse the amount limit once — 400 on invalid input before any DB work.
     let amount_limit: Option<rust_decimal::Decimal> = match req.amount_limit.as_deref() {
         None => None,
         Some(s) if s.trim().is_empty() => None,
-        Some(s) => Some(s.trim().parse().map_err(|e| (StatusCode::BAD_REQUEST, format!("invalid amount_limit: {e}")))?),
+        Some(s) => Some(s.trim().parse().map_err(|e| {
+            (
+                StatusCode::BAD_REQUEST,
+                format!("invalid amount_limit: {e}"),
+            )
+        })?),
     };
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
@@ -4082,14 +4812,21 @@ pub async fn list_mandates(
     headers: HeaderMap,
 ) -> Result<Json<Vec<MandateResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Mandates)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:mandates:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Mandates)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:mandates:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let sql = format!(
-        "SELECT {MANDATE_COLUMNS} FROM mandates ORDER BY created_at DESC LIMIT 100"
-    );
-    let rows = sqlx::query(&sql).fetch_all(&mut *conn).await.map_err(err_db)?;
+    let sql = format!("SELECT {MANDATE_COLUMNS} FROM mandates ORDER BY created_at DESC LIMIT 100");
+    let rows = sqlx::query(&sql)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_mandate).collect()))
 }
 
@@ -4112,8 +4849,14 @@ pub async fn get_mandate(
     Path(id): Path<Uuid>,
 ) -> Result<Json<MandateResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Mandates)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:mandates:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Mandates)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:mandates:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!("SELECT {MANDATE_COLUMNS} FROM mandates WHERE id = $1");
@@ -4133,13 +4876,24 @@ pub async fn update_mandate(
     Json(req): Json<UpdateMandateRequest>,
 ) -> Result<Json<MandateResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Mandates)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:mandates:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Mandates)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:mandates:write"),
+    )
+    .await?;
     // Parse the amount limit once — 400 on invalid input before any DB work.
     let amount_limit: Option<rust_decimal::Decimal> = match req.amount_limit.as_deref() {
         None => None,
         Some(s) if s.trim().is_empty() => None,
-        Some(s) => Some(s.trim().parse().map_err(|e| (StatusCode::BAD_REQUEST, format!("invalid amount_limit: {e}")))?),
+        Some(s) => Some(s.trim().parse().map_err(|e| {
+            (
+                StatusCode::BAD_REQUEST,
+                format!("invalid amount_limit: {e}"),
+            )
+        })?),
     };
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
@@ -4187,7 +4941,8 @@ pub struct CreateMembershipDirectoryRequest {
     pub file_id: Option<Uuid>,
 }
 
-const MD_COLUMNS: &str = "id, name, directory_type, file_id, status, entries, created_at, updated_at";
+const MD_COLUMNS: &str =
+    "id, name, directory_type, file_id, status, entries, created_at, updated_at";
 
 fn row_to_membership_directory(row: &sqlx::postgres::PgRow) -> MembershipDirectoryResponse {
     MembershipDirectoryResponse {
@@ -4209,8 +4964,17 @@ pub async fn create_membership_directory(
     Json(req): Json<CreateMembershipDirectoryRequest>,
 ) -> Result<Json<MembershipDirectoryResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::MembershipDirectories)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:membership-directories:write")).await?;
+    auth::require_feature(
+        &state.config,
+        crate::config::FeatureGate::MembershipDirectories,
+    )?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:membership-directories:write"),
+    )
+    .await?;
     let dir_type = crate::membership_dirs::DirectoryType::from_str(&req.directory_type)
         .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
@@ -4238,14 +5002,26 @@ pub async fn list_membership_directories(
     headers: HeaderMap,
 ) -> Result<Json<Vec<MembershipDirectoryResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::MembershipDirectories)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:membership-directories:read")).await?;
+    auth::require_feature(
+        &state.config,
+        crate::config::FeatureGate::MembershipDirectories,
+    )?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:membership-directories:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
         "SELECT {MD_COLUMNS} FROM membership_directories ORDER BY created_at DESC LIMIT 100"
     );
-    let rows = sqlx::query(&sql).fetch_all(&mut *conn).await.map_err(err_db)?;
+    let rows = sqlx::query(&sql)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_membership_directory).collect()))
 }
 
@@ -4256,8 +5032,17 @@ pub async fn get_membership_directory(
     Path(id): Path<Uuid>,
 ) -> Result<Json<MembershipDirectoryResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::MembershipDirectories)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:membership-directories:read")).await?;
+    auth::require_feature(
+        &state.config,
+        crate::config::FeatureGate::MembershipDirectories,
+    )?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:membership-directories:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!("SELECT {MD_COLUMNS} FROM membership_directories WHERE id = $1");
@@ -4286,8 +5071,14 @@ pub(crate) async fn require_internal_caller(
     state: &AppState,
     headers: &HeaderMap,
 ) -> Result<crate::auth::AuthContext, (StatusCode, String)> {
-    let a = crate::auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:internal:read")).await?;
+    let a = crate::auth::verify_token(&state.config, headers).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:internal:read"),
+    )
+    .await?;
     Ok(a)
 }
 
@@ -4362,7 +5153,8 @@ pub async fn update_instruction_internal(
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(row_to_instruction(&row)))
 }
@@ -4533,9 +5325,7 @@ pub async fn get_calendar_internal(
     let a = require_internal_caller(&state, &headers).await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let sql = format!(
-        "SELECT id, name, calendar_type, business_day_definition_id, configuration, timezone, created_at, updated_at FROM calendars WHERE id = $1"
-    );
+    let sql = "SELECT id, name, calendar_type, business_day_definition_id, configuration, timezone, created_at, updated_at FROM calendars WHERE id = $1".to_string();
     let row = sqlx::query(&sql)
         .bind(id)
         .fetch_one(&mut *conn)
@@ -4609,22 +5399,30 @@ pub async fn migrate_logic_to_wasm(
     Path(id): Path<Uuid>,
 ) -> Result<Json<MigrateWasmResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:logics:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:logics:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
     // Load the logic's steps (stored as a JSON array of StepDef objects).
-    let steps_json: serde_json::Value = sqlx::query_scalar(
-        r#"SELECT steps FROM logics WHERE id = $1"#,
-    )
-    .bind(id)
-    .fetch_one(&mut *conn)
-    .await
-    .map_err(err_db)?;
+    let steps_json: serde_json::Value =
+        sqlx::query_scalar(r#"SELECT steps FROM logics WHERE id = $1"#)
+            .bind(id)
+            .fetch_one(&mut *conn)
+            .await
+            .map_err(err_db)?;
 
-    let steps = steps_json
-        .as_array()
-        .ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, "logic steps is not an array".into()))?;
+    let steps = steps_json.as_array().ok_or_else(|| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "logic steps is not an array".into(),
+        )
+    })?;
 
     let client = match state.config.func_client.clone() {
         Some(c) => c,
@@ -4657,7 +5455,11 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             continue;
         }
 
-        let step_name = step.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let step_name = step
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
 
         // Synthesise a Func module from the step's config. The wasm_binary
         // is a placeholder; in production the developer uploads a real WASM
@@ -4699,7 +5501,10 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         }
     }
 
-    Ok(Json(MigrateWasmResponse { logic_id: id, modules }))
+    Ok(Json(MigrateWasmResponse {
+        logic_id: id,
+        modules,
+    }))
 }
 
 // ── Story — Payments internal endpoint for cron proxy-back ────────
@@ -4777,6 +5582,10 @@ pub async fn trigger_schedule_internal(
     }))
 }
 
+pub(crate) fn err_db(e: sqlx::Error) -> (StatusCode, String) {
+    (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4846,8 +5655,4 @@ mod tests {
         assert_eq!(req.state.as_deref(), Some("completed"));
         assert!(req.output.is_none());
     }
-}
-
-pub(crate) fn err_db(e: sqlx::Error) -> (StatusCode, String) {
-    (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
 }

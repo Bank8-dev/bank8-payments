@@ -32,9 +32,7 @@ pub struct Iso8583Message {
 /// - Field 4 (Amount) → `amount`
 /// - Field 14 (Expiry) → `expiry_date`
 /// - Field 22 (POS Entry Mode) → `entry_mode`
-pub fn map_iso8583_to_iso20022(
-    msg: &Iso8583Message,
-) -> Result<serde_json::Value, String> {
+pub fn map_iso8583_to_iso20022(msg: &Iso8583Message) -> Result<serde_json::Value, String> {
     let business_message = match msg.mti.as_str() {
         "0100" => "AUTHORISATION_INITIATION",
         "0220" => "FINANCIAL_INITIATION",
@@ -78,7 +76,15 @@ mod tests {
 
     #[test]
     fn maps_0100_to_authorisation_initiation() {
-        let m = msg("0100", &[(2, "4111111111111111"), (4, "1000"), (14, "2612"), (22, "012")]);
+        let m = msg(
+            "0100",
+            &[
+                (2, "4111111111111111"),
+                (4, "1000"),
+                (14, "2612"),
+                (22, "012"),
+            ],
+        );
         let out = map_iso8583_to_iso20022(&m).unwrap();
         assert_eq!(out["message"], "AUTHORISATION_INITIATION");
         assert_eq!(out["mti"], "0100");

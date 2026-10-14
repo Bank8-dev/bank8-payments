@@ -154,8 +154,7 @@ impl DecisionConstraint {
                 Ok(())
             }
             Self::DecimalConstraint { min, max } => {
-                let d = json_to_decimal(value)
-                    .ok_or_else(|| "expected decimal".to_string())?;
+                let d = json_to_decimal(value).ok_or_else(|| "expected decimal".to_string())?;
                 if d < *min {
                     return Err(format!("decimal {d} < min {min}"));
                 }
@@ -230,10 +229,7 @@ pub fn validate_decision_input(
                 .ok_or_else(|| format!("input '{}' must be an array", input.name))?;
             for v in arr {
                 if !v.is_string() {
-                    return Err(format!(
-                        "input '{}' must contain only strings",
-                        input.name
-                    ));
+                    return Err(format!("input '{}' must contain only strings", input.name));
                 }
             }
         }
@@ -250,10 +246,7 @@ pub fn validate_decision_input(
         DecisionInputType::DateTime => {
             if let Some(s) = value.as_str() {
                 if DateTime::parse_from_rfc3339(s).is_err() {
-                    return Err(format!(
-                        "input '{}' must be an ISO 8601 date",
-                        input.name
-                    ));
+                    return Err(format!("input '{}' must be an ISO 8601 date", input.name));
                 }
             } else {
                 return Err(format!(
@@ -264,7 +257,10 @@ pub fn validate_decision_input(
         }
         DecisionInputType::ReasonCode => {
             if !value.is_string() {
-                return Err(format!("input '{}' must be a reason code string", input.name));
+                return Err(format!(
+                    "input '{}' must be a reason code string",
+                    input.name
+                ));
             }
         }
     }
@@ -513,10 +509,7 @@ pub async fn approve_task(
     let current_stage: i32 = row.get("current_stage");
     let stages: serde_json::Value = row.get("approval_stages");
 
-    let total_stages = stages
-        .as_array()
-        .map(|a| a.len() as i32)
-        .unwrap_or(0);
+    let total_stages = stages.as_array().map(|a| a.len() as i32).unwrap_or(0);
 
     let next_stage = current_stage + 1;
     if total_stages > 0 && next_stage >= total_stages {
@@ -746,7 +739,10 @@ mod tests {
 
     #[test]
     fn string_constraint_validates_length() {
-        let c = DecisionConstraint::StringConstraint { min_len: 2, max_len: 4 };
+        let c = DecisionConstraint::StringConstraint {
+            min_len: 2,
+            max_len: 4,
+        };
         assert!(c.validate(&json!("ab")).is_ok());
         assert!(c.validate(&json!("abcd")).is_ok());
         assert!(c.validate(&json!("a")).is_err());
@@ -878,7 +874,10 @@ mod tests {
 
     #[test]
     fn approval_stages_validate_requires_at_least_one_stage() {
-        let config = ApprovalStagesConfig { stages: vec![], current_stage: 0 };
+        let config = ApprovalStagesConfig {
+            stages: vec![],
+            current_stage: 0,
+        };
         assert!(validate_approval_stages(&config).is_err());
     }
 
@@ -932,8 +931,16 @@ mod tests {
     fn approval_stages_advance_returns_false_when_more_stages() {
         let mut config = ApprovalStagesConfig {
             stages: vec![
-                ApprovalStage { name: "review".into(), required_roles: vec![], criteria: None },
-                ApprovalStage { name: "approve".into(), required_roles: vec![], criteria: None },
+                ApprovalStage {
+                    name: "review".into(),
+                    required_roles: vec![],
+                    criteria: None,
+                },
+                ApprovalStage {
+                    name: "approve".into(),
+                    required_roles: vec![],
+                    criteria: None,
+                },
             ],
             current_stage: 0,
         };
@@ -946,8 +953,16 @@ mod tests {
     fn approval_stages_advance_returns_true_on_completion() {
         let mut config = ApprovalStagesConfig {
             stages: vec![
-                ApprovalStage { name: "review".into(), required_roles: vec![], criteria: None },
-                ApprovalStage { name: "approve".into(), required_roles: vec![], criteria: None },
+                ApprovalStage {
+                    name: "review".into(),
+                    required_roles: vec![],
+                    criteria: None,
+                },
+                ApprovalStage {
+                    name: "approve".into(),
+                    required_roles: vec![],
+                    criteria: None,
+                },
             ],
             current_stage: 1,
         };

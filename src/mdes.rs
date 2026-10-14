@@ -111,7 +111,9 @@ pub async fn generate_t140_report(
     pool: &sqlx::PgPool,
     cycle_date: chrono::NaiveDate,
 ) -> Result<T140Report, String> {
-    let start = cycle_date.and_hms_opt(0, 0, 0).ok_or("invalid cycle date")?;
+    let start = cycle_date
+        .and_hms_opt(0, 0, 0)
+        .ok_or("invalid cycle date")?;
     let end = cycle_date
         .succ_opt()
         .ok_or("invalid cycle date")?

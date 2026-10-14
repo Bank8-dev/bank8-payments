@@ -86,7 +86,10 @@ pub struct CalendarConfig {
 /// Determine whether a date is a business day for the given definition.
 /// A date is a business day if it is not a weekend day and not a holiday.
 pub fn is_business_day(definition: &BusinessDayDefinition, date: NaiveDate) -> bool {
-    if definition.weekend_days.contains(&date.weekday().num_days_from_sunday()) {
+    if definition
+        .weekend_days
+        .contains(&date.weekday().num_days_from_sunday())
+    {
         return false;
     }
     let iso = date.format("%Y-%m-%d").to_string();
@@ -111,7 +114,7 @@ pub fn calculate_cutoff_period(
         .configuration
         .get("window_days")
         .and_then(|v| v.as_i64())
-        .unwrap_or(1) as i64;
+        .unwrap_or(1);
     if window_days < 1 {
         return Err("window_days must be >= 1".into());
     }
@@ -151,7 +154,7 @@ pub fn calculate_processing_period(
         .configuration
         .get("window_days")
         .and_then(|v| v.as_i64())
-        .unwrap_or(1) as i64;
+        .unwrap_or(1);
     if window_days < 1 {
         return Err("window_days must be >= 1".into());
     }
@@ -197,8 +200,7 @@ pub async fn register_recurring_schedule(
 ) -> Result<(), String> {
     let cron_url = std::env::var("SENTIN8_CRON_URL")
         .unwrap_or_else(|_| sentin8::config::Sentin8Config::from_env().sentin8_cron_url());
-    let cron_token = std::env::var("SENTIN8_CRON_TOKEN")
-        .unwrap_or_else(|_| "payments-dev".into());
+    let cron_token = std::env::var("SENTIN8_CRON_TOKEN").unwrap_or_else(|_| "payments-dev".into());
     let client = sentin8_cron_sdk::client::CronClient::new(&cron_url, &cron_token);
     let local_ip = std::env::var("SENTIN8_CAPTAIN_LOCAL_IP").unwrap_or_else(|_| "0.0.0.0".into());
     let payments_port = std::env::var("BANK8_PAYMENTS_PORT").unwrap_or_else(|_| "0".into());
@@ -402,10 +404,16 @@ pub async fn create_calendar(
     Json(req): Json<CreateCalendarRequest>,
 ) -> Result<Json<CalendarResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Calendars)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:calendars:write")).await?;
-    let cal_type = CalendarType::from_str(&req.calendar_type)
-        .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Calendars)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:calendars:write"),
+    )
+    .await?;
+    let cal_type =
+        CalendarType::from_str(&req.calendar_type).map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
@@ -434,14 +442,22 @@ pub async fn list_calendars(
     headers: HeaderMap,
 ) -> Result<Json<Vec<CalendarResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Calendars)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:calendars:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Calendars)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:calendars:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
-    let sql = format!(
-        "SELECT {CALENDAR_COLUMNS} FROM calendars ORDER BY created_at DESC LIMIT 100"
-    );
-    let rows = sqlx::query(&sql).fetch_all(&mut *conn).await.map_err(err_db)?;
+    let sql =
+        format!("SELECT {CALENDAR_COLUMNS} FROM calendars ORDER BY created_at DESC LIMIT 100");
+    let rows = sqlx::query(&sql)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_calendar).collect()))
 }
 
@@ -452,16 +468,18 @@ pub async fn create_business_day_definition(
     Json(req): Json<CreateBusinessDayDefinitionRequest>,
 ) -> Result<Json<BusinessDayDefinitionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Calendars)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:calendars:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Calendars)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:calendars:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
-    let weekend_days: Vec<i32> = req
-        .weekend_days
-        .unwrap_or_else(|| vec![0, 6]);
-    let holidays = req
-        .holidays
-        .unwrap_or_else(|| serde_json::json!([]));
+    let weekend_days: Vec<i32> = req.weekend_days.unwrap_or_else(|| vec![0, 6]);
+    let holidays = req.holidays.unwrap_or_else(|| serde_json::json!([]));
     let sql = format!(
         r#"INSERT INTO business_day_definitions
                (env_id, name, weekend_days, holidays)
@@ -485,14 +503,23 @@ pub async fn list_business_day_definitions(
     headers: HeaderMap,
 ) -> Result<Json<Vec<BusinessDayDefinitionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Calendars)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:calendars:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Calendars)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:calendars:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
         "SELECT {BDD_COLUMNS} FROM business_day_definitions ORDER BY created_at DESC LIMIT 100"
     );
-    let rows = sqlx::query(&sql).fetch_all(&mut *conn).await.map_err(err_db)?;
+    let rows = sqlx::query(&sql)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_bdd).collect()))
 }
 

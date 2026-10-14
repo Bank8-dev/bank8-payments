@@ -48,12 +48,14 @@ pub async fn overview(
     let a = require_admin_reader(&state, &headers).await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let instructions_total: i64 =
-        sqlx::query_scalar("SELECT COUNT(*)::BIGINT FROM instructions")
-            .fetch_one(&mut *conn).await.map_err(err_db)?;
-    let payments_total: i64 =
-        sqlx::query_scalar("SELECT COUNT(*)::BIGINT FROM payments")
-            .fetch_one(&mut *conn).await.map_err(err_db)?;
+    let instructions_total: i64 = sqlx::query_scalar("SELECT COUNT(*)::BIGINT FROM instructions")
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
+    let payments_total: i64 = sqlx::query_scalar("SELECT COUNT(*)::BIGINT FROM payments")
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(serde_json::json!({
         "instructions_total": instructions_total,
         "payments_total": payments_total,
@@ -71,13 +73,21 @@ pub async fn list_instructions_admin(
     let rows = sqlx::query(
         r#"SELECT id, state, correlation_id, created_at
              FROM instructions ORDER BY created_at DESC LIMIT 50"#,
-    ).fetch_all(&mut *conn).await.map_err(err_db)?;
-    let items: Vec<serde_json::Value> = rows.iter().map(|r| serde_json::json!({
-        "id": r.get::<Uuid, _>("id"),
-        "state": r.get::<String, _>("state"),
-        "correlation_id": r.get::<Option<String>, _>("correlation_id"),
-        "created_at": r.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
-    })).collect();
+    )
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
+    let items: Vec<serde_json::Value> = rows
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "id": r.get::<Uuid, _>("id"),
+                "state": r.get::<String, _>("state"),
+                "correlation_id": r.get::<Option<String>, _>("correlation_id"),
+                "created_at": r.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
+            })
+        })
+        .collect();
     Ok(Json(serde_json::json!({ "items": items })))
 }
 
@@ -92,15 +102,23 @@ pub async fn list_payments_admin(
     let rows = sqlx::query(
         r#"SELECT id, payment_type, amount, currency, status, created_at
              FROM payments ORDER BY created_at DESC LIMIT 50"#,
-    ).fetch_all(&mut *conn).await.map_err(err_db)?;
-    let items: Vec<serde_json::Value> = rows.iter().map(|r| serde_json::json!({
-        "id": r.get::<Uuid, _>("id"),
-        "payment_type": r.get::<String, _>("payment_type"),
-        "amount": r.get::<rust_decimal::Decimal, _>("amount"),
-        "currency": r.get::<String, _>("currency"),
-        "status": r.get::<String, _>("status"),
-        "created_at": r.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
-    })).collect();
+    )
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
+    let items: Vec<serde_json::Value> = rows
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "id": r.get::<Uuid, _>("id"),
+                "payment_type": r.get::<String, _>("payment_type"),
+                "amount": r.get::<rust_decimal::Decimal, _>("amount"),
+                "currency": r.get::<String, _>("currency"),
+                "status": r.get::<String, _>("status"),
+                "created_at": r.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
+            })
+        })
+        .collect();
     Ok(Json(serde_json::json!({ "items": items })))
 }
 
@@ -142,9 +160,17 @@ admin_list!(list_integrations_admin, "integrations", "id, name, status");
 admin_list!(list_parameters_admin, "parameters", "id, name, status");
 admin_list!(list_cores_admin, "cores", "id, name");
 admin_list!(list_mandates_admin, "mandates", "id, status, currency");
-admin_list!(list_directories_admin, "membership_directories", "id, name, status");
+admin_list!(
+    list_directories_admin,
+    "membership_directories",
+    "id, name, status"
+);
 admin_list!(list_calendars_admin, "calendars", "id, name, timezone");
-admin_list!(list_decisions_admin, "manual_decisions", "id, status, decision_type");
+admin_list!(
+    list_decisions_admin,
+    "manual_decisions",
+    "id, status, decision_type"
+);
 
 /// `GET /v1/admin/settings` — service settings view.
 pub async fn get_settings_admin(

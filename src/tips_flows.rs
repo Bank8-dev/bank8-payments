@@ -261,7 +261,10 @@ pub async fn process_tips_inbound_recall(
     }
     let instruction_id = create_tips_instruction(pool, "tips_inbound_recall", camt056).await?;
     // Mark as manual decision required.
-    Ok(TipsFlowResult::ok(instruction_id, "manual_decision_required"))
+    Ok(TipsFlowResult::ok(
+        instruction_id,
+        "manual_decision_required",
+    ))
 }
 
 /// Process a TIPS outbound recall (camt.056).
@@ -437,7 +440,10 @@ mod tests {
     fn check_tips_timeout_within_target() {
         let cfg = TipsTimeoutConfig::default();
         let created = Utc::now() - Duration::seconds(2);
-        assert_eq!(check_tips_timeout(created, &cfg), TipsTimeoutStatus::WithinTarget);
+        assert_eq!(
+            check_tips_timeout(created, &cfg),
+            TipsTimeoutStatus::WithinTarget
+        );
     }
 
     #[test]
@@ -454,7 +460,10 @@ mod tests {
     fn check_tips_timeout_expired() {
         let cfg = TipsTimeoutConfig::default();
         let created = Utc::now() - Duration::seconds(10);
-        assert_eq!(check_tips_timeout(created, &cfg), TipsTimeoutStatus::Expired);
+        assert_eq!(
+            check_tips_timeout(created, &cfg),
+            TipsTimeoutStatus::Expired
+        );
     }
 
     #[test]

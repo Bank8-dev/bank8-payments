@@ -307,7 +307,8 @@ pub fn sepa_credit_transfer_pack() -> ConfigPack {
         name: "sepa-credit-transfer".into(),
         version: "1.0.0".into(),
         description: Some(
-            "SEPA Credit Transfer configuration pack — EBA Clearing, ICF format, daily 23:00 CET".into(),
+            "SEPA Credit Transfer configuration pack — EBA Clearing, ICF format, daily 23:00 CET"
+                .into(),
         ),
         logics,
         parameters,

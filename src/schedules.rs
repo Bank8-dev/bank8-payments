@@ -83,7 +83,8 @@ pub async fn seed_default_schedules(
 ) -> Result<(), String> {
     let client = CronClient::new(sentin8_cron_url, sentin8_cron_token);
     let local_ip = std::env::var("SENTIN8_CAPTAIN_LOCAL_IP").unwrap_or_else(|_| "0.0.0.0".into());
-    let payments_port = std::env::var("BANK8_PAYMENTS_PORT").expect("BANK8_PAYMENTS_PORT must be set by captain");
+    let payments_port =
+        std::env::var("BANK8_PAYMENTS_PORT").expect("BANK8_PAYMENTS_PORT must be set by captain");
     let callbacks_base_url = std::env::var("BANK8_PAYMENTS_BASE_URL")
         .unwrap_or_else(|_| format!("http://{local_ip}:{payments_port}"));
 
@@ -144,7 +145,10 @@ mod tests {
     #[test]
     fn test_default_schedules_not_empty() {
         let schedules = default_schedules();
-        assert!(!schedules.is_empty(), "default schedule list must not be empty");
+        assert!(
+            !schedules.is_empty(),
+            "default schedule list must not be empty"
+        );
         assert_eq!(
             schedules.len(),
             5,
@@ -210,7 +214,10 @@ mod tests {
         let fields: Vec<&str> = auth.cron_expression.split_whitespace().collect();
         assert_eq!(fields.len(), 6, "expected 6-field cron expression");
         // "0 * * * * *" — minute wildcard, second 0 → every minute
-        assert_eq!(fields[0], "0", "authorisation expiry seconds field must be 0");
+        assert_eq!(
+            fields[0], "0",
+            "authorisation expiry seconds field must be 0"
+        );
         assert_eq!(fields[1], "*", "authorisation expiry must run every minute");
     }
 
@@ -226,7 +233,10 @@ mod tests {
         // "0 0 * * * *" — sec=0, min=0, hour=* → hourly at minute 0
         assert_eq!(fields[0], "0", "stale cleanup seconds field must be 0");
         assert_eq!(fields[1], "0", "stale cleanup minute field must be 0");
-        assert_eq!(fields[2], "*", "stale cleanup must be hourly (hour wildcard)");
+        assert_eq!(
+            fields[2], "*",
+            "stale cleanup must be hourly (hour wildcard)"
+        );
     }
 
     #[test]

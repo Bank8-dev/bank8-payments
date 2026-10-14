@@ -162,8 +162,14 @@ pub async fn create_template(
     Json(req): Json<CreateTemplateRequest>,
 ) -> Result<Json<TemplateResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Templates)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:templates:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Templates)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:templates:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
@@ -188,14 +194,22 @@ pub async fn list_templates(
     headers: HeaderMap,
 ) -> Result<Json<Vec<TemplateResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Templates)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:templates:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Templates)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:templates:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
-    let sql = format!(
-        "SELECT {TEMPLATE_COLUMNS} FROM templates ORDER BY created_at DESC LIMIT 100"
-    );
-    let rows = sqlx::query(&sql).fetch_all(&mut *conn).await.map_err(err_db)?;
+    let sql =
+        format!("SELECT {TEMPLATE_COLUMNS} FROM templates ORDER BY created_at DESC LIMIT 100");
+    let rows = sqlx::query(&sql)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_template).collect()))
 }
 
@@ -206,8 +220,14 @@ pub async fn get_template(
     Path(id): Path<Uuid>,
 ) -> Result<Json<TemplateResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Templates)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:templates:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Templates)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:templates:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!("SELECT {TEMPLATE_COLUMNS} FROM templates WHERE id = $1");
@@ -227,8 +247,14 @@ pub async fn create_template_version(
     Json(req): Json<CreateTemplateVersionRequest>,
 ) -> Result<Json<TemplateVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Templates)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:templates:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Templates)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:templates:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -269,8 +295,14 @@ pub async fn publish_template(
     Path(template_id): Path<Uuid>,
 ) -> Result<Json<TemplateVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Templates)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:templates:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Templates)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:templates:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
 

@@ -38,7 +38,10 @@ pub fn require_feature(
     gate: FeatureGate,
 ) -> Result<(), (StatusCode, String)> {
     if !config.features.is_enabled(gate) {
-        return Err((StatusCode::SERVICE_UNAVAILABLE, format!("feature gate {:?} is disabled", gate)));
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            format!("feature gate {:?} is disabled", gate),
+        ));
     }
     Ok(())
 }

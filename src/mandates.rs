@@ -86,9 +86,7 @@ impl MandateFlow {
 /// This is a simplified structural validator; production deployments should
 /// use a full ISO 20022 schema validator.
 pub fn validate_mandate_pain009(pain009: &serde_json::Value) -> Result<(), String> {
-    let document = pain009
-        .get("document")
-        .unwrap_or(pain009);
+    let document = pain009.get("document").unwrap_or(pain009);
 
     let container = document
         .get("CstmrDrctDbtMndgtn")
@@ -329,7 +327,11 @@ async fn process_pain008_pmt_info(
 
     let mandate_id = resolve_mandate(pool, scheme_creditor_id, scheme_mandate_id)
         .await?
-        .ok_or_else(|| format!("no active mandate for creditor {scheme_creditor_id} mandate {scheme_mandate_id}"))?;
+        .ok_or_else(|| {
+            format!(
+                "no active mandate for creditor {scheme_creditor_id} mandate {scheme_mandate_id}"
+            )
+        })?;
 
     // Determine the requested execution date; fall back to today (UTC).
     let reqd_colltn_dt = tx
@@ -372,7 +374,11 @@ fn parse_iso_date(s: &str) -> Option<DateTime<Utc>> {
     DateTime::parse_from_rfc3339(s)
         .ok()
         .map(|d| d.with_timezone(&Utc))
-        .or_else(|| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok().map(|d| d.and_hms_opt(0, 0, 0).unwrap().and_utc()))
+        .or_else(|| {
+            NaiveDate::parse_from_str(s, "%Y-%m-%d")
+                .ok()
+                .map(|d| d.and_hms_opt(0, 0, 0).unwrap().and_utc())
+        })
 }
 
 #[cfg(test)]

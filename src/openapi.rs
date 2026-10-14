@@ -9,11 +9,11 @@
 
 use utoipa::OpenApi;
 
+use crate::cores;
 use crate::handlers;
 use crate::pay_api;
-use crate::rules;
 use crate::routing;
-use crate::cores;
+use crate::rules;
 
 /// OpenAPI spec for the Payments admin API.
 #[derive(OpenApi)]

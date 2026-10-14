@@ -187,8 +187,8 @@ pub fn build_payload(
         update_mask,
     };
 
-    let payload_json = serde_json::to_value(&payload)
-        .map_err(|e| format!("serialise event payload: {e}"))?;
+    let payload_json =
+        serde_json::to_value(&payload).map_err(|e| format!("serialise event payload: {e}"))?;
     let event_type = format!("bank8:payments:{}:{}", resource_type.as_str(), operation);
     Ok((event_id, event_type, payload_json))
 }
@@ -213,9 +213,8 @@ pub async fn emit_event_tx<'e, E>(
 where
     E: sqlx::PgExecutor<'e> + Send,
 {
-    let (_, event_type, payload_json) = build_payload(
-        resource_type, resource_id, operation, before, after,
-    )?;
+    let (_, event_type, payload_json) =
+        build_payload(resource_type, resource_id, operation, before, after)?;
 
     sentin8::bus::outbox::insert_outbox_row_with_publisher(
         conn,
@@ -246,9 +245,8 @@ pub async fn emit_event(
     before: Option<serde_json::Value>,
     after: Option<serde_json::Value>,
 ) -> Result<(), String> {
-    let (_, event_type, payload_json) = build_payload(
-        resource_type, resource_id, operation, before, after,
-    )?;
+    let (_, event_type, payload_json) =
+        build_payload(resource_type, resource_id, operation, before, after)?;
 
     // The pool helper acquires a connection and sets the RLS tenant
     // context on it before the INSERT (the outbox is FORCE-RLS'd).
@@ -445,8 +443,7 @@ mod tests {
     #[test]
     fn build_payload_uses_colon_event_names() {
         let (_, event_type, payload) =
-            build_payload(ResourceType::Instruction, "abc", "created", None, None)
-                .unwrap();
+            build_payload(ResourceType::Instruction, "abc", "created", None, None).unwrap();
         assert_eq!(event_type, "bank8:payments:instruction:created");
         assert_eq!(payload["resource_type"], "instruction");
         assert_eq!(payload["operation"], "created");

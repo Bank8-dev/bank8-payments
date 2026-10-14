@@ -556,8 +556,14 @@ pub async fn create_dashboard(
     Json(req): Json<CreateDashboardRequest>,
 ) -> Result<Json<DashboardResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:dashboards:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:dashboards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
@@ -581,14 +587,22 @@ pub async fn list_dashboards(
     headers: HeaderMap,
 ) -> Result<Json<Vec<DashboardResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:dashboards:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:dashboards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
-    let sql = format!(
-        "SELECT {DASHBOARD_COLUMNS} FROM dashboards ORDER BY created_at DESC LIMIT 100"
-    );
-    let rows = sqlx::query(&sql).fetch_all(&mut *conn).await.map_err(err_db)?;
+    let sql =
+        format!("SELECT {DASHBOARD_COLUMNS} FROM dashboards ORDER BY created_at DESC LIMIT 100");
+    let rows = sqlx::query(&sql)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_dashboard).collect()))
 }
 
@@ -599,8 +613,14 @@ pub async fn get_dashboard(
     Path(id): Path<Uuid>,
 ) -> Result<Json<DashboardResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:dashboards:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:dashboards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!("SELECT {DASHBOARD_COLUMNS} FROM dashboards WHERE id = $1");
@@ -620,8 +640,14 @@ pub async fn create_dashboard_version(
     Json(req): Json<CreateDashboardVersionRequest>,
 ) -> Result<Json<DashboardVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:dashboards:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:dashboards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -660,8 +686,14 @@ pub async fn publish_dashboard(
     Path(dashboard_id): Path<Uuid>,
 ) -> Result<Json<DashboardVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:dashboards:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:dashboards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     crate::handlers::set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -717,7 +749,11 @@ mod tests {
 
     #[test]
     fn aggregation_type_round_trip() {
-        for t in [AggregationType::Count, AggregationType::Sum, AggregationType::Average] {
+        for t in [
+            AggregationType::Count,
+            AggregationType::Sum,
+            AggregationType::Average,
+        ] {
             assert_eq!(AggregationType::from_str(t.as_str()).unwrap(), t);
         }
         assert!(AggregationType::from_str("bogus").is_err());
@@ -725,7 +761,11 @@ mod tests {
 
     #[test]
     fn grouping_type_round_trip() {
-        for t in [GroupingType::Field, GroupingType::TimeInterval, GroupingType::Filter] {
+        for t in [
+            GroupingType::Field,
+            GroupingType::TimeInterval,
+            GroupingType::Filter,
+        ] {
             assert_eq!(GroupingType::from_str(t.as_str()).unwrap(), t);
         }
         assert!(GroupingType::from_str("bogus").is_err());
@@ -753,7 +793,10 @@ mod tests {
         // alt spellings
         assert_eq!(SearchOperator::from_str("==").unwrap(), SearchOperator::Eq);
         assert_eq!(SearchOperator::from_str("<>").unwrap(), SearchOperator::Ne);
-        assert_eq!(SearchOperator::from_str("IS NULL").unwrap(), SearchOperator::IsNull);
+        assert_eq!(
+            SearchOperator::from_str("IS NULL").unwrap(),
+            SearchOperator::IsNull
+        );
         assert!(SearchOperator::from_str("bogus").is_err());
     }
 

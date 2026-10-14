@@ -250,7 +250,8 @@ pub async fn process_sepa_ct_outbound_rejection(
     if let Err(e) = validate_pacs002(pacs002) {
         return Ok(SepaFlowResult::err(e));
     }
-    let instruction_id = create_sepa_instruction(pool, "sepa_ct_outbound_rejection", pacs002).await?;
+    let instruction_id =
+        create_sepa_instruction(pool, "sepa_ct_outbound_rejection", pacs002).await?;
     Ok(SepaFlowResult::ok(instruction_id, "rejected"))
 }
 
@@ -277,13 +278,11 @@ pub async fn process_sepa_ct_inbound_automatic_return(
     instruction_id: Uuid,
 ) -> Result<SepaFlowResult, String> {
     // Verify the instruction exists.
-    let exists: Option<Uuid> = sqlx::query_scalar(
-        "SELECT id FROM instructions WHERE id = $1",
-    )
-    .bind(instruction_id)
-    .fetch_optional(pool)
-    .await
-    .map_err(|e| format!("db error: {e}"))?;
+    let exists: Option<Uuid> = sqlx::query_scalar("SELECT id FROM instructions WHERE id = $1")
+        .bind(instruction_id)
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| format!("db error: {e}"))?;
     if exists.is_none() {
         return Err(format!("instruction {instruction_id} not found"));
     }
@@ -371,22 +370,35 @@ mod tests {
 
     #[test]
     fn sepa_recall_type_round_trip() {
-        for t in [SepaRecallType::Dupl, SepaRecallType::Tech, SepaRecallType::Frad] {
+        for t in [
+            SepaRecallType::Dupl,
+            SepaRecallType::Tech,
+            SepaRecallType::Frad,
+        ] {
             assert_eq!(SepaRecallType::from_str(t.as_str()).unwrap(), t);
         }
         // case-insensitive
-        assert_eq!(SepaRecallType::from_str("dupl").unwrap(), SepaRecallType::Dupl);
+        assert_eq!(
+            SepaRecallType::from_str("dupl").unwrap(),
+            SepaRecallType::Dupl
+        );
         assert!(SepaRecallType::from_str("bogus").is_err());
     }
 
     #[test]
     fn recall_deadline_dupl_is_10_days() {
-        assert_eq!(get_recall_deadline(&SepaRecallType::Dupl), Duration::days(10));
+        assert_eq!(
+            get_recall_deadline(&SepaRecallType::Dupl),
+            Duration::days(10)
+        );
     }
 
     #[test]
     fn recall_deadline_tech_is_10_days() {
-        assert_eq!(get_recall_deadline(&SepaRecallType::Tech), Duration::days(10));
+        assert_eq!(
+            get_recall_deadline(&SepaRecallType::Tech),
+            Duration::days(10)
+        );
     }
 
     #[test]

@@ -54,8 +54,13 @@ fn ctx(token_tp: &str, scope_list: &[&str]) -> RequestCtx {
 
 fn mirror_engine(mode: PolicyMode) -> PolicyEngine {
     let e = PolicyEngine::new(SERVICE);
-    e.load_from_rows(vec![row("scope-mirror", SCOPE_MIRROR_POLICIES, mode, PolicyOrigin::Platform)])
-        .expect("declared scope-mirror set must parse");
+    e.load_from_rows(vec![row(
+        "scope-mirror",
+        SCOPE_MIRROR_POLICIES,
+        mode,
+        PolicyOrigin::Platform,
+    )])
+    .expect("declared scope-mirror set must parse");
     e
 }
 
@@ -116,10 +121,7 @@ fn mirror_permits_own_grants() {
         // The action id equals the scope id for the primary gate of each
         // resource; cross-permits (e.g. audit:read → postings:read) are
         // covered by the explicit matrix test below.
-        let out = e.evaluate(
-            &ctx("user", &[scope]),
-            &EvalTarget::new(scope),
-        );
+        let out = e.evaluate(&ctx("user", &[scope]), &EvalTarget::new(scope));
         assert!(out.is_allow(), "scope {scope} must allow action {scope}");
     }
 }
@@ -165,7 +167,12 @@ fn platform_admin_scopes_pass() {
 fn forbid_beats_permit() {
     let e = PolicyEngine::new(SERVICE);
     e.load_from_rows(vec![
-        row("scope-mirror", SCOPE_MIRROR_POLICIES, PolicyMode::Enforced, PolicyOrigin::Platform),
+        row(
+            "scope-mirror",
+            SCOPE_MIRROR_POLICIES,
+            PolicyMode::Enforced,
+            PolicyOrigin::Platform,
+        ),
         row(
             "tenant-freeze",
             "forbid(principal, action == Action::\"bank8:payments:payments:write\", resource);",
@@ -178,7 +185,10 @@ fn forbid_beats_permit() {
         &ctx("user", &["bank8:payments:payments:write"]),
         &EvalTarget::new("bank8:payments:payments:write"),
     );
-    assert!(matches!(out.enforce_decision, Decision::Deny { .. }), "forbid wins");
+    assert!(
+        matches!(out.enforce_decision, Decision::Deny { .. }),
+        "forbid wins"
+    );
 }
 
 /// (f2) role-keyed rules participate in the same decision: a tenant set
@@ -194,10 +204,18 @@ fn role_keyed_tenant_set_decides() {
     )])
     .expect("load");
     // without roles → deny; with the live-resolved role → allow.
-    let denied = e.evaluate(&ctx("user", &[]), &EvalTarget::new("bank8:payments:instructions:write"));
+    let denied = e.evaluate(
+        &ctx("user", &[]),
+        &EvalTarget::new("bank8:payments:instructions:write"),
+    );
     assert!(!denied.is_allow());
     let allowed = e.evaluate(
-        &ctx("user", &[]).with_roles(["bank8:payments:admin"].iter().map(|s| s.to_string()).collect()),
+        &ctx("user", &[]).with_roles(
+            ["bank8:payments:admin"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        ),
         &EvalTarget::new("bank8:payments:instructions:write"),
     );
     assert!(allowed.is_allow());
@@ -220,7 +238,12 @@ fn cross_env_set_isolated() {
     .expect("load");
     // Rebuild properly: the row above is keyed to ENV; build one keyed to
     // another env and confirm it does not satisfy this env's evaluation.
-    let mut r = row("other-env-set", SCOPE_MIRROR_POLICIES, PolicyMode::Enforced, PolicyOrigin::Platform);
+    let mut r = row(
+        "other-env-set",
+        SCOPE_MIRROR_POLICIES,
+        PolicyMode::Enforced,
+        PolicyOrigin::Platform,
+    );
     r.env_id = other_env;
     let e2 = PolicyEngine::new(SERVICE);
     e2.load_from_rows(vec![r]).expect("load");
@@ -228,36 +251,62 @@ fn cross_env_set_isolated() {
         &ctx("user", &["bank8:payments:instructions:read"]),
         &EvalTarget::new("bank8:payments:instructions:read"),
     );
-    assert!(!out.is_allow(), "another env's set must not decide this env");
+    assert!(
+        !out.is_allow(),
+        "another env's set must not decide this env"
+    );
 }
 
 pub(crate) const HANDLER_ACTIONS: &[&str] = &[
-    "bank8:payments:account-links:read", "bank8:payments:account-links:write",
-    "bank8:payments:audit:read", "bank8:payments:calendars:read",
-    "bank8:payments:calendars:write", "bank8:payments:cards:read",
-    "bank8:payments:cards:write", "bank8:payments:cores:read",
-    "bank8:payments:cores:write", "bank8:payments:dashboards:read",
-    "bank8:payments:dashboards:write", "bank8:payments:files:read",
-    "bank8:payments:files:write", "bank8:payments:instructions:read",
-    "bank8:payments:instructions:write", "bank8:payments:integrations:read",
-    "bank8:payments:integrations:write", "bank8:payments:internal:read",
-    "bank8:payments:issuance:read", "bank8:payments:issuance:write",
-    "bank8:payments:logics:read", "bank8:payments:logics:write",
-    "bank8:payments:mandates:read", "bank8:payments:mandates:write",
-    "bank8:payments:manual-decisions:read", "bank8:payments:manual-decisions:write",
-    "bank8:payments:membership-directories:read", "bank8:payments:membership-directories:write",
-    "bank8:payments:metrics:read", "bank8:payments:openmetrics:read",
-    "bank8:payments:parameters:read", "bank8:payments:parameters:write",
-    "bank8:payments:payment-instruments:read", "bank8:payments:payment-instruments:write",
-    "bank8:payments:payments:read", "bank8:payments:payments:write",
-    "bank8:payments:rules:publish", "bank8:payments:rules:read",
-    "bank8:payments:rules:write", "bank8:payments:sandbox:write",
-    "bank8:payments:scheduled-payments:read", "bank8:payments:scheduled-payments:write",
-    "bank8:payments:tasks:approve", "bank8:payments:tasks:read",
-    "bank8:payments:tasks:write", "bank8:payments:templates:read",
-    "bank8:payments:templates:write", "bank8:payments:users:read",
+    "bank8:payments:account-links:read",
+    "bank8:payments:account-links:write",
+    "bank8:payments:audit:read",
+    "bank8:payments:calendars:read",
+    "bank8:payments:calendars:write",
+    "bank8:payments:cards:read",
+    "bank8:payments:cards:write",
+    "bank8:payments:cores:read",
+    "bank8:payments:cores:write",
+    "bank8:payments:dashboards:read",
+    "bank8:payments:dashboards:write",
+    "bank8:payments:files:read",
+    "bank8:payments:files:write",
+    "bank8:payments:instructions:read",
+    "bank8:payments:instructions:write",
+    "bank8:payments:integrations:read",
+    "bank8:payments:integrations:write",
+    "bank8:payments:internal:read",
+    "bank8:payments:issuance:read",
+    "bank8:payments:issuance:write",
+    "bank8:payments:logics:read",
+    "bank8:payments:logics:write",
+    "bank8:payments:mandates:read",
+    "bank8:payments:mandates:write",
+    "bank8:payments:manual-decisions:read",
+    "bank8:payments:manual-decisions:write",
+    "bank8:payments:membership-directories:read",
+    "bank8:payments:membership-directories:write",
+    "bank8:payments:metrics:read",
+    "bank8:payments:openmetrics:read",
+    "bank8:payments:parameters:read",
+    "bank8:payments:parameters:write",
+    "bank8:payments:payment-instruments:read",
+    "bank8:payments:payment-instruments:write",
+    "bank8:payments:payments:read",
+    "bank8:payments:payments:write",
+    "bank8:payments:rules:publish",
+    "bank8:payments:rules:read",
+    "bank8:payments:rules:write",
+    "bank8:payments:sandbox:write",
+    "bank8:payments:scheduled-payments:read",
+    "bank8:payments:scheduled-payments:write",
+    "bank8:payments:tasks:approve",
+    "bank8:payments:tasks:read",
+    "bank8:payments:tasks:write",
+    "bank8:payments:templates:read",
+    "bank8:payments:templates:write",
+    "bank8:payments:users:read",
 ];
-
 
 /// (i) registration parity: the declared set covers EVERY action the
 /// handlers evaluate (grep-equivalent matrix, kept in sync by the code — a
@@ -273,19 +322,17 @@ fn declared_mirror_covers_every_handler_action() {
         // The mirror grants the action-id scope for every primary gate, so
         // a caller holding exactly the action id passes each action.
         let out = e.evaluate(&ctx("user", &[*action]), &EvalTarget::new(*action));
-        assert!(out.is_allow(), "action {action} must be covered by the mirror");
+        assert!(
+            out.is_allow(),
+            "action {action} must be covered by the mirror"
+        );
     }
 }
-
 
 /// (h) the enroll-time dry-run gate (§4.2) accepts the declared set
 /// an enforced set that denies its own grants never ships.
 #[test]
 fn declared_set_passes_enroll_dry_run() {
-    sentin8::shield::runtime::dry_run_mirror(
-        SCOPE_MIRROR_POLICIES,
-        "scope-mirror",
-        SERVICE,
-    )
-    .expect("declared ledger scope-mirror must permit its own grants");
+    sentin8::shield::runtime::dry_run_mirror(SCOPE_MIRROR_POLICIES, "scope-mirror", SERVICE)
+        .expect("declared ledger scope-mirror must permit its own grants");
 }

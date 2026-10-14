@@ -7,10 +7,14 @@
 //! Each handler returns an `AdminUiPage` that Sentin8:Dash fetches via
 //! `GET /v1/admin/ui/{page}` and renders at runtime.
 
-use axum::{extract::{Path, State}, http::HeaderMap, Json};
+use axum::{
+    extract::{Path, State},
+    http::HeaderMap,
+    Json,
+};
+use sentin8::rfw::page::*;
 use sentin8::rfw::response::AdminUiResponse;
 use sentin8::rfw::widget::*;
-use sentin8::rfw::page::*;
 
 use crate::handlers::AppState;
 
@@ -21,7 +25,13 @@ pub async fn get_admin_ui(
     Path(page): Path<String>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
     let _a = crate::auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &_a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &_a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:read"),
+    )
+    .await?;
 
     let page_def = match page.as_str() {
         "overview" => overview_page(),
@@ -41,14 +51,22 @@ pub async fn get_admin_ui(
         "settings" => settings_page(),
         // ── Policy Studio (design §3.7, story 28.14) — shared page
         // constructors; the guard guarantees `Some` (§3.7 dispatch).
-        p if sentin8::rfw::policy_page("bank8:payments", p).is_some() => sentin8::rfw
-            ::policy_page("bank8:payments", p)
-            .expect("policy_page checked in guard")
-            .build(),
-        _ => return Err((axum::http::StatusCode::NOT_FOUND, format!("Unknown admin UI page: {page}"))),
+        p if sentin8::rfw::policy_page("bank8:payments", p).is_some() => {
+            sentin8::rfw::policy_page("bank8:payments", p)
+                .expect("policy_page checked in guard")
+                .build()
+        }
+        _ => {
+            return Err((
+                axum::http::StatusCode::NOT_FOUND,
+                format!("Unknown admin UI page: {page}"),
+            ))
+        }
     };
 
-    Ok(Json(serde_json::to_value(&AdminUiResponse::page(page_def)).unwrap()))
+    Ok(Json(
+        serde_json::to_value(AdminUiResponse::page(page_def)).unwrap(),
+    ))
 }
 
 fn overview_page() -> AdminUiPage {
@@ -56,16 +74,39 @@ fn overview_page() -> AdminUiPage {
         .widget(RemoteWidget::Card(WidgetCard {
             title: Some("Instructions Summary".into()),
             subtitle: None,
-            children: vec![
-                RemoteWidget::Text(WidgetText { text: "Instructions, rules, cards, files, integrations, manual decisions, simulator.".into(), text_type: WidgetTextType::Body, align: TextAlign::Left, max_lines: None }),
-            ],
+            children: vec![RemoteWidget::Text(WidgetText {
+                text:
+                    "Instructions, rules, cards, files, integrations, manual decisions, simulator."
+                        .into(),
+                text_type: WidgetTextType::Body,
+                align: TextAlign::Left,
+                max_lines: None,
+            })],
             actions: vec![],
         }))
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "Instruction ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "state".into(), label: "State".into(), sortable: true, width: None, format: None },
-                WidgetDataTableColumn { key: "created_at".into(), label: "Created".into(), sortable: true, width: None, format: Some("datetime".into()) },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "Instruction ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "state".into(),
+                    label: "State".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "created_at".into(),
+                    label: "Created".into(),
+                    sortable: true,
+                    width: None,
+                    format: Some("datetime".into()),
+                },
             ],
             data_endpoint: "/instructions".into(),
             sortable: true,
@@ -82,10 +123,34 @@ fn instructions_page() -> AdminUiPage {
     AdminPage::new("Instructions")
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "Instruction ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "state".into(), label: "State".into(), sortable: true, width: None, format: None },
-                WidgetDataTableColumn { key: "correlation_id".into(), label: "Correlation ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "created_at".into(), label: "Created".into(), sortable: true, width: None, format: Some("datetime".into()) },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "Instruction ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "state".into(),
+                    label: "State".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "correlation_id".into(),
+                    label: "Correlation ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "created_at".into(),
+                    label: "Created".into(),
+                    sortable: true,
+                    width: None,
+                    format: Some("datetime".into()),
+                },
             ],
             data_endpoint: "/instructions".into(),
             sortable: true,
@@ -102,9 +167,27 @@ fn payments_page() -> AdminUiPage {
     AdminPage::new("Payments")
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "Payment ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "status".into(), label: "Status".into(), sortable: true, width: None, format: None },
-                WidgetDataTableColumn { key: "amount".into(), label: "Amount".into(), sortable: true, width: None, format: Some("currency".into()) },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "Payment ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "status".into(),
+                    label: "Status".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "amount".into(),
+                    label: "Amount".into(),
+                    sortable: true,
+                    width: None,
+                    format: Some("currency".into()),
+                },
             ],
             data_endpoint: "/payments".into(),
             sortable: true,
@@ -119,12 +202,36 @@ fn payments_page() -> AdminUiPage {
 
 fn rules_page() -> AdminUiPage {
     AdminPage::new("Rules")
-        .action(AdminUiAction { label: "Create Rule".into(), action_type: AdminUiActionType::Link, route: Some("rules/new".into()), endpoint: None, icon: Some("add".into()) })
+        .action(AdminUiAction {
+            label: "Create Rule".into(),
+            action_type: AdminUiActionType::Link,
+            route: Some("rules/new".into()),
+            endpoint: None,
+            icon: Some("add".into()),
+        })
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "Rule ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "name".into(), label: "Name".into(), sortable: true, width: None, format: None },
-                WidgetDataTableColumn { key: "status".into(), label: "Status".into(), sortable: true, width: None, format: None },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "Rule ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "name".into(),
+                    label: "Name".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "status".into(),
+                    label: "Status".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
             ],
             data_endpoint: "/rules".into(),
             sortable: true,
@@ -141,9 +248,27 @@ fn cards_page() -> AdminUiPage {
     AdminPage::new("Cards")
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "Card ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "holder_name".into(), label: "Cardholder".into(), sortable: true, width: None, format: None },
-                WidgetDataTableColumn { key: "status".into(), label: "Status".into(), sortable: true, width: None, format: None },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "Card ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "holder_name".into(),
+                    label: "Cardholder".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "status".into(),
+                    label: "Status".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
             ],
             data_endpoint: "/cards".into(),
             sortable: true,
@@ -160,9 +285,27 @@ fn files_page() -> AdminUiPage {
     AdminPage::new("Files")
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "File ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "name".into(), label: "Name".into(), sortable: true, width: None, format: None },
-                WidgetDataTableColumn { key: "status".into(), label: "Status".into(), sortable: true, width: None, format: None },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "File ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "name".into(),
+                    label: "Name".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "status".into(),
+                    label: "Status".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
             ],
             data_endpoint: "/files".into(),
             sortable: true,
@@ -179,9 +322,27 @@ fn integrations_page() -> AdminUiPage {
     AdminPage::new("Integrations")
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "Integration ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "name".into(), label: "Name".into(), sortable: true, width: None, format: None },
-                WidgetDataTableColumn { key: "status".into(), label: "Status".into(), sortable: true, width: None, format: None },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "Integration ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "name".into(),
+                    label: "Name".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "status".into(),
+                    label: "Status".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
             ],
             data_endpoint: "/integrations".into(),
             sortable: true,
@@ -198,9 +359,27 @@ fn parameters_page() -> AdminUiPage {
     AdminPage::new("Parameters")
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "Parameter ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "name".into(), label: "Name".into(), sortable: true, width: None, format: None },
-                WidgetDataTableColumn { key: "type".into(), label: "Type".into(), sortable: true, width: None, format: None },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "Parameter ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "name".into(),
+                    label: "Name".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "type".into(),
+                    label: "Type".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
             ],
             data_endpoint: "/parameters".into(),
             sortable: true,
@@ -217,8 +396,20 @@ fn cores_page() -> AdminUiPage {
     AdminPage::new("Cores")
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "Core ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "name".into(), label: "Name".into(), sortable: true, width: None, format: None },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "Core ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "name".into(),
+                    label: "Name".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
             ],
             data_endpoint: "/cores".into(),
             sortable: true,
@@ -235,8 +426,20 @@ fn mandates_page() -> AdminUiPage {
     AdminPage::new("Mandates (BETA)")
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "Mandate ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "status".into(), label: "Status".into(), sortable: true, width: None, format: None },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "Mandate ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "status".into(),
+                    label: "Status".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
             ],
             data_endpoint: "/mandates".into(),
             sortable: true,
@@ -253,8 +456,20 @@ fn directories_page() -> AdminUiPage {
     AdminPage::new("Membership Directories")
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "Directory ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "name".into(), label: "Name".into(), sortable: true, width: None, format: None },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "Directory ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "name".into(),
+                    label: "Name".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
             ],
             data_endpoint: "/directories".into(),
             sortable: true,
@@ -271,8 +486,20 @@ fn calendars_page() -> AdminUiPage {
     AdminPage::new("Calendars")
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "Calendar ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "name".into(), label: "Name".into(), sortable: true, width: None, format: None },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "Calendar ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "name".into(),
+                    label: "Name".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
             ],
             data_endpoint: "/calendars".into(),
             sortable: true,
@@ -289,9 +516,27 @@ fn decisions_page() -> AdminUiPage {
     AdminPage::new("Manual Decisions")
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
-                WidgetDataTableColumn { key: "id".into(), label: "Decision ID".into(), sortable: false, width: None, format: None },
-                WidgetDataTableColumn { key: "status".into(), label: "Status".into(), sortable: true, width: None, format: None },
-                WidgetDataTableColumn { key: "created_at".into(), label: "Created".into(), sortable: true, width: None, format: Some("datetime".into()) },
+                WidgetDataTableColumn {
+                    key: "id".into(),
+                    label: "Decision ID".into(),
+                    sortable: false,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "status".into(),
+                    label: "Status".into(),
+                    sortable: true,
+                    width: None,
+                    format: None,
+                },
+                WidgetDataTableColumn {
+                    key: "created_at".into(),
+                    label: "Created".into(),
+                    sortable: true,
+                    width: None,
+                    format: Some("datetime".into()),
+                },
             ],
             data_endpoint: "/decisions".into(),
             sortable: true,
@@ -316,6 +561,11 @@ fn simulator_page() -> AdminUiPage {
 
 fn settings_page() -> AdminUiPage {
     AdminPage::new("Payments Settings")
-        .widget(RemoteWidget::Text(WidgetText { text: "Bank8:Payments configuration settings.".into(), text_type: WidgetTextType::Body, align: TextAlign::Left, max_lines: None }))
+        .widget(RemoteWidget::Text(WidgetText {
+            text: "Bank8:Payments configuration settings.".into(),
+            text_type: WidgetTextType::Body,
+            align: TextAlign::Left,
+            max_lines: None,
+        }))
         .build()
 }

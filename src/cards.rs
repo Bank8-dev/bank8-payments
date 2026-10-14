@@ -80,7 +80,10 @@ pub fn validate_card_transition(from: CardState, to: CardState) -> Result<(), St
     let ok = match from {
         CardState::PendingCreation => matches!(to, CardState::Inactive | CardState::Active),
         CardState::Inactive => matches!(to, CardState::Active | CardState::Disabled),
-        CardState::Active => matches!(to, CardState::Suspended | CardState::Inactive | CardState::Disabled),
+        CardState::Active => matches!(
+            to,
+            CardState::Suspended | CardState::Inactive | CardState::Disabled
+        ),
         CardState::Suspended => matches!(to, CardState::Active | CardState::Disabled),
         CardState::Disabled => false,
     };
@@ -209,7 +212,9 @@ impl CardEncryption {
         if key.is_empty() {
             return Err("encryption key must not be empty".into());
         }
-        let bytes = B64.decode(encrypted.as_bytes()).map_err(|e| e.to_string())?;
+        let bytes = B64
+            .decode(encrypted.as_bytes())
+            .map_err(|e| e.to_string())?;
         let mut out = Vec::with_capacity(bytes.len());
         for (i, b) in bytes.iter().enumerate() {
             out.push(b ^ key[i % key.len()]);
@@ -236,7 +241,10 @@ pub async fn freeze_card(pool: &sqlx::PgPool, card_id: Uuid) -> Result<(), Strin
 pub async fn unfreeze_card(pool: &sqlx::PgPool, card_id: Uuid) -> Result<(), String> {
     let from = load_card_state(pool, card_id).await?;
     if from != CardState::Suspended {
-        return Err(format!("card {card_id} is not suspended (current: {})", from.as_str()));
+        return Err(format!(
+            "card {card_id} is not suspended (current: {})",
+            from.as_str()
+        ));
     }
     transition_card_state(pool, card_id, CardState::Active).await?;
     Ok(())
@@ -252,23 +260,32 @@ pub async fn unfreeze_card(pool: &sqlx::PgPool, card_id: Uuid) -> Result<(), Str
 /// passed here or before being stored. This function stores the last 4
 /// digits only in `pan_last_digits` and leaves the full PAN handling to the
 /// caller.
-pub async fn replace_card(pool: &sqlx::PgPool, card_id: Uuid, new_pan: &str) -> Result<Uuid, String> {
+pub async fn replace_card(
+    pool: &sqlx::PgPool,
+    card_id: Uuid,
+    new_pan: &str,
+) -> Result<Uuid, String> {
     let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
 
-    let row = sqlx::query(
-        "SELECT env_id, cardholder_id, card_product_id FROM cards WHERE id = $1",
-    )
-    .bind(card_id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(|e| e.to_string())?
-    .ok_or_else(|| format!("card {card_id} not found"))?;
+    let row = sqlx::query("SELECT env_id, cardholder_id, card_product_id FROM cards WHERE id = $1")
+        .bind(card_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("card {card_id} not found"))?;
 
     let env_id: Uuid = row.get("env_id");
     let cardholder_id: Uuid = row.get("cardholder_id");
     let card_product_id: Option<Uuid> = row.get("card_product_id");
 
-    let pan_last_digits: String = new_pan.chars().rev().take(4).collect::<String>().chars().rev().collect();
+    let pan_last_digits: String = new_pan
+        .chars()
+        .rev()
+        .take(4)
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect();
 
     let new_row = sqlx::query(
         r#"INSERT INTO cards
@@ -336,7 +353,10 @@ pub async fn provision_card_token(
 }
 
 /// List all tokens for a card.
-pub async fn list_card_tokens(pool: &sqlx::PgPool, card_id: Uuid) -> Result<Vec<CardTokenResponse>, String> {
+pub async fn list_card_tokens(
+    pool: &sqlx::PgPool,
+    card_id: Uuid,
+) -> Result<Vec<CardTokenResponse>, String> {
     let rows = sqlx::query(
         r#"SELECT id, card_id, token_requestor_id, token_status,
                   token_reference, device_type, created_at
@@ -396,15 +416,13 @@ pub async fn update_card_order_status(
     order_id: Uuid,
     status: &str,
 ) -> Result<(), String> {
-    let rows = sqlx::query(
-        "UPDATE card_orders SET status = $2, updated_at = now() WHERE id = $1",
-    )
-    .bind(order_id)
-    .bind(status)
-    .execute(pool)
-    .await
-    .map_err(|e| e.to_string())?
-    .rows_affected();
+    let rows = sqlx::query("UPDATE card_orders SET status = $2, updated_at = now() WHERE id = $1")
+        .bind(order_id)
+        .bind(status)
+        .execute(pool)
+        .await
+        .map_err(|e| e.to_string())?
+        .rows_affected();
     if rows == 0 {
         return Err(format!("card order {order_id} not found"));
     }
@@ -422,7 +440,11 @@ pub struct LvtStatus {
 }
 
 /// Increment the LVT counter by 1 and add `amount` to the LVT accumulator.
-pub async fn increment_lvt(pool: &sqlx::PgPool, card_id: Uuid, amount: rust_decimal::Decimal) -> Result<(), String> {
+pub async fn increment_lvt(
+    pool: &sqlx::PgPool,
+    card_id: Uuid,
+    amount: rust_decimal::Decimal,
+) -> Result<(), String> {
     let rows = sqlx::query(
         r#"UPDATE cards
               SET lvt_counter = lvt_counter + 1,
@@ -444,14 +466,12 @@ pub async fn increment_lvt(pool: &sqlx::PgPool, card_id: Uuid, amount: rust_deci
 
 /// Return the current LVT counter and accumulator for a card.
 pub async fn get_lvt_status(pool: &sqlx::PgPool, card_id: Uuid) -> Result<LvtStatus, String> {
-    let row = sqlx::query(
-        "SELECT id, lvt_counter, lvt_accumulator FROM cards WHERE id = $1",
-    )
-    .bind(card_id)
-    .fetch_optional(pool)
-    .await
-    .map_err(|e| e.to_string())?
-    .ok_or_else(|| format!("card {card_id} not found"))?;
+    let row = sqlx::query("SELECT id, lvt_counter, lvt_accumulator FROM cards WHERE id = $1")
+        .bind(card_id)
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("card {card_id} not found"))?;
     Ok(LvtStatus {
         card_id: row.get("id"),
         lvt_counter: row.get("lvt_counter"),
@@ -623,7 +643,11 @@ pub const AUTH_MAX_AGE: Duration = Duration::days(7);
 /// already been cleared (and so should not be expired).
 /// `created_at` is the authorisation creation timestamp; `presented` is
 /// `true` when a matching presentment has been received.
-pub fn check_authorisation_expiry_at(created_at: DateTime<Utc>, presented: bool, now: DateTime<Utc>) -> bool {
+pub fn check_authorisation_expiry_at(
+    created_at: DateTime<Utc>,
+    presented: bool,
+    now: DateTime<Utc>,
+) -> bool {
     if presented {
         return false;
     }
@@ -653,7 +677,11 @@ pub async fn check_authorisation_expiry(
 
     let created_at: DateTime<Utc> = row.get("created_at");
     let completed_at: Option<DateTime<Utc>> = row.get("completed_at");
-    Ok(check_authorisation_expiry_at(created_at, completed_at.is_some(), Utc::now()))
+    Ok(check_authorisation_expiry_at(
+        created_at,
+        completed_at.is_some(),
+        Utc::now(),
+    ))
 }
 
 /// Find and expire all stale authorisations.
@@ -676,7 +704,10 @@ pub async fn expire_stale_authorisations(pool: &sqlx::PgPool) -> Result<Vec<Stri
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|r| r.get::<Uuid, _>("id").to_string()).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| r.get::<Uuid, _>("id").to_string())
+        .collect())
 }
 
 // ── Story — Card operations: encrypted sessions, PIN, card tokens, 3DS ─
@@ -737,15 +768,13 @@ pub async fn create_encrypted_session(
     session_type: EncryptedSessionType,
 ) -> Result<EncryptedSessionResponse, String> {
     // Validate that the card exists and belongs to the same tenant.
-    let card_row = sqlx::query(
-        "SELECT id FROM cards WHERE id = $1 AND env_id = $2",
-    )
-    .bind(card_id)
-    .bind(env_id)
-    .fetch_optional(pool)
-    .await
-    .map_err(|e| e.to_string())?
-    .ok_or_else(|| format!("card {card_id} not found"))?;
+    let card_row = sqlx::query("SELECT id FROM cards WHERE id = $1 AND env_id = $2")
+        .bind(card_id)
+        .bind(env_id)
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("card {card_id} not found"))?;
 
     let _ = card_row;
     let (public_key, _private_key) = CardEncryption::generate_key_pair();
@@ -799,14 +828,12 @@ pub async fn verify_pin(
     card_id: Uuid,
     pin_hash: &str,
 ) -> Result<PinVerifyResult, String> {
-    let row = sqlx::query(
-        "SELECT pin_hash, pin_attempts FROM cards WHERE id = $1",
-    )
-    .bind(card_id)
-    .fetch_optional(pool)
-    .await
-    .map_err(|e| e.to_string())?
-    .ok_or_else(|| format!("card {card_id} not found"))?;
+    let row = sqlx::query("SELECT pin_hash, pin_attempts FROM cards WHERE id = $1")
+        .bind(card_id)
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("card {card_id} not found"))?;
 
     let stored_hash: Option<String> = row.get("pin_hash");
     let attempts: i32 = row.get("pin_attempts");
@@ -818,12 +845,10 @@ pub async fn verify_pin(
 
     if verified {
         // Reset attempts on success.
-        let _ = sqlx::query(
-            "UPDATE cards SET pin_attempts = 0, updated_at = now() WHERE id = $1",
-        )
-        .bind(card_id)
-        .execute(pool)
-        .await;
+        let _ = sqlx::query("UPDATE cards SET pin_attempts = 0, updated_at = now() WHERE id = $1")
+            .bind(card_id)
+            .execute(pool)
+            .await;
         return Ok(PinVerifyResult {
             card_id,
             verified: true,
@@ -847,13 +872,11 @@ pub async fn verify_pin(
         .execute(pool)
         .await;
     } else {
-        let _ = sqlx::query(
-            "UPDATE cards SET pin_attempts = $2, updated_at = now() WHERE id = $1",
-        )
-        .bind(card_id)
-        .bind(new_attempts)
-        .execute(pool)
-        .await;
+        let _ = sqlx::query("UPDATE cards SET pin_attempts = $2, updated_at = now() WHERE id = $1")
+            .bind(card_id)
+            .bind(new_attempts)
+            .execute(pool)
+            .await;
     }
 
     Ok(PinVerifyResult {
@@ -915,13 +938,12 @@ pub async fn change_pin(
             .execute(pool)
             .await;
         } else {
-            let _ = sqlx::query(
-                "UPDATE cards SET pin_attempts = $2, updated_at = now() WHERE id = $1",
-            )
-            .bind(card_id)
-            .bind(new_attempts)
-            .execute(pool)
-            .await;
+            let _ =
+                sqlx::query("UPDATE cards SET pin_attempts = $2, updated_at = now() WHERE id = $1")
+                    .bind(card_id)
+                    .bind(new_attempts)
+                    .execute(pool)
+                    .await;
         }
         return Ok(PinChangeResult {
             card_id,
@@ -1125,7 +1147,11 @@ impl ThreeDSAuthResult {
 /// - **Amber** (challenge) — `risk_score < 0.7` (and not Green).
 /// - **Red** (decline) — `risk_score >= 0.7` OR `amount > 5000`.
 /// `Red` takes priority over the other bands.
-pub fn evaluate_3ds_risk(risk_score: f64, amount: f64, merchant_trusted: bool) -> ThreeDSAuthResult {
+pub fn evaluate_3ds_risk(
+    risk_score: f64,
+    amount: f64,
+    merchant_trusted: bool,
+) -> ThreeDSAuthResult {
     // Decline band has the highest priority.
     if risk_score >= 0.7 || amount > 5000.0 {
         return ThreeDSAuthResult::Red;
@@ -1259,7 +1285,9 @@ pub struct OutseerRiskResponse {
 /// - `amount < 100` → score 0.1, band "LOW", recommendation "frictionless"
 /// - `amount < 1000` → score 0.4, band "MEDIUM", recommendation "challenge"
 /// - `amount >= 1000` → score 0.8, band "HIGH", recommendation "decline"
-pub fn call_outseer_risk_analysis(request: &OutseerRiskRequest) -> Result<OutseerRiskResponse, String> {
+pub fn call_outseer_risk_analysis(
+    request: &OutseerRiskRequest,
+) -> Result<OutseerRiskResponse, String> {
     if request.amount < 0.0 {
         return Err("amount must not be negative".into());
     }
@@ -1302,16 +1330,8 @@ mod tests {
 
     #[test]
     fn valid_transitions_succeed() {
-        assert!(validate_card_transition(
-            CardState::PendingCreation,
-            CardState::Inactive
-        )
-        .is_ok());
-        assert!(validate_card_transition(
-            CardState::PendingCreation,
-            CardState::Active
-        )
-        .is_ok());
+        assert!(validate_card_transition(CardState::PendingCreation, CardState::Inactive).is_ok());
+        assert!(validate_card_transition(CardState::PendingCreation, CardState::Active).is_ok());
         assert!(validate_card_transition(CardState::Inactive, CardState::Active).is_ok());
         assert!(validate_card_transition(CardState::Inactive, CardState::Disabled).is_ok());
         assert!(validate_card_transition(CardState::Active, CardState::Suspended).is_ok());
@@ -1328,36 +1348,20 @@ mod tests {
         assert!(validate_card_transition(CardState::Disabled, CardState::Suspended).is_err());
         assert!(validate_card_transition(CardState::Disabled, CardState::Inactive).is_err());
         // PendingCreation cannot go to Suspended/Disabled directly.
-        assert!(validate_card_transition(
-            CardState::PendingCreation,
-            CardState::Suspended
-        )
-        .is_err());
-        assert!(validate_card_transition(
-            CardState::PendingCreation,
-            CardState::Disabled
-        )
-        .is_err());
+        assert!(
+            validate_card_transition(CardState::PendingCreation, CardState::Suspended).is_err()
+        );
+        assert!(validate_card_transition(CardState::PendingCreation, CardState::Disabled).is_err());
         // Inactive cannot go back to PendingCreation or to Suspended.
-        assert!(validate_card_transition(
-            CardState::Inactive,
-            CardState::PendingCreation
-        )
-        .is_err());
+        assert!(validate_card_transition(CardState::Inactive, CardState::PendingCreation).is_err());
         assert!(validate_card_transition(CardState::Inactive, CardState::Suspended).is_err());
         // Active cannot go back to PendingCreation.
-        assert!(validate_card_transition(
-            CardState::Active,
-            CardState::PendingCreation
-        )
-        .is_err());
+        assert!(validate_card_transition(CardState::Active, CardState::PendingCreation).is_err());
         // Suspended cannot go to Inactive or PendingCreation.
         assert!(validate_card_transition(CardState::Suspended, CardState::Inactive).is_err());
-        assert!(validate_card_transition(
-            CardState::Suspended,
-            CardState::PendingCreation
-        )
-        .is_err());
+        assert!(
+            validate_card_transition(CardState::Suspended, CardState::PendingCreation).is_err()
+        );
     }
 
     #[test]
@@ -1448,7 +1452,10 @@ mod tests {
             "59"
         );
         assert_eq!(get_decline_recommendation(DeclineReason::DoNotHonor), "05");
-        assert_eq!(get_decline_recommendation(DeclineReason::InvalidMerchant), "12");
+        assert_eq!(
+            get_decline_recommendation(DeclineReason::InvalidMerchant),
+            "12"
+        );
         assert_eq!(
             get_decline_recommendation(DeclineReason::TransactionNotAllowed),
             "57"
@@ -1559,10 +1566,7 @@ mod tests {
     #[test]
     fn green_band_frictionless() {
         // Low risk, small amount, trusted merchant.
-        assert_eq!(
-            evaluate_3ds_risk(0.1, 25.0, true),
-            ThreeDSAuthResult::Green
-        );
+        assert_eq!(evaluate_3ds_risk(0.1, 25.0, true), ThreeDSAuthResult::Green);
     }
 
     #[test]
@@ -1577,23 +1581,14 @@ mod tests {
     #[test]
     fn green_band_requires_low_amount() {
         // Amount >= 50 disqualifies Green even with low risk and trusted merchant.
-        assert_ne!(
-            evaluate_3ds_risk(0.1, 50.0, true),
-            ThreeDSAuthResult::Green
-        );
-        assert_ne!(
-            evaluate_3ds_risk(0.1, 75.0, true),
-            ThreeDSAuthResult::Green
-        );
+        assert_ne!(evaluate_3ds_risk(0.1, 50.0, true), ThreeDSAuthResult::Green);
+        assert_ne!(evaluate_3ds_risk(0.1, 75.0, true), ThreeDSAuthResult::Green);
     }
 
     #[test]
     fn green_band_requires_low_risk() {
         // risk_score >= 0.2 disqualifies Green.
-        assert_ne!(
-            evaluate_3ds_risk(0.2, 25.0, true),
-            ThreeDSAuthResult::Green
-        );
+        assert_ne!(evaluate_3ds_risk(0.2, 25.0, true), ThreeDSAuthResult::Green);
     }
 
     #[test]
@@ -1611,37 +1606,22 @@ mod tests {
 
     #[test]
     fn red_band_high_risk() {
-        assert_eq!(
-            evaluate_3ds_risk(0.7, 10.0, true),
-            ThreeDSAuthResult::Red
-        );
-        assert_eq!(
-            evaluate_3ds_risk(0.95, 10.0, true),
-            ThreeDSAuthResult::Red
-        );
+        assert_eq!(evaluate_3ds_risk(0.7, 10.0, true), ThreeDSAuthResult::Red);
+        assert_eq!(evaluate_3ds_risk(0.95, 10.0, true), ThreeDSAuthResult::Red);
     }
 
     #[test]
     fn red_band_high_amount() {
         // amount > 5000 forces Red even with low risk.
-        assert_eq!(
-            evaluate_3ds_risk(0.1, 5001.0, true),
-            ThreeDSAuthResult::Red
-        );
+        assert_eq!(evaluate_3ds_risk(0.1, 5001.0, true), ThreeDSAuthResult::Red);
     }
 
     #[test]
     fn red_takes_priority_over_green() {
         // Would be Green by risk+amount, but high amount forces Red.
-        assert_eq!(
-            evaluate_3ds_risk(0.1, 6000.0, true),
-            ThreeDSAuthResult::Red
-        );
+        assert_eq!(evaluate_3ds_risk(0.1, 6000.0, true), ThreeDSAuthResult::Red);
         // High risk forces Red even when amount is small and merchant trusted.
-        assert_eq!(
-            evaluate_3ds_risk(0.9, 10.0, true),
-            ThreeDSAuthResult::Red
-        );
+        assert_eq!(evaluate_3ds_risk(0.9, 10.0, true), ThreeDSAuthResult::Red);
     }
 
     #[test]
@@ -1657,15 +1637,15 @@ mod tests {
     #[test]
     fn red_boundary_risk_07_is_red() {
         // risk_score == 0.7 is >= 0.7 → Red.
-        assert_eq!(
-            evaluate_3ds_risk(0.7, 100.0, true),
-            ThreeDSAuthResult::Red
-        );
+        assert_eq!(evaluate_3ds_risk(0.7, 100.0, true), ThreeDSAuthResult::Red);
     }
 
     #[test]
     fn recommend_action_matches_band() {
-        assert_eq!(recommend_3ds_action(&ThreeDSAuthResult::Green), "frictionless");
+        assert_eq!(
+            recommend_3ds_action(&ThreeDSAuthResult::Green),
+            "frictionless"
+        );
         assert_eq!(recommend_3ds_action(&ThreeDSAuthResult::Amber), "challenge");
         assert_eq!(recommend_3ds_action(&ThreeDSAuthResult::Red), "decline");
     }

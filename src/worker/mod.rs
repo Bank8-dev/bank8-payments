@@ -14,8 +14,8 @@
 
 use std::sync::Arc;
 
-use sentin8::bus::client::BusClient;
 use futures_util::StreamExt;
+use sentin8::bus::client::BusClient;
 use sqlx::Row;
 use tokio::time::Duration;
 use uuid::Uuid;
@@ -37,9 +37,14 @@ pub struct WorkerLoopConfig {
 impl WorkerLoopConfig {
     pub fn from_env() -> Self {
         Self {
-            consumer_group: std::env::var("BANK8_PAYMENTS_WORKER_CONSUMER_GROUP").unwrap_or_else(|_| "payments-worker".into()),
-            max_retries: std::env::var("BANK8_PAYMENTS_WORKER_MAX_RETRIES").unwrap_or("3".into()).parse().unwrap_or(3),
-            stream_family: std::env::var("BANK8_PAYMENTS_STREAM_FAMILY").unwrap_or_else(|_| "payments".into()),
+            consumer_group: std::env::var("BANK8_PAYMENTS_WORKER_CONSUMER_GROUP")
+                .unwrap_or_else(|_| "payments-worker".into()),
+            max_retries: std::env::var("BANK8_PAYMENTS_WORKER_MAX_RETRIES")
+                .unwrap_or("3".into())
+                .parse()
+                .unwrap_or(3),
+            stream_family: std::env::var("BANK8_PAYMENTS_STREAM_FAMILY")
+                .unwrap_or_else(|_| "payments".into()),
         }
     }
 }
@@ -53,10 +58,7 @@ impl WorkerLoopConfig {
 /// # Errors
 /// Returns the certificate-ensure or transport-build failure (the
 /// caller logs and degrades).
-async fn build_workload_http(
-    auth_issuer: &str,
-    workload: &str,
-) -> anyhow::Result<reqwest::Client> {
+async fn build_workload_http(auth_issuer: &str, workload: &str) -> anyhow::Result<reqwest::Client> {
     let cert = sentin8::auth::m2m::ensure_workload_certificate(
         auth_issuer,
         workload,
@@ -102,7 +104,8 @@ pub async fn spawn(pool: sqlx::PgPool, config: &crate::config::PaymentsConfig) {
     // mint failure falls back to the documented dev-plain client (Flow
     // rejects it loudly at the authorization gate — fail-closed, no
     // token fallback exists).
-    let flow = match build_workload_http(&config.sentin8_auth_issuer, "payments-worker-flow").await {
+    let flow = match build_workload_http(&config.sentin8_auth_issuer, "payments-worker-flow").await
+    {
         Ok(http) => sentin8_flow_sdk::client::FlowClient::from_transport(
             config.sentin8_flow_url.clone(),
             sentin8::middleware::http_client::Sentin8HttpClient::from_client(http),
@@ -209,7 +212,10 @@ async fn sse_consume_loop(state: Arc<WorkerState>) {
 
                 match process_instruction(&state, &env_id, payload).await {
                     Ok(()) => {
-                        let _ = state.bus.ack(&stream_family, &consumer_group, &message_id).await;
+                        let _ = state
+                            .bus
+                            .ack(&stream_family, &consumer_group, &message_id)
+                            .await;
                     }
                     Err(e) => {
                         tracing::warn!(
@@ -220,7 +226,10 @@ async fn sse_consume_loop(state: Arc<WorkerState>) {
                         // Nack via HTTP so Bus tracks retries / DLQ.
                         let _ = nack_with_retry(&state, &message_id, max_retries).await;
                         // ACK to move on (DLQ handles poison messages).
-                        let _ = state.bus.ack(&stream_family, &consumer_group, &message_id).await;
+                        let _ = state
+                            .bus
+                            .ack(&stream_family, &consumer_group, &message_id)
+                            .await;
                     }
                 }
             }
@@ -249,7 +258,11 @@ async fn sse_consume_loop(state: Arc<WorkerState>) {
 /// it is marked `failed` with a reason instead of being silently
 /// completed (a fictional completion is the most dangerous state in a
 /// payments system).
-async fn process_instruction(state: &WorkerState, env_id: &str, payload: &serde_json::Value) -> Result<(), String> {
+async fn process_instruction(
+    state: &WorkerState,
+    env_id: &str,
+    payload: &serde_json::Value,
+) -> Result<(), String> {
     let instruction_id = instruction_id_from_payload(payload)
         .ok_or_else(|| "missing instruction_id in event payload".to_string())?;
 
@@ -305,7 +318,9 @@ async fn process_instruction(state: &WorkerState, env_id: &str, payload: &serde_
     .execute(&mut *tx)
     .await
     .map_err(|e| format!("mark processing: {e}"))?;
-    tx.commit().await.map_err(|e| format!("commit processing: {e}"))?;
+    tx.commit()
+        .await
+        .map_err(|e| format!("commit processing: {e}"))?;
 
     // Find the Flow workflow for the payments domain by its correlation
     // (instruction id — set at workflow creation). The correlation filter
@@ -323,7 +338,7 @@ async fn process_instruction(state: &WorkerState, env_id: &str, payload: &serde_
         .iter()
         .find(|w| w.correlation_id.as_deref() == Some(correlation.as_str()));
 
-    match workflow.map(|w| (w.id, w.state.clone())) {
+    match workflow.map(|w| (w.id, w.state)) {
         Some((workflow_id, sentin8_flow_sdk::contracts::WorkflowState::Waiting)) => {
             tracing::info!(instruction_id = %instruction_id, workflow_id = %workflow_id, "resuming waiting workflow");
             state
@@ -350,7 +365,8 @@ async fn process_instruction(state: &WorkerState, env_id: &str, payload: &serde_
             // No Flow workflow exists (e.g. an instruction created without
             // inline logic). It cannot execute without one — fail it
             // explicitly instead of marking it completed.
-            let reason = "no flow workflow found for instruction; worker cannot re-drive without a workflow";
+            let reason =
+                "no flow workflow found for instruction; worker cannot re-drive without a workflow";
             tracing::warn!(instruction_id = %instruction_id, "failing instruction: {reason}");
             let mut tx = state
                 .pool
@@ -379,18 +395,29 @@ async fn process_instruction(state: &WorkerState, env_id: &str, payload: &serde_
     Ok(())
 }
 /// Nack with retry — after max retries, the Bus DLQ handles poison messages.
-async fn nack_with_retry(state: &WorkerState, message_id: &str, max_retries: u32) -> Result<(), String> {
+async fn nack_with_retry(
+    state: &WorkerState,
+    message_id: &str,
+    max_retries: u32,
+) -> Result<(), String> {
     for _ in 0..max_retries {
         let res = state
             .bus
-            .nack(&state.loop_config.stream_family, &state.loop_config.consumer_group, message_id, Some(1))
+            .nack(
+                &state.loop_config.stream_family,
+                &state.loop_config.consumer_group,
+                message_id,
+                Some(1),
+            )
             .await;
         if res.is_ok() {
             return Ok(());
         }
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
-    Err(format!("nack failed after {max_retries} retries for {message_id}"))
+    Err(format!(
+        "nack failed after {max_retries} retries for {message_id}"
+    ))
 }
 
 // ── Pure seams (unit-tested; design §8.5.1) ────────────────────────────

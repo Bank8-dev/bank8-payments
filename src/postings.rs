@@ -41,10 +41,14 @@ impl PostingType {
         match s {
             "Transfer" | "transfer" => Ok(Self::Transfer),
             "InboundHardSettlement" | "inbound_hard_settlement" => Ok(Self::InboundHardSettlement),
-            "OutboundHardSettlement" | "outbound_hard_settlement" => Ok(Self::OutboundHardSettlement),
+            "OutboundHardSettlement" | "outbound_hard_settlement" => {
+                Ok(Self::OutboundHardSettlement)
+            }
             "InboundAuthorisation" | "inbound_authorisation" => Ok(Self::InboundAuthorisation),
             "OutboundAuthorisation" | "outbound_authorisation" => Ok(Self::OutboundAuthorisation),
-            "AuthorisationAdjustment" | "authorisation_adjustment" => Ok(Self::AuthorisationAdjustment),
+            "AuthorisationAdjustment" | "authorisation_adjustment" => {
+                Ok(Self::AuthorisationAdjustment)
+            }
             "Release" | "release" => Ok(Self::Release),
             "Settlement" | "settlement" => Ok(Self::Settlement),
             other => Err(format!("unknown posting type: {other}")),

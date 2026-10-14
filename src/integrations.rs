@@ -118,9 +118,8 @@ pub async fn publish_integration_version(
     .await
     .map_err(|e| e.to_string())?;
 
-    let integration_id = parent.ok_or_else(|| {
-        format!("integration version {integration_version_id} not found")
-    })?;
+    let integration_id =
+        parent.ok_or_else(|| format!("integration version {integration_version_id} not found"))?;
 
     sqlx::query(
         r#"UPDATE integrations
@@ -210,12 +209,12 @@ pub fn resolve_auth_header(auth_config: &AuthConfig) -> Result<String, String> {
                 .ok_or_else(|| "static_token auth requires a non-empty token".to_string())?;
             Ok(format!("Bearer {token}"))
         }
-        AuthMethod::OAuthClientCredentials => Err(
-            "oauth_client_credentials token exchange not yet implemented".into(),
-        ),
-        AuthMethod::OAuthPasswordGrant => Err(
-            "oauth_password_grant token exchange not yet implemented".into(),
-        ),
+        AuthMethod::OAuthClientCredentials => {
+            Err("oauth_client_credentials token exchange not yet implemented".into())
+        }
+        AuthMethod::OAuthPasswordGrant => {
+            Err("oauth_password_grant token exchange not yet implemented".into())
+        }
     }
 }
 
@@ -231,8 +230,12 @@ pub struct HealthcheckConfig {
     pub timeout_seconds: u64,
 }
 
-fn default_interval_seconds() -> u64 { 30 }
-fn default_timeout_seconds() -> u64 { 10 }
+fn default_interval_seconds() -> u64 {
+    30
+}
+fn default_timeout_seconds() -> u64 {
+    10
+}
 
 impl Default for HealthcheckConfig {
     fn default() -> Self {
@@ -254,7 +257,9 @@ pub async fn perform_healthcheck(
     let resp = http_client
         .get(&healthcheck_config.endpoint)
         .header(reqwest::header::AUTHORIZATION, auth_header)
-        .timeout(std::time::Duration::from_secs(healthcheck_config.timeout_seconds))
+        .timeout(std::time::Duration::from_secs(
+            healthcheck_config.timeout_seconds,
+        ))
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -276,10 +281,18 @@ pub struct RetryPolicy {
     pub backoff_multiplier: f64,
 }
 
-fn default_max_attempts() -> u32 { 5 }
-fn default_initial_delay_seconds() -> u64 { 30 }
-fn default_max_delay_seconds() -> u64 { 1800 }
-fn default_backoff_multiplier() -> f64 { 2.0 }
+fn default_max_attempts() -> u32 {
+    5
+}
+fn default_initial_delay_seconds() -> u64 {
+    30
+}
+fn default_max_delay_seconds() -> u64 {
+    1800
+}
+fn default_backoff_multiplier() -> f64 {
+    2.0
+}
 
 impl Default for RetryPolicy {
     fn default() -> Self {
@@ -310,11 +323,7 @@ pub fn calculate_delay(policy: &RetryPolicy, attempt: u32) -> u64 {
 
 /// Fixed namespace UUID for Payments integration idempotency keys.
 pub const BANK8_PAYMENTS_INTEGRATION_NAMESPACE: Uuid = Uuid::from_bytes([
-    0xc1, 0xa8, 0x7e, 0x3b,
-    0x42, 0xd1,
-    0x4e, 0x9f,
-    0xa2, 0x6b,
-    0x7e, 0x11, 0xc0, 0x4a, 0x9d, 0x5f,
+    0xc1, 0xa8, 0x7e, 0x3b, 0x42, 0xd1, 0x4e, 0x9f, 0xa2, 0x6b, 0x7e, 0x11, 0xc0, 0x4a, 0x9d, 0x5f,
 ]);
 
 /// Generate a deterministic idempotency key for an integration operation.
@@ -345,7 +354,9 @@ fn canonical_json(value: &serde_json::Value) -> String {
             serde_json::Value::Null => "null".into(),
             serde_json::Value::Bool(b) => b.to_string(),
             serde_json::Value::Number(n) => n.to_string(),
-            serde_json::Value::String(s) => serde_json::to_string(s).unwrap_or_else(|_| String::new()),
+            serde_json::Value::String(s) => {
+                serde_json::to_string(s).unwrap_or_else(|_| String::new())
+            }
             serde_json::Value::Array(arr) => {
                 let parts: Vec<String> = arr.iter().map(render).collect();
                 format!("[{}]", parts.join(","))
@@ -419,9 +430,13 @@ pub fn validate_connectivity(config: &ConnectivityConfig) -> Result<(), String> 
         .map_err(|e| format!("endpoint_url is not a valid URL: {e}"))?;
     let scheme = url.scheme();
     if scheme != "http" && scheme != "https" {
-        return Err(format!("endpoint_url must use http or https scheme, got '{scheme}'"));
+        return Err(format!(
+            "endpoint_url must use http or https scheme, got '{scheme}'"
+        ));
     }
-    let host = url.host_str().ok_or_else(|| "endpoint_url must have a host".to_string())?;
+    let host = url
+        .host_str()
+        .ok_or_else(|| "endpoint_url must have a host".to_string())?;
     if host.is_empty() {
         return Err("endpoint_url must have a non-empty host".into());
     }
@@ -453,7 +468,11 @@ mod tests {
     // — auth
     #[test]
     fn auth_method_round_trip() {
-        for s in ["static_token", "oauth_client_credentials", "oauth_password_grant"] {
+        for s in [
+            "static_token",
+            "oauth_client_credentials",
+            "oauth_password_grant",
+        ] {
             let m = AuthMethod::from_str(s).unwrap();
             assert_eq!(m.as_str(), s);
         }

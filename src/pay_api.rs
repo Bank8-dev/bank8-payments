@@ -58,23 +58,35 @@ pub fn decline_response_code(reason: &str, payload_type: &str) -> &'static str {
             _ => "12",
         },
         "AC_TYPE_ABSENT" | "AC_TYPE_INVALID" | "ARQC_ABSENT" | "ARQC_INVALID" => "05",
-        "ATC_OUTSIDE_ALLOWED_RANGE_LOW" | "ATC_OUTSIDE_ALLOWED_RANGE_HIGH" | "ATC_DUPLICATE_INVALID" => "63",
-        "CHIP_CVC_ABSENT" | "CHIP_CVC_INVALID" | "CVC1_ABSENT" | "CVC1_INVALID"
-        | "CVC2_ABSENT" | "CVC2_INVALID" | "TOO_MANY_CVC2_FAILURES" => "N7",
+        "ATC_OUTSIDE_ALLOWED_RANGE_LOW"
+        | "ATC_OUTSIDE_ALLOWED_RANGE_HIGH"
+        | "ATC_DUPLICATE_INVALID" => "63",
+        "CHIP_CVC_ABSENT"
+        | "CHIP_CVC_INVALID"
+        | "CVC1_ABSENT"
+        | "CVC1_INVALID"
+        | "CVC2_ABSENT"
+        | "CVC2_INVALID"
+        | "TOO_MANY_CVC2_FAILURES" => "N7",
         "CARD_SUSPENDED" | "CARD_NOT_ACTIVE" => "57",
         "IAV_INVALID" | "IAV_ABSENT" => "N3",
-        "LVT_COUNT_LIMIT_EXCEEDED" | "LVT_ACCUMULATOR_LIMIT_EXCEEDED" | "CONTACTLESS_AMOUNT_LIMIT_EXCEEDED" => "62",
+        "LVT_COUNT_LIMIT_EXCEEDED"
+        | "LVT_ACCUMULATOR_LIMIT_EXCEEDED"
+        | "CONTACTLESS_AMOUNT_LIMIT_EXCEEDED" => "62",
         "MERCHANT_TYPE_NOT_ALLOWED" => "57",
         "EXPIRATION_DATE_INVALID" | "EXPIRATION_DATE_ABSENT" | "CARD_EXPIRED" => "54",
         "ADDRESS_INVALID" => "N8",
         "CARD_NUMBER_INVALID" => "14",
         "PIN_TRIES_LIMIT_EXCEEDED" => "38",
         "PIN_INVALID" | "PIN_ABSENT" | "NEW_PIN_INVALID" | "NEW_PIN_ABSENT" => "55",
-        "OBS_MDES_PAN_MAPPING_FAILURE" | "OBS_MDES_AC_SE_PRE_VALIDATION_FAILURE"
+        "OBS_MDES_PAN_MAPPING_FAILURE"
+        | "OBS_MDES_AC_SE_PRE_VALIDATION_FAILURE"
         | "OBS_MDES_AC_MCBP_PRE_VALIDATION_FAILURE" => "05",
         "CARDHOLDER_VERIFICATION_FAILURE" | "CVM_RESULT_RULE_UNRECOGNISED" => "05",
         "PIN_CHANGE_ALREADY_IN_PROGRESS" => "70",
-        "RECURRING_PAYMENT_INITIAL_AUTH_NOT_FOUND" | "RECURRING_PAYMENT_INITIAL_AUTH_REJECTED" => "05",
+        "RECURRING_PAYMENT_INITIAL_AUTH_NOT_FOUND" | "RECURRING_PAYMENT_INITIAL_AUTH_REJECTED" => {
+            "05"
+        }
         "PARTIAL_GRADE_ACQUIRER_NOT_SUPPORTED" => "05",
         "INTERNAL_ERROR" => "96",
         _ => "05",
@@ -106,7 +118,18 @@ pub(crate) fn decline_for_instruction(input: &JsonValue) -> Option<(String, &'st
 // ── Search field registry  ────────────────────────────────────────
 
 /// Valid comparison operators for the search language (§4.24).
-pub const SEARCH_OPS: &[&str] = &["eq", "neq", "gt", "gte", "lt", "lte", "in", "contains", "starts_with", "any_in"];
+pub const SEARCH_OPS: &[&str] = &[
+    "eq",
+    "neq",
+    "gt",
+    "gte",
+    "lt",
+    "lte",
+    "in",
+    "contains",
+    "starts_with",
+    "any_in",
+];
 
 /// Per-resource searchable fields + valid comparisons. The registry drives
 /// validation in `:search` endpoints — unknown fields/ops return 400 before
@@ -114,18 +137,35 @@ pub const SEARCH_OPS: &[&str] = &["eq", "neq", "gt", "gte", "lt", "lte", "in", "
 pub fn search_registry(resource: &str) -> Option<&'static [&'static str]> {
     match resource {
         "payments" => Some(&[
-            "id", "status", "payment_type", "payment_system", "payment_scheme",
-            "amount", "currency", "direction", "correlation_id", "created_at",
-            "payer_account", "payee_account",
+            "id",
+            "status",
+            "payment_type",
+            "payment_system",
+            "payment_scheme",
+            "amount",
+            "currency",
+            "direction",
+            "correlation_id",
+            "created_at",
+            "payer_account",
+            "payee_account",
         ]),
         "payees" => Some(&["id", "name", "status", "payee_type", "created_at"]),
         "payment-instruments" => Some(&[
-            "id", "instrument_identifier", "bank_identifier", "status",
-            "instrument_type", "created_at",
+            "id",
+            "instrument_identifier",
+            "bank_identifier",
+            "status",
+            "instrument_type",
+            "created_at",
         ]),
         "membership-directory-records" => Some(&["bic", "country", "scheme", "status"]),
         "instructions" => Some(&[
-            "id", "state", "correlation_id", "created_at", "instruction_logic_id",
+            "id",
+            "state",
+            "correlation_id",
+            "created_at",
+            "instruction_logic_id",
         ]),
         _ => None,
     }
@@ -185,7 +225,13 @@ pub async fn integration_callback(
     Json(payload): Json<JsonValue>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:integrations:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:integrations:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -196,12 +242,16 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
               AND input->>'callback_token' = $2
             ORDER BY created_at ASC LIMIT 1"#,
     )
-    .bind(a.env_id()).bind(&token)
+    .bind(a.env_id())
+    .bind(&token)
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?;
     let Some(instruction_id) = waiting else {
-        return Err((StatusCode::NOT_FOUND, format!("no waiting instruction for callback token '{token}'")));
+        return Err((
+            StatusCode::NOT_FOUND,
+            format!("no waiting instruction for callback token '{token}'"),
+        ));
     };
 
     // Resolve: store the response payload on the instruction and move it
@@ -230,7 +280,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             bearer_token_of(&headers),
             Some(a.subject().to_string()),
         ),
-    ).await;
+    )
+    .await;
 
     Ok(Json(serde_json::json!({
         "instruction_id": instruction_id,
@@ -282,20 +333,32 @@ pub async fn process_instruction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let exists: Option<Uuid> = sqlx::query_scalar("SELECT id FROM instructions WHERE id = $1 AND env_id = $2")
-        .bind(id).bind(a.env_id())
-        .fetch_optional(&mut *conn)
-        .await
-        .map_err(err_db)?;
+    let exists: Option<Uuid> =
+        sqlx::query_scalar("SELECT id FROM instructions WHERE id = $1 AND env_id = $2")
+            .bind(id)
+            .bind(a.env_id())
+            .fetch_optional(&mut *conn)
+            .await
+            .map_err(err_db)?;
     if exists.is_none() {
         return Err((StatusCode::NOT_FOUND, format!("instruction {id} not found")));
     }
-    crate::state_machine::transition(&state.pool, id, crate::state_machine::InstructionState::Processing)
-        .await
-        .map_err(|e| (StatusCode::CONFLICT, e))?;
+    crate::state_machine::transition(
+        &state.pool,
+        id,
+        crate::state_machine::InstructionState::Processing,
+    )
+    .await
+    .map_err(|e| (StatusCode::CONFLICT, e))?;
     let _ = event_streaming::emit_event_tx(
         &mut *conn,
         a.env_id(),
@@ -304,17 +367,24 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         "processed",
         None,
         None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(serde_json::json!({ "id": id, "state": "processing" })))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateInstructionRequest {
     /// Target state: `cancelled` | `pending` | `processing`.
-    #[serde(default)] pub state: Option<String>,
-    #[serde(default)] pub reason: Option<String>,
-    #[serde(default)] pub output: Option<JsonValue>,
+    #[serde(default)]
+    pub state: Option<String>,
+    #[serde(default)]
+    pub reason: Option<String>,
+    #[serde(default)]
+    pub output: Option<JsonValue>,
 }
 
 /// `PUT /v1/instructions/{id}` — update an instruction (status updates
@@ -340,7 +410,13 @@ pub async fn update_instruction(
     Json(req): Json<UpdateInstructionRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     if let Some(state_name) = &req.state {
@@ -349,12 +425,20 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             "pending" => crate::state_machine::InstructionState::Pending,
             "processing" => crate::state_machine::InstructionState::Processing,
             other => {
-                return Err((StatusCode::BAD_REQUEST, format!("invalid target state '{other}' (allowed: cancelled, pending, processing)")));
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    format!(
+                        "invalid target state '{other}' (allowed: cancelled, pending, processing)"
+                    ),
+                ));
             }
         };
         crate::state_machine::transition_with_audit(
-            &state.pool, id, target,
-            Some(&a.subject()), Some(req.reason.as_deref().unwrap_or("updated via PUT")),
+            &state.pool,
+            id,
+            target,
+            Some(&a.subject()),
+            Some(req.reason.as_deref().unwrap_or("updated via PUT")),
         )
         .await
         .map_err(|e| (StatusCode::CONFLICT, e))?;
@@ -366,15 +450,23 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             "updated",
             None,
             None,
-            event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-        ).await;
+            event_streaming::PublisherIdentity::from_parts(
+                bearer_token_of(&headers),
+                Some(a.subject().to_string()),
+            ),
+        )
+        .await;
     }
     if let Some(output) = &req.output {
-        sqlx::query("UPDATE instructions SET output = $2, updated_at = now() WHERE id = $1 AND env_id = $3")
-            .bind(id).bind(output).bind(a.env_id())
-            .execute(&mut *conn)
-            .await
-            .map_err(err_db)?;
+        sqlx::query(
+            "UPDATE instructions SET output = $2, updated_at = now() WHERE id = $1 AND env_id = $3",
+        )
+        .bind(id)
+        .bind(output)
+        .bind(a.env_id())
+        .execute(&mut *conn)
+        .await
+        .map_err(err_db)?;
     }
     let row = sqlx::query(
         r#"SELECT id, instruction_logic_id, state, correlation_id, input, output, created_at, completed_at
@@ -387,8 +479,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     // : surface the decline recommendation (reason -> ISO8583 response
     // code) when the instruction output declares DECLINE_RECOMMENDED.
     let decline_rec = decline_for_instruction(&row.get::<serde_json::Value, _>("output"));
-    let resp = serde_json::to_value(crate::handlers::row_to_instruction(&row))
-        .unwrap_or(JsonValue::Null);
+    let resp =
+        serde_json::to_value(crate::handlers::row_to_instruction(&row)).unwrap_or(JsonValue::Null);
     if let Some((reason, code)) = decline_rec {
         let mut meta = resp;
         if let Some(obj) = meta.as_object_mut() {
@@ -405,7 +497,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct BulkRetryRequest {
     /// Empty = retry all errored instructions in the env.
-    #[serde(default)] pub instruction_ids: Vec<Uuid>,
+    #[serde(default)]
+    pub instruction_ids: Vec<Uuid>,
 }
 
 /// `POST /v1/instructions:bulkRetry` — bulk retry errored instructions
@@ -427,7 +520,13 @@ pub async fn bulk_retry_instructions(
     Json(req): Json<BulkRetryRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let ids: Vec<Uuid> = if req.instruction_ids.is_empty() {
@@ -443,7 +542,12 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     };
     let mut results: Vec<JsonValue> = Vec::new();
     for id in &ids {
-        let r = crate::state_machine::transition(&state.pool, *id, crate::state_machine::InstructionState::Pending).await;
+        let r = crate::state_machine::transition(
+            &state.pool,
+            *id,
+            crate::state_machine::InstructionState::Pending,
+        )
+        .await;
         results.push(match r {
             Ok(_) => serde_json::json!({ "id": id, "retried": true }),
             Err(e) => serde_json::json!({ "id": id, "retried": false, "error": e }),
@@ -456,11 +560,20 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             "retried",
             None,
             None,
-            event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-        ).await;
+            event_streaming::PublisherIdentity::from_parts(
+                bearer_token_of(&headers),
+                Some(a.subject().to_string()),
+            ),
+        )
+        .await;
     }
-    let retried = results.iter().filter(|r| r.get("retried").and_then(|v| v.as_bool()).unwrap_or(false)).count();
-    Ok(Json(serde_json::json!({ "attempted": ids.len(), "retried": retried, "results": results })))
+    let retried = results
+        .iter()
+        .filter(|r| r.get("retried").and_then(|v| v.as_bool()).unwrap_or(false))
+        .count();
+    Ok(Json(
+        serde_json::json!({ "attempted": ids.len(), "retried": retried, "results": results }),
+    ))
 }
 
 // ── : Payees ─────────────────────────────────────────────────────────
@@ -479,11 +592,16 @@ pub struct PayeeResponse {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreatePayeeRequest {
     pub name: String,
-    #[serde(default = "default_payee_type")] pub payee_type: String,
-    #[serde(default)] pub account_identifier: Option<String>,
-    #[serde(default)] pub metadata: JsonValue,
+    #[serde(default = "default_payee_type")]
+    pub payee_type: String,
+    #[serde(default)]
+    pub account_identifier: Option<String>,
+    #[serde(default)]
+    pub metadata: JsonValue,
 }
-fn default_payee_type() -> String { "external".into() }
+fn default_payee_type() -> String {
+    "external".into()
+}
 
 fn row_to_payee(row: &sqlx::postgres::PgRow) -> PayeeResponse {
     PayeeResponse {
@@ -515,7 +633,13 @@ pub async fn create_payee(
     Json(req): Json<CreatePayeeRequest>,
 ) -> Result<Json<PayeeResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payments:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payments:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -523,8 +647,11 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
            VALUES ($1, $2, $3, 'active', $4, $5)
            RETURNING id, name, payee_type, status, account_identifier, metadata, created_at"#,
     )
-    .bind(a.env_id()).bind(&req.name).bind(&req.payee_type)
-    .bind(req.account_identifier.as_deref()).bind(&req.metadata)
+    .bind(a.env_id())
+    .bind(&req.name)
+    .bind(&req.payee_type)
+    .bind(req.account_identifier.as_deref())
+    .bind(&req.metadata)
     .fetch_one(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -537,15 +664,21 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         "payee_created",
         None,
         None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(row_to_payee(&row)))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct SearchPayeesQuery {
-    #[serde(default)] pub q: Option<String>,
-    #[serde(default)] pub status: Option<String>,
+    #[serde(default)]
+    pub q: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
 }
 
 /// `GET /v1/payees` — list/search payees.
@@ -565,7 +698,13 @@ pub async fn list_payees(
     Query(q): Query<SearchPayeesQuery>,
 ) -> Result<Json<Vec<PayeeResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payments:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payments:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -576,7 +715,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
               AND ($3::text IS NULL OR name ILIKE '%' || $3 || '%')
             ORDER BY created_at DESC LIMIT 100"#,
     )
-    .bind(a.env_id()).bind(q.status.as_deref()).bind(q.q.as_deref())
+    .bind(a.env_id())
+    .bind(q.status.as_deref())
+    .bind(q.q.as_deref())
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -600,14 +741,21 @@ pub async fn get_payee(
     Path(id): Path<Uuid>,
 ) -> Result<Json<PayeeResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payments:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payments:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
         r#"SELECT id, name, payee_type, status, account_identifier, metadata, created_at
              FROM payees WHERE id = $1 AND env_id = $2"#,
     )
-    .bind(id).bind(a.env_id())
+    .bind(id)
+    .bind(a.env_id())
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?
@@ -617,10 +765,14 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdatePayeeRequest {
-    #[serde(default)] pub name: Option<String>,
-    #[serde(default)] pub status: Option<String>,
-    #[serde(default)] pub account_identifier: Option<String>,
-    #[serde(default)] pub metadata: Option<JsonValue>,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub account_identifier: Option<String>,
+    #[serde(default)]
+    pub metadata: Option<JsonValue>,
 }
 
 /// `PUT /v1/payees/{id}` — update payee.
@@ -642,7 +794,13 @@ pub async fn update_payee(
     Json(req): Json<UpdatePayeeRequest>,
 ) -> Result<Json<PayeeResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payments:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payments:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -655,8 +813,12 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
            WHERE id = $1 AND env_id = $6
            RETURNING id, name, payee_type, status, account_identifier, metadata, created_at"#,
     )
-    .bind(id).bind(req.name.as_deref()).bind(req.status.as_deref())
-    .bind(req.account_identifier.as_deref()).bind(req.metadata.as_ref()).bind(a.env_id())
+    .bind(id)
+    .bind(req.name.as_deref())
+    .bind(req.status.as_deref())
+    .bind(req.account_identifier.as_deref())
+    .bind(req.metadata.as_ref())
+    .bind(a.env_id())
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?
@@ -669,8 +831,12 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         "payee_updated",
         None,
         None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(row_to_payee(&row)))
 }
 
@@ -692,7 +858,13 @@ pub async fn search_payees(
 ) -> Result<Json<Vec<PayeeResponse>>, (StatusCode, String)> {
     validate_search("payees", &body).map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payments:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payments:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let name_filter = body.get("name").and_then(|v| v.as_str());
@@ -705,7 +877,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
               AND ($3::text IS NULL OR status = $3)
             ORDER BY created_at DESC LIMIT 100"#,
     )
-    .bind(a.env_id()).bind(name_filter).bind(status_filter)
+    .bind(a.env_id())
+    .bind(name_filter)
+    .bind(status_filter)
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -735,10 +909,13 @@ async fn insert_version(
         r#"INSERT INTO {table} (env_id, {parent_col}, version, status)
            VALUES ($1, $2, COALESCE((SELECT MAX(version) + 1 FROM {table} WHERE env_id = $1 AND {parent_col} = $2), 1), $3)
            RETURNING id, {parent_col} AS parent_id, version, status, created_at"#,
-        table = table, parent_col = parent_col
+        table = table,
+        parent_col = parent_col
     );
     let row = sqlx::query(&sql)
-        .bind(env_id).bind(parent_id).bind(status)
+        .bind(env_id)
+        .bind(parent_id)
+        .bind(status)
         .fetch_one(&mut *conn)
         .await
         .map_err(err_db)?;
@@ -762,15 +939,21 @@ async fn retry_version(
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, env_id).await;
-    let sql = format!("UPDATE {table} SET status = 'active', updated_at = now() WHERE id = $1 AND env_id = $2");
+    let sql = format!(
+        "UPDATE {table} SET status = 'active', updated_at = now() WHERE id = $1 AND env_id = $2"
+    );
     let updated = sqlx::query(&sql)
-        .bind(version_id).bind(env_id)
+        .bind(version_id)
+        .bind(env_id)
         .execute(&mut *conn)
         .await
         .map_err(err_db)?
         .rows_affected();
     if updated == 0 {
-        return Err((StatusCode::NOT_FOUND, format!("{table} version {version_id} not found")));
+        return Err((
+            StatusCode::NOT_FOUND,
+            format!("{table} version {version_id} not found"),
+        ));
     }
     let _ = event_streaming::emit_event_tx(
         &mut *conn,
@@ -780,9 +963,15 @@ async fn retry_version(
         "retried",
         None,
         None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(headers), Some(subject.to_string())),
-    ).await;
-    Ok(Json(serde_json::json!({ "id": version_id, "status": "active", "retried": true })))
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(headers),
+            Some(subject.to_string()),
+        ),
+    )
+    .await;
+    Ok(Json(
+        serde_json::json!({ "id": version_id, "status": "active", "retried": true }),
+    ))
 }
 
 /// `POST /v1/rule-versions` — create a rule version.
@@ -803,15 +992,38 @@ pub async fn create_rule_version(
     Json(req): Json<CreateVersionRequest>,
 ) -> Result<Json<ResourceVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let v = insert_version(&mut conn, a.env_id(), "rule_versions", "rule_id", req.parent_id, "draft").await?;
+    let v = insert_version(
+        &mut conn,
+        a.env_id(),
+        "rule_versions",
+        "rule_id",
+        req.parent_id,
+        "draft",
+    )
+    .await?;
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::RuleVersion, &v.id.to_string(), "created",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::RuleVersion,
+        &v.id.to_string(),
+        "created",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(v))
 }
 
@@ -833,7 +1045,13 @@ pub async fn list_rule_versions(
     Query(q): Query<ListVersionsQuery>,
 ) -> Result<Json<Vec<ResourceVersionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -842,7 +1060,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             WHERE env_id = $1 AND ($2::uuid IS NULL OR rule_id = $2)
             ORDER BY created_at DESC LIMIT 200"#,
     )
-    .bind(a.env_id()).bind(q.rule_id)
+    .bind(a.env_id())
+    .bind(q.rule_id)
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -862,20 +1081,31 @@ fn row_to_version(row: &sqlx::postgres::PgRow) -> ResourceVersionResponse {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateVersionRequest {
     pub parent_id: Uuid,
-    #[serde(default = "default_version_status")] pub status: String,
+    #[serde(default = "default_version_status")]
+    pub status: String,
 }
-fn default_version_status() -> String { "draft".into() }
+fn default_version_status() -> String {
+    "draft".into()
+}
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ListVersionsQuery {
-    #[serde(default)] pub rule_id: Option<Uuid>,
-    #[serde(default)] pub rule_set_id: Option<Uuid>,
-    #[serde(default)] pub integration_id: Option<Uuid>,
-    #[serde(default)] pub core_id: Option<Uuid>,
-    #[serde(default)] pub directory_id: Option<Uuid>,
-    #[serde(default)] pub specification_id: Option<Uuid>,
-    #[serde(default)] pub template_id: Option<Uuid>,
-    #[serde(default)] pub dashboard_id: Option<Uuid>,
+    #[serde(default)]
+    pub rule_id: Option<Uuid>,
+    #[serde(default)]
+    pub rule_set_id: Option<Uuid>,
+    #[serde(default)]
+    pub integration_id: Option<Uuid>,
+    #[serde(default)]
+    pub core_id: Option<Uuid>,
+    #[serde(default)]
+    pub directory_id: Option<Uuid>,
+    #[serde(default)]
+    pub specification_id: Option<Uuid>,
+    #[serde(default)]
+    pub template_id: Option<Uuid>,
+    #[serde(default)]
+    pub dashboard_id: Option<Uuid>,
 }
 
 /// `POST /v1/rule-set-versions` — create a rule set version.
@@ -896,22 +1126,46 @@ pub async fn create_rule_set_version(
     Json(req): Json<CreateRuleSetVersionRequest>,
 ) -> Result<Json<ResourceVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let v = insert_version(&mut conn, a.env_id(), "rule_set_versions", "rule_set_id", req.rule_set_id, "draft").await?;
+    let v = insert_version(
+        &mut conn,
+        a.env_id(),
+        "rule_set_versions",
+        "rule_set_id",
+        req.rule_set_id,
+        "draft",
+    )
+    .await?;
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::RuleSetVersion, &v.id.to_string(), "created",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::RuleSetVersion,
+        &v.id.to_string(),
+        "created",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(v))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateRuleSetVersionRequest {
     pub rule_set_id: Uuid,
-    #[serde(default = "default_version_status")] pub status: String,
+    #[serde(default = "default_version_status")]
+    pub status: String,
 }
 
 /// `GET /v1/rule-set-versions` — list rule set versions.
@@ -931,7 +1185,13 @@ pub async fn list_rule_set_versions(
     Query(q): Query<ListVersionsQuery>,
 ) -> Result<Json<Vec<ResourceVersionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -940,7 +1200,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             WHERE env_id = $1 AND ($2::uuid IS NULL OR rule_set_id = $2)
             ORDER BY created_at DESC LIMIT 200"#,
     )
-    .bind(a.env_id()).bind(q.rule_set_id)
+    .bind(a.env_id())
+    .bind(q.rule_set_id)
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -963,7 +1224,13 @@ pub async fn list_parameter_values(
     headers: HeaderMap,
 ) -> Result<Json<Vec<ParameterValueResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:parameters:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:parameters:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -974,12 +1241,16 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
-    Ok(Json(rows.iter().map(|r| ParameterValueResponse {
-        id: r.get("id"),
-        parameter_id: r.get("parameter_id"),
-        value: r.get("value"),
-        created_at: r.get("created_at"),
-    }).collect()))
+    Ok(Json(
+        rows.iter()
+            .map(|r| ParameterValueResponse {
+                id: r.get("id"),
+                parameter_id: r.get("parameter_id"),
+                value: r.get("value"),
+                created_at: r.get("created_at"),
+            })
+            .collect(),
+    ))
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -1014,7 +1285,13 @@ pub async fn create_parameter_value(
     Json(req): Json<CreateParameterValueRequest>,
 ) -> Result<Json<ParameterValueResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:parameters:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:parameters:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -1022,16 +1299,27 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
            VALUES ($1, $2, $3)
            RETURNING id, parameter_id, value, created_at"#,
     )
-    .bind(a.env_id()).bind(req.parameter_id).bind(&req.value)
+    .bind(a.env_id())
+    .bind(req.parameter_id)
+    .bind(&req.value)
     .fetch_one(&mut *conn)
     .await
     .map_err(err_db)?;
     let value_id: Uuid = row.get("id");
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Parameter, &value_id.to_string(), "value_created",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Parameter,
+        &value_id.to_string(),
+        "value_created",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(ParameterValueResponse {
         id: value_id,
         parameter_id: row.get("parameter_id"),
@@ -1068,7 +1356,13 @@ pub async fn put_parameter_value(
     Json(req): Json<PutParameterValueRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:parameters:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:parameters:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let (sql, unset, value) = match req.value {
@@ -1093,14 +1387,29 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         .map_err(err_db)?
         .rows_affected();
     if updated == 0 {
-        return Err((StatusCode::NOT_FOUND, format!("parameter value {id} not found")));
+        return Err((
+            StatusCode::NOT_FOUND,
+            format!("parameter value {id} not found"),
+        ));
     }
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Parameter, &id.to_string(),
-        if unset { "value_unset" } else { "value_updated" },
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Parameter,
+        &id.to_string(),
+        if unset {
+            "value_unset"
+        } else {
+            "value_updated"
+        },
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(serde_json::json!({ "id": id, "unset": unset })))
 }
 
@@ -1121,7 +1430,13 @@ pub async fn list_integration_versions(
     Query(q): Query<ListVersionsQuery>,
 ) -> Result<Json<Vec<ResourceVersionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:integrations:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:integrations:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -1130,7 +1445,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             WHERE env_id = $1 AND ($2::uuid IS NULL OR integration_id = $2)
             ORDER BY created_at DESC LIMIT 200"#,
     )
-    .bind(a.env_id()).bind(q.integration_id)
+    .bind(a.env_id())
+    .bind(q.integration_id)
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -1140,7 +1456,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateIntegrationVersionRequest {
     pub integration_id: Uuid,
-    #[serde(default = "default_version_status")] pub status: String,
+    #[serde(default = "default_version_status")]
+    pub status: String,
 }
 
 /// `POST /v1/integration-versions` — create an integration version.
@@ -1161,15 +1478,38 @@ pub async fn create_integration_version(
     Json(req): Json<CreateIntegrationVersionRequest>,
 ) -> Result<Json<ResourceVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:integrations:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:integrations:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let v = insert_version(&mut conn, a.env_id(), "integration_versions", "integration_id", req.integration_id, "draft").await?;
+    let v = insert_version(
+        &mut conn,
+        a.env_id(),
+        "integration_versions",
+        "integration_id",
+        req.integration_id,
+        "draft",
+    )
+    .await?;
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::IntegrationVersion, &v.id.to_string(), "created",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::IntegrationVersion,
+        &v.id.to_string(),
+        "created",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(v))
 }
 
@@ -1193,8 +1533,23 @@ pub async fn retry_integration_version(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:integrations:write")).await?;
-    retry_version(&state, &headers, a.subject().as_str(), a.env_id(), "integration_versions", id, ResourceType::IntegrationVersion).await
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:integrations:write"),
+    )
+    .await?;
+    retry_version(
+        &state,
+        &headers,
+        a.subject().as_str(),
+        a.env_id(),
+        "integration_versions",
+        id,
+        ResourceType::IntegrationVersion,
+    )
+    .await
 }
 
 /// `POST /v1/core-versions` — create a core version.
@@ -1215,22 +1570,46 @@ pub async fn create_core_version(
     Json(req): Json<CreateCoreVersionRequest>,
 ) -> Result<Json<ResourceVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cores:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cores:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let v = insert_version(&mut conn, a.env_id(), "core_versions", "core_id", req.core_id, "draft").await?;
+    let v = insert_version(
+        &mut conn,
+        a.env_id(),
+        "core_versions",
+        "core_id",
+        req.core_id,
+        "draft",
+    )
+    .await?;
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::CoreVersion, &v.id.to_string(), "created",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::CoreVersion,
+        &v.id.to_string(),
+        "created",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(v))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateCoreVersionRequest {
     pub core_id: Uuid,
-    #[serde(default = "default_version_status")] pub status: String,
+    #[serde(default = "default_version_status")]
+    pub status: String,
 }
 
 /// `GET /v1/core-versions` — list core versions.
@@ -1250,7 +1629,13 @@ pub async fn list_core_versions(
     Query(q): Query<ListVersionsQuery>,
 ) -> Result<Json<Vec<ResourceVersionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cores:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cores:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -1259,7 +1644,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             WHERE env_id = $1 AND ($2::uuid IS NULL OR core_id = $2)
             ORDER BY created_at DESC LIMIT 200"#,
     )
-    .bind(a.env_id()).bind(q.core_id)
+    .bind(a.env_id())
+    .bind(q.core_id)
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -1283,7 +1669,13 @@ pub async fn list_membership_directory_versions(
     Query(q): Query<ListVersionsQuery>,
 ) -> Result<Json<Vec<ResourceVersionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:membership-directories:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:membership-directories:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -1292,7 +1684,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             WHERE env_id = $1 AND ($2::uuid IS NULL OR directory_id = $2)
             ORDER BY created_at DESC LIMIT 200"#,
     )
-    .bind(a.env_id()).bind(q.directory_id)
+    .bind(a.env_id())
+    .bind(q.directory_id)
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -1302,7 +1695,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateDirectoryVersionRequest {
     pub directory_id: Uuid,
-    #[serde(default = "default_version_status")] pub status: String,
+    #[serde(default = "default_version_status")]
+    pub status: String,
 }
 
 /// `POST /v1/membership-directory-versions` — create a directory version.
@@ -1323,10 +1717,24 @@ pub async fn create_membership_directory_version(
     Json(req): Json<CreateDirectoryVersionRequest>,
 ) -> Result<Json<ResourceVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:membership-directories:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:membership-directories:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let v = insert_version(&mut conn, a.env_id(), "membership_directory_versions", "directory_id", req.directory_id, "draft").await?;
+    let v = insert_version(
+        &mut conn,
+        a.env_id(),
+        "membership_directory_versions",
+        "directory_id",
+        req.directory_id,
+        "draft",
+    )
+    .await?;
     Ok(Json(v))
 }
 
@@ -1348,9 +1756,16 @@ pub async fn search_membership_directory_records(
     headers: HeaderMap,
     Json(body): Json<JsonValue>,
 ) -> Result<Json<Vec<JsonValue>>, (StatusCode, String)> {
-    validate_search("membership-directory-records", &body).map_err(|e| (StatusCode::BAD_REQUEST, e))?;
+    validate_search("membership-directory-records", &body)
+        .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:membership-directories:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:membership-directories:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let bic = body.get("bic").and_then(|v| v.as_str());
@@ -1370,9 +1785,20 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         if let Some(list) = records.as_array() {
             for rec in list {
                 let rec_bic = rec.get("bic").and_then(|v| v.as_str()).unwrap_or_default();
-                let rec_country = rec.get("country").and_then(|v| v.as_str()).unwrap_or_default();
-                if let Some(b) = bic { if !rec_bic.eq_ignore_ascii_case(b) { continue; } }
-                if let Some(c) = country { if !rec_country.eq_ignore_ascii_case(c) { continue; } }
+                let rec_country = rec
+                    .get("country")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                if let Some(b) = bic {
+                    if !rec_bic.eq_ignore_ascii_case(b) {
+                        continue;
+                    }
+                }
+                if let Some(c) = country {
+                    if !rec_country.eq_ignore_ascii_case(c) {
+                        continue;
+                    }
+                }
                 out.push(rec.clone());
             }
         }
@@ -1398,7 +1824,13 @@ pub async fn list_specification_versions(
     Query(q): Query<ListVersionsQuery>,
 ) -> Result<Json<Vec<ResourceVersionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -1407,7 +1839,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             WHERE env_id = $1 AND ($2::uuid IS NULL OR specification_id = $2)
             ORDER BY created_at DESC LIMIT 200"#,
     )
-    .bind(a.env_id()).bind(q.specification_id)
+    .bind(a.env_id())
+    .bind(q.specification_id)
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -1418,8 +1851,10 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
 pub struct CreateSpecificationVersionRequest {
     pub specification_id: Uuid,
     /// The specification payload (validated against the schema before creation).
-    #[serde(default)] pub schema: JsonValue,
-    #[serde(default = "default_version_status")] pub status: String,
+    #[serde(default)]
+    pub schema: JsonValue,
+    #[serde(default = "default_version_status")]
+    pub status: String,
 }
 
 /// `POST /v1beta/instruction-file-specification-versions` — create a file
@@ -1441,10 +1876,24 @@ pub async fn create_specification_version(
     Json(req): Json<CreateSpecificationVersionRequest>,
 ) -> Result<Json<ResourceVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let v = insert_version(&mut conn, a.env_id(), "instruction_file_specification_versions", "specification_id", req.specification_id, "draft").await?;
+    let v = insert_version(
+        &mut conn,
+        a.env_id(),
+        "instruction_file_specification_versions",
+        "specification_id",
+        req.specification_id,
+        "draft",
+    )
+    .await?;
     Ok(Json(v))
 }
 
@@ -1469,16 +1918,28 @@ pub async fn validate_specification_version(
     Json(req): Json<CreateSpecificationVersionRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let _a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &_a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &_a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:read"),
+    )
+    .await?;
     // Validation: a valid spec payload is an object with a non-empty
     // `columns` array (or a string template). Deep schema checks land with
     // the file-processor story.
     let schema = &req.schema;
     let valid = schema.is_string()
         || (schema.is_object()
-            && schema.get("columns").and_then(|v| v.as_array()).map(|a| !a.is_empty()).unwrap_or(false));
+            && schema
+                .get("columns")
+                .and_then(|v| v.as_array())
+                .map(|a| !a.is_empty())
+                .unwrap_or(false));
     if valid {
-        Ok(Json(serde_json::json!({ "valid": true, "specification_id": req.specification_id })))
+        Ok(Json(
+            serde_json::json!({ "valid": true, "specification_id": req.specification_id }),
+        ))
     } else {
         Ok(Json(serde_json::json!({
             "valid": false,
@@ -1507,7 +1968,13 @@ pub async fn initiate_instruction_file(
     Json(req): Json<InitiateInstructionFileRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:write"),
+    )
+    .await?;
     let _ = a;
     crate::routes_missing::submit_file(State(state), headers, Path(req.file_id)).await
 }
@@ -1536,7 +2003,13 @@ pub async fn list_app_template_versions(
     Query(q): Query<ListVersionsQuery>,
 ) -> Result<Json<Vec<ResourceVersionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:templates:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:templates:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -1545,7 +2018,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             WHERE env_id = $1 AND ($2::uuid IS NULL OR template_id = $2)
             ORDER BY created_at DESC LIMIT 200"#,
     )
-    .bind(a.env_id()).bind(q.template_id)
+    .bind(a.env_id())
+    .bind(q.template_id)
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -1555,7 +2029,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateAppTemplateVersionRequest {
     pub template_id: Uuid,
-    #[serde(default = "default_version_status")] pub status: String,
+    #[serde(default = "default_version_status")]
+    pub status: String,
 }
 
 /// `POST /v1/app/template-versions` — create a template version (app-scoped).
@@ -1576,10 +2051,24 @@ pub async fn create_app_template_version(
     Json(req): Json<CreateAppTemplateVersionRequest>,
 ) -> Result<Json<ResourceVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:templates:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:templates:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let v = insert_version(&mut conn, a.env_id(), "template_versions", "template_id", req.template_id, "draft").await?;
+    let v = insert_version(
+        &mut conn,
+        a.env_id(),
+        "template_versions",
+        "template_id",
+        req.template_id,
+        "draft",
+    )
+    .await?;
     Ok(Json(v))
 }
 
@@ -1602,8 +2091,16 @@ pub async fn validate_app_template_version(
     Json(req): Json<CreateAppTemplateVersionRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let _a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &_a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:templates:read")).await?;
-    Ok(Json(serde_json::json!({ "valid": true, "template_id": req.template_id })))
+    crate::policy::require(
+        &state.policy,
+        &_a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:templates:read"),
+    )
+    .await?;
+    Ok(Json(
+        serde_json::json!({ "valid": true, "template_id": req.template_id }),
+    ))
 }
 
 #[derive(Debug, serde::Serialize, ToSchema)]
@@ -1619,7 +2116,8 @@ pub struct TemplatePresetResponse {
 pub struct CreateTemplatePresetRequest {
     pub template_id: Uuid,
     pub name: String,
-    #[serde(default)] pub preset_values: JsonValue,
+    #[serde(default)]
+    pub preset_values: JsonValue,
 }
 
 /// `POST /v1/app/template-presets` — create a reusable payment-initiation
@@ -1641,7 +2139,13 @@ pub async fn create_template_preset(
     Json(req): Json<CreateTemplatePresetRequest>,
 ) -> Result<Json<TemplatePresetResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:templates:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:templates:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -1649,7 +2153,10 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
            VALUES ($1, $2, $3, $4)
            RETURNING id, template_id, name, preset_values, created_at"#,
     )
-    .bind(a.env_id()).bind(req.template_id).bind(&req.name).bind(&req.preset_values)
+    .bind(a.env_id())
+    .bind(req.template_id)
+    .bind(&req.name)
+    .bind(&req.preset_values)
     .fetch_one(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -1680,7 +2187,13 @@ pub async fn list_template_presets(
     Query(q): Query<ListVersionsQuery>,
 ) -> Result<Json<Vec<TemplatePresetResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:templates:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:templates:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -1689,17 +2202,22 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             WHERE env_id = $1 AND ($2::uuid IS NULL OR template_id = $2)
             ORDER BY created_at DESC LIMIT 200"#,
     )
-    .bind(a.env_id()).bind(q.template_id)
+    .bind(a.env_id())
+    .bind(q.template_id)
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
-    Ok(Json(rows.iter().map(|r| TemplatePresetResponse {
-        id: r.get("id"),
-        template_id: r.get("template_id"),
-        name: r.get("name"),
-        preset_values: r.get("preset_values"),
-        created_at: r.get("created_at"),
-    }).collect()))
+    Ok(Json(
+        rows.iter()
+            .map(|r| TemplatePresetResponse {
+                id: r.get("id"),
+                template_id: r.get("template_id"),
+                name: r.get("name"),
+                preset_values: r.get("preset_values"),
+                created_at: r.get("created_at"),
+            })
+            .collect(),
+    ))
 }
 
 /// `DELETE /v1/app/template-presets/{id}` — delete a preset.
@@ -1721,17 +2239,27 @@ pub async fn delete_template_preset(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:templates:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:templates:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let deleted = sqlx::query("DELETE FROM template_presets WHERE id = $1 AND env_id = $2")
-        .bind(id).bind(a.env_id())
+        .bind(id)
+        .bind(a.env_id())
         .execute(&mut *conn)
         .await
         .map_err(err_db)?
         .rows_affected();
     if deleted == 0 {
-        return Err((StatusCode::NOT_FOUND, format!("template preset {id} not found")));
+        return Err((
+            StatusCode::NOT_FOUND,
+            format!("template preset {id} not found"),
+        ));
     }
     Ok(Json(serde_json::json!({ "id": id, "deleted": true })))
 }
@@ -1753,7 +2281,13 @@ pub async fn list_app_dashboard_versions(
     Query(q): Query<ListVersionsQuery>,
 ) -> Result<Json<Vec<ResourceVersionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:dashboards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:dashboards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -1762,7 +2296,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             WHERE env_id = $1 AND ($2::uuid IS NULL OR dashboard_id = $2)
             ORDER BY created_at DESC LIMIT 200"#,
     )
-    .bind(a.env_id()).bind(q.dashboard_id)
+    .bind(a.env_id())
+    .bind(q.dashboard_id)
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -1772,7 +2307,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateAppDashboardVersionRequest {
     pub dashboard_id: Uuid,
-    #[serde(default = "default_version_status")] pub status: String,
+    #[serde(default = "default_version_status")]
+    pub status: String,
 }
 
 /// `POST /v1/app/dashboard-versions` — create a dashboard version.
@@ -1793,10 +2329,24 @@ pub async fn create_app_dashboard_version(
     Json(req): Json<CreateAppDashboardVersionRequest>,
 ) -> Result<Json<ResourceVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:dashboards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:dashboards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let v = insert_version(&mut conn, a.env_id(), "dashboard_versions", "dashboard_id", req.dashboard_id, "draft").await?;
+    let v = insert_version(
+        &mut conn,
+        a.env_id(),
+        "dashboard_versions",
+        "dashboard_id",
+        req.dashboard_id,
+        "draft",
+    )
+    .await?;
     Ok(Json(v))
 }
 
@@ -1818,8 +2368,16 @@ pub async fn validate_app_dashboard_version(
     Json(req): Json<CreateAppDashboardVersionRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let _a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &_a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:dashboards:read")).await?;
-    Ok(Json(serde_json::json!({ "valid": true, "dashboard_id": req.dashboard_id })))
+    crate::policy::require(
+        &state.policy,
+        &_a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:dashboards:read"),
+    )
+    .await?;
+    Ok(Json(
+        serde_json::json!({ "valid": true, "dashboard_id": req.dashboard_id }),
+    ))
 }
 
 // ── : cards issuance ops (business route shape) ──────────────────────
@@ -1886,7 +2444,9 @@ pub async fn replace_card_issuance(
         State(state),
         headers,
         Path(id),
-        Json(crate::routes_missing::ReplaceCardRequest { new_pan: String::new() }),
+        Json(crate::routes_missing::ReplaceCardRequest {
+            new_pan: String::new(),
+        }),
     )
     .await
 }
@@ -1911,15 +2471,22 @@ pub async fn get_card_details(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::CardsEncrypted)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:issuance:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::CardsEncrypted)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:issuance:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
         r#"SELECT encrypted_pan, encrypted_cvv, key_id, pan_last_digits, expiry_date
              FROM cards WHERE id = $1 AND env_id = $2"#,
     )
-    .bind(id).bind(a.env_id())
+    .bind(id)
+    .bind(a.env_id())
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?
@@ -1956,18 +2523,23 @@ pub async fn get_card_pin(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::CardsEncrypted)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:issuance:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::CardsEncrypted)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:issuance:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let row = sqlx::query(
-        r#"SELECT pin_hash, key_id FROM cards WHERE id = $1 AND env_id = $2"#,
-    )
-    .bind(id).bind(a.env_id())
-    .fetch_optional(&mut *conn)
-    .await
-    .map_err(err_db)?
-    .ok_or((StatusCode::NOT_FOUND, format!("card {id} not found")))?;
+    let row = sqlx::query(r#"SELECT pin_hash, key_id FROM cards WHERE id = $1 AND env_id = $2"#)
+        .bind(id)
+        .bind(a.env_id())
+        .fetch_optional(&mut *conn)
+        .await
+        .map_err(err_db)?
+        .ok_or((StatusCode::NOT_FOUND, format!("card {id} not found")))?;
     Ok(Json(serde_json::json!({
         "card_id": id,
         "encrypted_pin": row.get::<Option<String>, _>("pin_hash"),
@@ -1997,8 +2569,14 @@ pub async fn update_card_pin(
     Json(req): Json<UpdatePinRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::CardsEncrypted)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:issuance:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::CardsEncrypted)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:issuance:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let updated = sqlx::query("UPDATE cards SET pin_hash = $2, pin_attempts = 0, updated_at = now() WHERE id = $1 AND env_id = $3")
@@ -2011,11 +2589,22 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         return Err((StatusCode::NOT_FOUND, format!("card {id} not found")));
     }
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Card, &id.to_string(), "pin_updated",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
-    Ok(Json(serde_json::json!({ "card_id": id, "pin_updated": true })))
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Card,
+        &id.to_string(),
+        "pin_updated",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
+    Ok(Json(
+        serde_json::json!({ "card_id": id, "pin_updated": true }),
+    ))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -2043,19 +2632,30 @@ pub async fn reset_pin_attempts(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:issuance:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:issuance:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let updated = sqlx::query("UPDATE cards SET pin_attempts = 0, updated_at = now() WHERE id = $1 AND env_id = $2")
-        .bind(id).bind(a.env_id())
-        .execute(&mut *conn)
-        .await
-        .map_err(err_db)?
-        .rows_affected();
+    let updated = sqlx::query(
+        "UPDATE cards SET pin_attempts = 0, updated_at = now() WHERE id = $1 AND env_id = $2",
+    )
+    .bind(id)
+    .bind(a.env_id())
+    .execute(&mut *conn)
+    .await
+    .map_err(err_db)?
+    .rows_affected();
     if updated == 0 {
         return Err((StatusCode::NOT_FOUND, format!("card {id} not found")));
     }
-    Ok(Json(serde_json::json!({ "card_id": id, "pin_attempts": 0 })))
+    Ok(Json(
+        serde_json::json!({ "card_id": id, "pin_attempts": 0 }),
+    ))
 }
 
 /// `POST /v1/cards/issuance/{id}:resetLVT` — reset the Limited Value Tracker
@@ -2078,7 +2678,13 @@ pub async fn reset_card_lvt(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:issuance:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:issuance:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let updated = sqlx::query(
@@ -2093,11 +2699,22 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         return Err((StatusCode::NOT_FOUND, format!("card {id} not found")));
     }
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Card, &id.to_string(), "lvt_reset",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
-    Ok(Json(serde_json::json!({ "card_id": id, "lvt_reset": true })))
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Card,
+        &id.to_string(),
+        "lvt_reset",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
+    Ok(Json(
+        serde_json::json!({ "card_id": id, "lvt_reset": true }),
+    ))
 }
 
 /// `POST /v1/cards/sessions:initiate` — initiate an encrypted card session
@@ -2118,14 +2735,24 @@ pub async fn initiate_card_session(
     headers: HeaderMap,
     Json(req): Json<serde_json::Value>,
 ) -> Result<Json<crate::handlers::EncryptedSessionResponse>, (StatusCode, String)> {
-    let card_id = req.get("card_id")
+    let card_id = req
+        .get("card_id")
         .and_then(|v| v.as_str())
         .and_then(|s| Uuid::parse_str(s).ok())
         .ok_or((StatusCode::BAD_REQUEST, "card_id required".to_string()))?;
     let session_req = crate::handlers::CreateEncryptedSessionRequest {
-        session_type: req.get("session_type").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        session_type: req
+            .get("session_type")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
     };
-    crate::handlers::create_encrypted_session(State(state), headers, Path(card_id), Json(session_req)).await
+    crate::handlers::create_encrypted_session(
+        State(state),
+        headers,
+        Path(card_id),
+        Json(session_req),
+    )
+    .await
 }
 
 // ── : card orders + batches ──────────────────────────────────────────
@@ -2142,7 +2769,8 @@ pub struct CardOrderResponse {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateCardOrderRequest {
     pub card_id: Uuid,
-    #[serde(default)] pub shipping_address: JsonValue,
+    #[serde(default)]
+    pub shipping_address: JsonValue,
 }
 
 /// `POST /v1/cards/card-orders` — create a card order (manufacturing /
@@ -2165,34 +2793,54 @@ pub async fn create_card_order(
     Json(req): Json<CreateCardOrderRequest>,
 ) -> Result<Json<CardOrderResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let card_exists: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM cards WHERE id = $1 AND env_id = $2)",
-    )
-    .bind(req.card_id).bind(a.env_id())
-    .fetch_one(&mut *conn)
-    .await
-    .map_err(err_db)?;
+    let card_exists: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM cards WHERE id = $1 AND env_id = $2)")
+            .bind(req.card_id)
+            .bind(a.env_id())
+            .fetch_one(&mut *conn)
+            .await
+            .map_err(err_db)?;
     if !card_exists {
-        return Err((StatusCode::NOT_FOUND, format!("card {} not found", req.card_id)));
+        return Err((
+            StatusCode::NOT_FOUND,
+            format!("card {} not found", req.card_id),
+        ));
     }
     let row = sqlx::query(
         r#"INSERT INTO card_orders (env_id, card_id, status, shipping_address)
            VALUES ($1, $2, 'pending', $3)
            RETURNING id, card_id, status, shipping_address, created_at"#,
     )
-    .bind(a.env_id()).bind(req.card_id).bind(&req.shipping_address)
+    .bind(a.env_id())
+    .bind(req.card_id)
+    .bind(&req.shipping_address)
     .fetch_one(&mut *conn)
     .await
     .map_err(err_db)?;
     let order_id: Uuid = row.get("id");
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::CardOrder, &order_id.to_string(), "created",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::CardOrder,
+        &order_id.to_string(),
+        "created",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(CardOrderResponse {
         id: order_id,
         card_id: row.get("card_id"),
@@ -2219,7 +2867,13 @@ pub async fn list_card_orders(
     headers: HeaderMap,
 ) -> Result<Json<Vec<CardOrderResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -2230,13 +2884,17 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
-    Ok(Json(rows.iter().map(|r| CardOrderResponse {
-        id: r.get("id"),
-        card_id: r.get("card_id"),
-        status: r.get("status"),
-        shipping_address: r.get("shipping_address"),
-        created_at: r.get("created_at"),
-    }).collect()))
+    Ok(Json(
+        rows.iter()
+            .map(|r| CardOrderResponse {
+                id: r.get("id"),
+                card_id: r.get("card_id"),
+                status: r.get("status"),
+                shipping_address: r.get("shipping_address"),
+                created_at: r.get("created_at"),
+            })
+            .collect(),
+    ))
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -2272,10 +2930,19 @@ pub async fn create_card_order_batch(
     Json(req): Json<CreateCardOrderBatchRequest>,
 ) -> Result<Json<CardOrderBatchResponse>, (StatusCode, String)> {
     if req.order_ids.is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "at least one order id required".into()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "at least one order id required".into(),
+        ));
     }
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut tx = state.pool.begin().await.map_err(err_db)?;
     set_tenant_context(&mut tx, a.env_id()).await;
     let row = sqlx::query(
@@ -2315,7 +2982,13 @@ pub async fn list_card_order_batches(
     headers: HeaderMap,
 ) -> Result<Json<Vec<CardOrderBatchResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -2326,12 +2999,16 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
-    Ok(Json(rows.iter().map(|r| CardOrderBatchResponse {
-        id: r.get("id"),
-        order_count: r.get("order_count"),
-        status: r.get("status"),
-        created_at: r.get("created_at"),
-    }).collect()))
+    Ok(Json(
+        rows.iter()
+            .map(|r| CardOrderBatchResponse {
+                id: r.get("id"),
+                order_count: r.get("order_count"),
+                status: r.get("status"),
+                created_at: r.get("created_at"),
+            })
+            .collect(),
+    ))
 }
 
 // ── : cardholder cascade + tokens + 3DS PUT ──────────────────────────
@@ -2359,15 +3036,23 @@ pub async fn update_cardholder(
     Json(req): Json<UpdateCardholderRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut tx = state.pool.begin().await.map_err(err_db)?;
     set_tenant_context(&mut tx, a.env_id()).await;
-    let updated = sqlx::query("UPDATE cardholders SET updated_at = now() WHERE id = $1 AND env_id = $2")
-        .bind(id).bind(a.env_id())
-        .execute(&mut *tx)
-        .await
-        .map_err(err_db)?
-        .rows_affected();
+    let updated =
+        sqlx::query("UPDATE cardholders SET updated_at = now() WHERE id = $1 AND env_id = $2")
+            .bind(id)
+            .bind(a.env_id())
+            .execute(&mut *tx)
+            .await
+            .map_err(err_db)?
+            .rows_affected();
     if updated == 0 {
         return Err((StatusCode::NOT_FOUND, format!("cardholder {id} not found")));
     }
@@ -2384,10 +3069,19 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     }
     tx.commit().await.map_err(err_db)?;
     let _ = event_streaming::emit_event_tx(
-        &state.pool, a.env_id(), ResourceType::Cardholder, &id.to_string(), "updated",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &state.pool,
+        a.env_id(),
+        ResourceType::Cardholder,
+        &id.to_string(),
+        "updated",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(serde_json::json!({
         "id": id,
         "cascade_applied": req.status.as_deref() == Some("CLOSED"),
@@ -2397,7 +3091,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateCardholderRequest {
     /// INACTIVE | ACTIVE | SUSPENDED | CLOSED (CLOSED cascades to cards).
-    #[serde(default)] pub status: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
 }
 
 /// `PUT /v1/cards/card-tokens/{id}` — card token lifecycle write (MDES; ).
@@ -2421,30 +3116,50 @@ pub async fn update_card_token(
     Json(req): Json<UpdateCardTokenRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let updated = sqlx::query("UPDATE card_tokens SET status = $2, updated_at = now() WHERE id = $1 AND env_id = $3")
-        .bind(id).bind(req.status.as_deref().unwrap_or("inactive")).bind(a.env_id())
-        .execute(&mut *conn)
-        .await
-        .map_err(err_db)?
-        .rows_affected();
+    let updated = sqlx::query(
+        "UPDATE card_tokens SET status = $2, updated_at = now() WHERE id = $1 AND env_id = $3",
+    )
+    .bind(id)
+    .bind(req.status.as_deref().unwrap_or("inactive"))
+    .bind(a.env_id())
+    .execute(&mut *conn)
+    .await
+    .map_err(err_db)?
+    .rows_affected();
     if updated == 0 {
         return Err((StatusCode::NOT_FOUND, format!("card token {id} not found")));
     }
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Card, &id.to_string(), "token_updated",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Card,
+        &id.to_string(),
+        "token_updated",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(serde_json::json!({ "id": id, "status": req.status })))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateCardTokenRequest {
     /// PENDING_CREATION | INACTIVE | ACTIVE | SUSPENDED
-    #[serde(default)] pub status: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
 }
 
 /// `PUT /v1/cards/3ds-records/{id}` — update 3DS authentication state
@@ -2469,7 +3184,13 @@ pub async fn update_3ds_record(
     Json(req): Json<Update3dsRecordRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let updated = sqlx::query(
@@ -2487,18 +3208,29 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         return Err((StatusCode::NOT_FOUND, format!("3DS record {id} not found")));
     }
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::ThreeDSRecord, &id.to_string(), "updated",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::ThreeDSRecord,
+        &id.to_string(),
+        "updated",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(serde_json::json!({ "id": id, "updated": true })))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct Update3dsRecordRequest {
     /// pending | frictionless | challenged | authenticated | failed | declined
-    #[serde(default)] pub authentication_status: Option<String>,
-    #[serde(default)] pub risk_score: Option<rust_decimal::Decimal>,
+    #[serde(default)]
+    pub authentication_status: Option<String>,
+    #[serde(default)]
+    pub risk_score: Option<rust_decimal::Decimal>,
 }
 
 /// `PUT /v1/cards/{id}/profile` — set the Card Profile (chip behaviour /
@@ -2523,19 +3255,31 @@ pub async fn set_card_profile(
     Json(req): Json<SetCardProfileRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let updated = sqlx::query("UPDATE cards SET card_profile_id = $2, updated_at = now() WHERE id = $1 AND env_id = $3")
-        .bind(id).bind(&req.profile_id).bind(a.env_id())
-        .execute(&mut *conn)
-        .await
-        .map_err(err_db)?
-        .rows_affected();
+    let updated = sqlx::query(
+        "UPDATE cards SET card_profile_id = $2, updated_at = now() WHERE id = $1 AND env_id = $3",
+    )
+    .bind(id)
+    .bind(&req.profile_id)
+    .bind(a.env_id())
+    .execute(&mut *conn)
+    .await
+    .map_err(err_db)?
+    .rows_affected();
     if updated == 0 {
         return Err((StatusCode::NOT_FOUND, format!("card {id} not found")));
     }
-    Ok(Json(serde_json::json!({ "card_id": id, "profile_id": req.profile_id })))
+    Ok(Json(
+        serde_json::json!({ "card_id": id, "profile_id": req.profile_id }),
+    ))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -2548,11 +3292,15 @@ pub struct SetCardProfileRequest {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct AuthorisationExpiryRequest {
-    #[serde(default)] pub env_id: Option<Uuid>,
+    #[serde(default)]
+    pub env_id: Option<Uuid>,
     /// Max instructions to expire in one run.
-    #[serde(default = "default_expiry_batch")] pub batch_size: i64,
+    #[serde(default = "default_expiry_batch")]
+    pub batch_size: i64,
 }
-fn default_expiry_batch() -> i64 { 500 }
+fn default_expiry_batch() -> i64 {
+    500
+}
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ExpiryRunResult {
@@ -2587,7 +3335,13 @@ pub async fn internal_authorisation_expiry(
     // Cron proxy-back carries a service M2M token; any authenticated
     // service caller may drive this (the endpoint is internal-only).
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:write"),
+    )
+    .await?;
     let env_id = req.env_id.unwrap_or_else(|| a.env_id());
     let mut tx = state.pool.begin().await.map_err(err_db)?;
     set_tenant_context(&mut tx, env_id).await;
@@ -2652,15 +3406,22 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         r#"INSERT INTO audit_events (env_id, action, target_resource_type, target_resource_id)
            VALUES ($1, 'authorisation_expiry_run', 'payment', $2)"#,
     )
-    .bind(env_id).bind(format!("batch:{expired_count}"))
+    .bind(env_id)
+    .bind(format!("batch:{expired_count}"))
     .execute(&mut *tx)
     .await
     .map_err(err_db)?;
     let _ = event_streaming::emit_event_tx(
-        &mut *tx, env_id, ResourceType::Payment, &format!("expiry-run:{expired_count}"), "expired",
-        None, None,
+        &mut *tx,
+        env_id,
+        ResourceType::Payment,
+        &format!("expiry-run:{expired_count}"),
+        "expired",
+        None,
+        None,
         event_streaming::PublisherIdentity::none(),
-    ).await;
+    )
+    .await;
     tx.commit().await.map_err(err_db)?;
     Ok(Json(ExpiryRunResult {
         expired: expired_count,
@@ -2700,18 +3461,28 @@ pub async fn get_card_product_plan(
     Path(id): Path<Uuid>,
 ) -> Result<Json<CardProductPlanResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
         r#"SELECT id, name, issuing_plan, expiry_plan, profile_id
              FROM card_products WHERE id = $1 AND env_id = $2"#,
     )
-    .bind(id).bind(a.env_id())
+    .bind(id)
+    .bind(a.env_id())
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?
-    .ok_or((StatusCode::NOT_FOUND, format!("card product {id} not found")))?;
+    .ok_or((
+        StatusCode::NOT_FOUND,
+        format!("card product {id} not found"),
+    ))?;
     Ok(Json(CardProductPlanResponse {
         id: row.get("id"),
         name: row.get("name"),
@@ -2724,10 +3495,13 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateCardProductPlanRequest {
     /// Issuing plan: card_profile_id, bin_prefix, default_expiry_months, etc.
-    #[serde(default)] pub issuing_plan: Option<JsonValue>,
+    #[serde(default)]
+    pub issuing_plan: Option<JsonValue>,
     /// Expiry plan: expiry_months, expiry_policy, auto_renewal, etc.
-    #[serde(default)] pub expiry_plan: Option<JsonValue>,
-    #[serde(default)] pub profile_id: Option<String>,
+    #[serde(default)]
+    pub expiry_plan: Option<JsonValue>,
+    #[serde(default)]
+    pub profile_id: Option<String>,
 }
 
 /// `PUT /v1/cards/products/{id}` — update issuing/expiry plan on a card
@@ -2752,7 +3526,13 @@ pub async fn update_card_product_plan(
     Json(req): Json<UpdateCardProductPlanRequest>,
 ) -> Result<Json<CardProductPlanResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -2772,12 +3552,24 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?
-    .ok_or((StatusCode::NOT_FOUND, format!("card product {id} not found")))?;
+    .ok_or((
+        StatusCode::NOT_FOUND,
+        format!("card product {id} not found"),
+    ))?;
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::PaymentInstrument, &id.to_string(), "plan_updated",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::PaymentInstrument,
+        &id.to_string(),
+        "plan_updated",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(CardProductPlanResponse {
         id: row.get("id"),
         name: row.get("name"),
@@ -2822,21 +3614,34 @@ pub async fn add_card_product_account_ranges(
     Json(req): Json<AddAccountRangesRequest>,
 ) -> Result<Json<Vec<AccountRangeResponse>>, (StatusCode, String)> {
     if req.account_ranges.is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "at least one account range required".into()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "at least one account range required".into(),
+        ));
     }
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let exists: bool = sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM card_products WHERE id = $1 AND env_id = $2)",
     )
-    .bind(id).bind(a.env_id())
+    .bind(id)
+    .bind(a.env_id())
     .fetch_one(&mut *conn)
     .await
     .map_err(err_db)?;
     if !exists {
-        return Err((StatusCode::NOT_FOUND, format!("card product {id} not found")));
+        return Err((
+            StatusCode::NOT_FOUND,
+            format!("card product {id} not found"),
+        ));
     }
     let mut out = Vec::new();
     for range in &req.account_ranges {
@@ -2846,7 +3651,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                ON CONFLICT (env_id, product_id, account_range_id) DO NOTHING
                RETURNING id, product_id, account_range_id, created_at"#,
         )
-        .bind(a.env_id()).bind(id).bind(range)
+        .bind(a.env_id())
+        .bind(id)
+        .bind(range)
         .fetch_optional(&mut *conn)
         .await
         .map_err(err_db)?;
@@ -2860,10 +3667,19 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         }
     }
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::PaymentInstrument, &id.to_string(), "account_ranges_added",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::PaymentInstrument,
+        &id.to_string(),
+        "account_ranges_added",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(out))
 }
 
@@ -2894,7 +3710,13 @@ pub async fn remove_card_product_account_ranges(
     Json(req): Json<RemoveAccountRangesRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let mut removed = 0u64;
@@ -2909,10 +3731,19 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         .rows_affected();
     }
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::PaymentInstrument, &id.to_string(), "account_ranges_removed",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::PaymentInstrument,
+        &id.to_string(),
+        "account_ranges_removed",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(serde_json::json!({ "removed": removed })))
 }
 
@@ -2935,7 +3766,13 @@ pub async fn list_card_product_account_ranges(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<AccountRangeResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -2943,16 +3780,21 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
              FROM card_product_account_ranges
             WHERE env_id = $1 AND product_id = $2 ORDER BY created_at DESC"#,
     )
-    .bind(a.env_id()).bind(id)
+    .bind(a.env_id())
+    .bind(id)
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
-    Ok(Json(rows.iter().map(|r| AccountRangeResponse {
-        id: r.get("id"),
-        product_id: r.get("product_id"),
-        account_range_id: r.get("account_range_id"),
-        created_at: r.get("created_at"),
-    }).collect()))
+    Ok(Json(
+        rows.iter()
+            .map(|r| AccountRangeResponse {
+                id: r.get("id"),
+                product_id: r.get("product_id"),
+                account_range_id: r.get("account_range_id"),
+                created_at: r.get("created_at"),
+            })
+            .collect(),
+    ))
 }
 
 // ── : sandbox API (FeatureGate::Sandbox) ────────────────────────────
@@ -2972,11 +3814,16 @@ pub struct SandboxSimulationResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct SandboxSimulateRequest {
-    #[serde(default)] pub card_id: Option<Uuid>,
-    #[serde(default)] pub instruction_id: Option<Uuid>,
-    #[serde(default)] pub amount: Option<rust_decimal::Decimal>,
-    #[serde(default)] pub currency: Option<String>,
-    #[serde(default)] pub outcome: Option<String>,
+    #[serde(default)]
+    pub card_id: Option<Uuid>,
+    #[serde(default)]
+    pub instruction_id: Option<Uuid>,
+    #[serde(default)]
+    pub amount: Option<rust_decimal::Decimal>,
+    #[serde(default)]
+    pub currency: Option<String>,
+    #[serde(default)]
+    pub outcome: Option<String>,
 }
 
 async fn record_sandbox(
@@ -2990,7 +3837,10 @@ async fn record_sandbox(
         r#"INSERT INTO sandbox_simulations (env_id, simulation_type, input, result)
            VALUES ($1, $2, $3, $4) RETURNING id"#,
     )
-    .bind(env_id).bind(simulation_type).bind(input).bind(result)
+    .bind(env_id)
+    .bind(simulation_type)
+    .bind(input)
+    .bind(result)
     .fetch_one(conn)
     .await
     .map_err(err_db)?;
@@ -3035,8 +3885,14 @@ pub async fn sandbox_simulate_card_txn(
     Json(req): Json<SandboxSimulateRequest>,
 ) -> Result<Json<SandboxSimulationResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Sandbox)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:sandbox:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Sandbox)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:sandbox:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let input = serde_json::to_value(&req).unwrap_or(JsonValue::Null);
@@ -3079,8 +3935,14 @@ pub async fn sandbox_simulate_credit_transfer(
     Json(req): Json<SandboxSimulateRequest>,
 ) -> Result<Json<SandboxSimulationResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Sandbox)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:sandbox:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Sandbox)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:sandbox:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let input = serde_json::to_value(&req).unwrap_or(JsonValue::Null);
@@ -3122,8 +3984,14 @@ pub async fn sandbox_simulate_swift_agi(
     Json(req): Json<SandboxSimulateRequest>,
 ) -> Result<Json<SandboxSimulationResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Sandbox)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:sandbox:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Sandbox)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:sandbox:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let input = serde_json::to_value(&req).unwrap_or(JsonValue::Null);
@@ -3165,13 +4033,19 @@ pub async fn sandbox_simulate_fedwire(
     Json(req): Json<SandboxSimulateRequest>,
 ) -> Result<Json<SandboxSimulationResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Sandbox)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:sandbox:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Sandbox)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:sandbox:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let input = serde_json::to_value(&req).unwrap_or(JsonValue::Null);
     let result = sandbox_fedwire_result(&req);
-    let id = record_sandbox(&mut *conn, a.env_id(), "fedwire", &input, &result).await?;
+    let id = record_sandbox(&mut conn, a.env_id(), "fedwire", &input, &result).await?;
     Ok(Json(SandboxSimulationResponse {
         id,
         simulation_type: "fedwire".into(),
@@ -3201,8 +4075,14 @@ pub async fn sandbox_resume_instruction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Sandbox)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:sandbox:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Sandbox)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:sandbox:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -3214,11 +4094,22 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .map_err(err_db)?
     .ok_or((StatusCode::NOT_FOUND, format!("instruction {id} not found or not awaiting_input")))?;
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Instruction, &id.to_string(), "resumed",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
-    Ok(Json(serde_json::json!({ "id": id, "state": row.get::<String, _>("state") })))
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Instruction,
+        &id.to_string(),
+        "resumed",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
+    Ok(Json(
+        serde_json::json!({ "id": id, "state": row.get::<String, _>("state") }),
+    ))
 }
 
 /// `POST /v1/sandbox/scheduled-payments/{id}:fastForward` — execute the next
@@ -3241,8 +4132,14 @@ pub async fn sandbox_fast_forward_scheduled(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let _a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Sandbox)?;
-crate::policy::require(&state.policy, &_a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:sandbox:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Sandbox)?;
+    crate::policy::require(
+        &state.policy,
+        &_a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:sandbox:write"),
+    )
+    .await?;
     fast_forward_scheduled_inner(state, headers, id).await
 }
 
@@ -3268,9 +4165,12 @@ pub struct CreateScheduledPaymentRequest {
     /// standing_order | direct_debit | future_dated
     pub schedule_type: String,
     /// RFC 5545 RRULE (e.g. FREQ=MONTHLY) — Sentin8:Cron is UTC-only.
-    #[serde(default)] pub recurrence_rule: Option<String>,
-    #[serde(default)] pub start_at: Option<chrono::DateTime<chrono::Utc>>,
-    #[serde(default)] pub payee_id: Option<Uuid>,
+    #[serde(default)]
+    pub recurrence_rule: Option<String>,
+    #[serde(default)]
+    pub start_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(default)]
+    pub payee_id: Option<Uuid>,
 }
 
 /// `POST /v1beta/scheduled-payments` — create a scheduled payment.
@@ -3291,7 +4191,13 @@ pub async fn create_scheduled_payment(
     Json(req): Json<CreateScheduledPaymentRequest>,
 ) -> Result<Json<ScheduledPaymentResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:scheduled-payments:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:scheduled-payments:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -3307,10 +4213,19 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .map_err(err_db)?;
     let sp_id: Uuid = row.get("id");
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::PaymentInstrument, &sp_id.to_string(), "created",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::PaymentInstrument,
+        &sp_id.to_string(),
+        "created",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(ScheduledPaymentResponse {
         id: sp_id,
         account_id: row.get("account_id"),
@@ -3339,7 +4254,13 @@ pub async fn list_scheduled_payments(
     headers: HeaderMap,
 ) -> Result<Json<Vec<ScheduledPaymentResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:scheduled-payments:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:scheduled-payments:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -3350,16 +4271,20 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
-    Ok(Json(rows.iter().map(|r| ScheduledPaymentResponse {
-        id: r.get("id"),
-        account_id: r.get("account_id"),
-        amount: r.get("amount"),
-        currency: r.get("currency"),
-        schedule_type: r.get("schedule_type"),
-        next_run_at: r.get("next_run_at"),
-        status: r.get("status"),
-        created_at: r.get("created_at"),
-    }).collect()))
+    Ok(Json(
+        rows.iter()
+            .map(|r| ScheduledPaymentResponse {
+                id: r.get("id"),
+                account_id: r.get("account_id"),
+                amount: r.get("amount"),
+                currency: r.get("currency"),
+                schedule_type: r.get("schedule_type"),
+                next_run_at: r.get("next_run_at"),
+                status: r.get("status"),
+                created_at: r.get("created_at"),
+            })
+            .collect(),
+    ))
 }
 
 /// `GET /v1beta/scheduled-payments/{id}` — fetch one scheduled payment.
@@ -3381,18 +4306,28 @@ pub async fn get_scheduled_payment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<ScheduledPaymentResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:scheduled-payments:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:scheduled-payments:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
         r#"SELECT id, account_id, amount, currency, schedule_type, next_run_at, status, created_at
              FROM scheduled_payments WHERE id = $1 AND env_id = $2"#,
     )
-    .bind(id).bind(a.env_id())
+    .bind(id)
+    .bind(a.env_id())
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?
-    .ok_or((StatusCode::NOT_FOUND, format!("scheduled payment {id} not found")))?;
+    .ok_or((
+        StatusCode::NOT_FOUND,
+        format!("scheduled payment {id} not found"),
+    ))?;
     Ok(Json(ScheduledPaymentResponse {
         id: row.get("id"),
         account_id: row.get("account_id"),
@@ -3424,7 +4359,13 @@ pub async fn cancel_scheduled_payment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:scheduled-payments:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:scheduled-payments:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let updated = sqlx::query(
@@ -3436,13 +4377,25 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .map_err(err_db)?
     .rows_affected();
     if updated == 0 {
-        return Err((StatusCode::NOT_FOUND, format!("scheduled payment {id} not found")));
+        return Err((
+            StatusCode::NOT_FOUND,
+            format!("scheduled payment {id} not found"),
+        ));
     }
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::PaymentInstrument, &id.to_string(), "cancelled",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::PaymentInstrument,
+        &id.to_string(),
+        "cancelled",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(serde_json::json!({ "id": id, "status": "cancelled" })))
 }
 
@@ -3454,7 +4407,13 @@ async fn fast_forward_scheduled_inner(
     id: Uuid,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:scheduled-payments:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:scheduled-payments:write"),
+    )
+    .await?;
     let mut tx = state.pool.begin().await.map_err(err_db)?;
     set_tenant_context(&mut tx, a.env_id()).await;
     let sp = sqlx::query(
@@ -3502,11 +4461,22 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .map_err(err_db)?;
     tx.commit().await.map_err(err_db)?;
     let _ = event_streaming::emit_event_tx(
-        &state.pool, a.env_id(), ResourceType::PaymentInstrument, &id.to_string(), "fast_forwarded",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
-    Ok(Json(serde_json::json!({ "scheduled_payment_id": id, "instruction_id": instr_id })))
+        &state.pool,
+        a.env_id(),
+        ResourceType::PaymentInstrument,
+        &id.to_string(),
+        "fast_forwarded",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
+    Ok(Json(
+        serde_json::json!({ "scheduled_payment_id": id, "instruction_id": instr_id }),
+    ))
 }
 
 /// `POST /v1beta/scheduled-payments/{id}:fastForward` — execute the next
@@ -3537,7 +4507,8 @@ pub async fn fast_forward_scheduled_payment(
 pub struct PlatformUserResponse {
     pub id: Uuid,
     pub email: String,
-    #[serde(skip_serializing_if = "Option::is_none")] pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     pub status: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
@@ -3559,14 +4530,20 @@ pub async fn list_users(
     headers: HeaderMap,
 ) -> Result<Json<Vec<PlatformUserResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:users:read")).await?;
- // VDC §VDC.5 (on-demand sanctioned identity read): the env's users are
- // listed through Auth's admin API (`GET /v1/admin/users`) via the
- // cert-presenting `bank8-payments-sys` workload (CERTFREE-4V — no M2M
- // token; the `sentin8:auth:admin:read` scope rides the enroll-published
- // registry map). The former direct `sentin8.auth_users` query referenced a
- // platform table that does not exist in the vertical's own database —
- // every call failed with a 500.
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:users:read"),
+    )
+    .await?;
+    // VDC §VDC.5 (on-demand sanctioned identity read): the env's users are
+    // listed through Auth's admin API (`GET /v1/admin/users`) via the
+    // cert-presenting `bank8-payments-sys` workload (CERTFREE-4V — no M2M
+    // token; the `sentin8:auth:admin:read` scope rides the enroll-published
+    // registry map). The former direct `sentin8.auth_users` query referenced a
+    // platform table that does not exist in the vertical's own database —
+    // every call failed with a 500.
     let cfg = sentin8::config::Sentin8Config::from_env();
     let ca_path = sentin8::auth::m2m::platform_ca_path();
     let cert = sentin8::auth::m2m::ensure_workload_certificate(
@@ -3575,7 +4552,12 @@ pub async fn list_users(
         &ca_path,
     )
     .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("workload certificate: {e}")))?;
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("workload certificate: {e}"),
+        )
+    })?;
     let mtls = sentin8::middleware::mtls::MtlsConfig::new(
         &cert.ca_cert_path,
         &cert.cert_path,
@@ -3598,32 +4580,43 @@ pub async fn list_users(
     let status = resp.status();
     if !status.is_success() {
         let body = resp.text().await.unwrap_or_default();
-        return Err((StatusCode::BAD_GATEWAY, format!("auth users: {status} {body}")));
+        return Err((
+            StatusCode::BAD_GATEWAY,
+            format!("auth users: {status} {body}"),
+        ));
     }
     let data: serde_json::Value = resp
         .json()
         .await
         .map_err(|e| (StatusCode::BAD_GATEWAY, format!("auth users decode: {e}")))?;
     let items = data["users"].as_array().cloned().unwrap_or_default();
-    Ok(Json(items.iter().filter_map(|u| {
-        let first = u["first_name"].as_str().map(String::from);
-        let last = u["last_name"].as_str().map(String::from);
-        Some(PlatformUserResponse {
-            id: u["id"].as_str().and_then(|s| uuid::Uuid::parse_str(s).ok())?,
-            email: u["email"].as_str().unwrap_or("").to_string(),
-            name: match (first, last) {
-                (Some(f), Some(l)) => Some(format!("{f} {l}")),
-                (Some(f), None) => Some(f),
-                (None, Some(l)) => Some(l),
-                (None, None) => None,
-            },
-            status: u["status"].as_str().unwrap_or("active").to_string(),
-            created_at: u["created_at"].as_str()
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-                .map(|d| d.with_timezone(&chrono::Utc))
-                .unwrap_or_else(chrono::Utc::now),
-        })
-    }).collect()))
+    Ok(Json(
+        items
+            .iter()
+            .filter_map(|u| {
+                let first = u["first_name"].as_str().map(String::from);
+                let last = u["last_name"].as_str().map(String::from);
+                Some(PlatformUserResponse {
+                    id: u["id"]
+                        .as_str()
+                        .and_then(|s| uuid::Uuid::parse_str(s).ok())?,
+                    email: u["email"].as_str().unwrap_or("").to_string(),
+                    name: match (first, last) {
+                        (Some(f), Some(l)) => Some(format!("{f} {l}")),
+                        (Some(f), None) => Some(f),
+                        (None, Some(l)) => Some(l),
+                        (None, None) => None,
+                    },
+                    status: u["status"].as_str().unwrap_or("active").to_string(),
+                    created_at: u["created_at"]
+                        .as_str()
+                        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+                        .map(|d| d.with_timezone(&chrono::Utc))
+                        .unwrap_or_else(chrono::Utc::now),
+                })
+            })
+            .collect(),
+    ))
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -3650,25 +4643,73 @@ pub async fn list_allowed_endpoints(
     headers: HeaderMap,
 ) -> Result<Json<Vec<AllowedEndpointResponse>>, (StatusCode, String)> {
     let _a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &_a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:users:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &_a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:users:read"),
+    )
+    .await?;
     let map = [
-        ("GET", "/v1/instructions", "bank8:payments:instructions:read"),
-        ("POST", "/v1/instructions", "bank8:payments:instructions:write"),
-        ("PUT", "/v1/instructions/{id}", "bank8:payments:instructions:write"),
-        ("POST", "/v1/instructions/{id}/process", "bank8:payments:instructions:write"),
-        ("POST", "/v1/instructions/bulk-retry", "bank8:payments:instructions:write"),
+        (
+            "GET",
+            "/v1/instructions",
+            "bank8:payments:instructions:read",
+        ),
+        (
+            "POST",
+            "/v1/instructions",
+            "bank8:payments:instructions:write",
+        ),
+        (
+            "PUT",
+            "/v1/instructions/{id}",
+            "bank8:payments:instructions:write",
+        ),
+        (
+            "POST",
+            "/v1/instructions/{id}/process",
+            "bank8:payments:instructions:write",
+        ),
+        (
+            "POST",
+            "/v1/instructions/bulk-retry",
+            "bank8:payments:instructions:write",
+        ),
         ("GET", "/v1/payees", "bank8:payments:payees:read"),
         ("POST", "/v1/payees", "bank8:payments:payees:write"),
         ("GET", "/v1/cards", "bank8:payments:cards:read"),
-        ("POST", "/v1/cards/issuance/issue", "bank8:payments:issuance:write"),
+        (
+            "POST",
+            "/v1/cards/issuance/issue",
+            "bank8:payments:issuance:write",
+        ),
         ("GET", "/v1/payments", "bank8:payments:payments:read"),
-        ("GET", "/v1beta/scheduled-payments", "bank8:payments:scheduled-payments:read"),
-        ("POST", "/v1beta/scheduled-payments", "bank8:payments:scheduled-payments:write"),
-        ("POST", "/v1/sandbox/cards/simulate", "bank8:payments:sandbox:write"),
+        (
+            "GET",
+            "/v1beta/scheduled-payments",
+            "bank8:payments:scheduled-payments:read",
+        ),
+        (
+            "POST",
+            "/v1beta/scheduled-payments",
+            "bank8:payments:scheduled-payments:write",
+        ),
+        (
+            "POST",
+            "/v1/sandbox/cards/simulate",
+            "bank8:payments:sandbox:write",
+        ),
     ];
-    Ok(Json(map.iter().map(|(m, p, s)| AllowedEndpointResponse {
-        method: m.to_string(), path: p.to_string(), scope: s.to_string(),
-    }).collect()))
+    Ok(Json(
+        map.iter()
+            .map(|(m, p, s)| AllowedEndpointResponse {
+                method: m.to_string(),
+                path: p.to_string(),
+                scope: s.to_string(),
+            })
+            .collect(),
+    ))
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -3695,7 +4736,13 @@ pub async fn list_roles(
     headers: HeaderMap,
 ) -> Result<Json<Vec<RoleViewResponse>>, (StatusCode, String)> {
     let _a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &_a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:users:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &_a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:users:read"),
+    )
+    .await?;
     // Projection of the well-known payment-service roles; authoritative
     // storage/nesting is Sentin8:Auth's RBAC (Shield policies + role nesting).
     Ok(Json(vec![
@@ -3739,9 +4786,12 @@ pub struct AttachRuleToInstrumentRequest {
     /// payment_instrument resource this rule applies to (card or account id).
     pub instrument_id: Uuid,
     /// card | account
-    #[serde(default = "default_instrument_kind")] pub instrument_type: String,
+    #[serde(default = "default_instrument_kind")]
+    pub instrument_type: String,
 }
-fn default_instrument_kind() -> String { "card".into() }
+fn default_instrument_kind() -> String {
+    "card".into()
+}
 
 /// `POST /v1/rules:attachToInstrument` — attach a decision rule to a payment
 /// instrument (; the rule still applies per-instruction at runtime).
@@ -3763,18 +4813,27 @@ pub async fn attach_rule_to_instrument(
     Json(req): Json<AttachRuleToInstrumentRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    let exists: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM rules WHERE id = $1 AND env_id = $2)",
-    )
-    .bind(req.rule_id).bind(a.env_id())
-    .fetch_one(&mut *conn)
-    .await
-    .map_err(err_db)?;
+    let exists: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM rules WHERE id = $1 AND env_id = $2)")
+            .bind(req.rule_id)
+            .bind(a.env_id())
+            .fetch_one(&mut *conn)
+            .await
+            .map_err(err_db)?;
     if !exists {
-        return Err((StatusCode::NOT_FOUND, format!("rule {} not found", req.rule_id)));
+        return Err((
+            StatusCode::NOT_FOUND,
+            format!("rule {} not found", req.rule_id),
+        ));
     }
     let row = sqlx::query(
         r#"INSERT INTO rule_instruments (env_id, rule_id, instrument_id, instrument_type)
@@ -3782,18 +4841,32 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
            ON CONFLICT (env_id, rule_id, instrument_id) DO NOTHING
            RETURNING id"#,
     )
-    .bind(a.env_id()).bind(req.rule_id).bind(req.instrument_id).bind(&req.instrument_type)
+    .bind(a.env_id())
+    .bind(req.rule_id)
+    .bind(req.instrument_id)
+    .bind(&req.instrument_type)
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?;
     if row.is_none() {
-        return Ok(Json(serde_json::json!({ "attached": false, "reason": "already attached" })));
+        return Ok(Json(
+            serde_json::json!({ "attached": false, "reason": "already attached" }),
+        ));
     }
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Rule, &req.rule_id.to_string(), "attached_to_instrument",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Rule,
+        &req.rule_id.to_string(),
+        "attached_to_instrument",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(serde_json::json!({ "attached": true })))
 }
 
@@ -3821,13 +4894,21 @@ pub async fn detach_rule_from_instrument(
     Json(req): Json<DetachRuleFromInstrumentRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let removed = sqlx::query(
         "DELETE FROM rule_instruments WHERE env_id = $1 AND rule_id = $2 AND instrument_id = $3",
     )
-    .bind(a.env_id()).bind(req.rule_id).bind(req.instrument_id)
+    .bind(a.env_id())
+    .bind(req.rule_id)
+    .bind(req.instrument_id)
     .execute(&mut *conn)
     .await
     .map_err(err_db)?
@@ -3838,9 +4919,12 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateCoreRequest {
     /// Optional new postings URL (CBS reconciliation target).
-    #[serde(default)] pub postings_url: Option<String>,
-    #[serde(default)] pub name: Option<String>,
-    #[serde(default)] pub status: Option<String>,
+    #[serde(default)]
+    pub postings_url: Option<String>,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
 }
 
 /// `PUT /v1/cores/{id}` — update a core (CBS) config, including the postings
@@ -3865,7 +4949,13 @@ pub async fn update_core(
     Json(req): Json<UpdateCoreRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cores:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cores:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -3887,10 +4977,19 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .map_err(err_db)?
     .ok_or((StatusCode::NOT_FOUND, format!("core {id} not found")))?;
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Core, &id.to_string(), "updated",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Core,
+        &id.to_string(),
+        "updated",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(serde_json::json!({
         "id": row.get::<Uuid, _>("id"),
         "name": row.get::<String, _>("name"),
@@ -3928,10 +5027,19 @@ pub async fn update_core_balance_endpoint(
     Json(req): Json<CoreBalanceEndpointRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     if req.mode != "online" && req.mode != "offline" {
-        return Err((StatusCode::BAD_REQUEST, "mode must be 'online' or 'offline'".into()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "mode must be 'online' or 'offline'".into(),
+        ));
     }
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cores:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cores:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let updated = sqlx::query(
@@ -3949,11 +5057,22 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         return Err((StatusCode::NOT_FOUND, format!("core {id} not found")));
     }
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Core, &id.to_string(), "balance_endpoint_updated",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
-    Ok(Json(serde_json::json!({ "core_id": id, "balance_endpoint_mode": req.mode })))
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Core,
+        &id.to_string(),
+        "balance_endpoint_updated",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
+    Ok(Json(
+        serde_json::json!({ "core_id": id, "balance_endpoint_mode": req.mode }),
+    ))
 }
 
 // ── : OpenMetrics endpoint ──────────────────────────────────────────
@@ -3975,7 +5094,13 @@ pub async fn openmetrics_metrics(
     headers: HeaderMap,
 ) -> Result<String, (StatusCode, String)> {
     let _a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &_a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:openmetrics:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &_a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:openmetrics:read"),
+    )
+    .await?;
     let _ = state;
     crate::handlers::metrics(State(state), headers).await
 }
@@ -3996,7 +5121,13 @@ pub async fn openmetrics_federate(
     headers: HeaderMap,
 ) -> Result<String, (StatusCode, String)> {
     let _a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &_a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:openmetrics:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &_a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:openmetrics:read"),
+    )
+    .await?;
     let _ = state;
     crate::handlers::metrics(State(state), headers).await
 }
@@ -4042,13 +5173,22 @@ pub async fn list_payment_statuses(
     headers: HeaderMap,
 ) -> Result<Json<Vec<StatusModelEntry>>, (StatusCode, String)> {
     let _a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &_a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payments:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &_a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payments:read"),
+    )
+    .await?;
     let _ = state;
     let statuses: [(&str, &str); 13] = [
         ("received", "Instruction received, not yet validated"),
         ("validated", "Passed validation, queued"),
         ("pending", "Pending scheme/issuer response"),
-        ("awaiting_input", "Waiting for caller-supplied input (e.g. 3DS, SCA)"),
+        (
+            "awaiting_input",
+            "Waiting for caller-supplied input (e.g. 3DS, SCA)",
+        ),
         ("in_progress", "Processing in flight"),
         ("completed", "Terminal: succeeded"),
         ("cancelled", "Terminal: cancelled by caller"),
@@ -4057,12 +5197,20 @@ crate::policy::require(&state.policy, &_a, &headers, sentin8::shield::EvalTarget
         ("retry_needed", "Blocked: transient failure, retry eligible"),
         ("on_hold", "Blocked: held by rule/fraud/compliance"),
         ("expired", "Terminal: authorisation expiry (caad.008)"),
-        ("fee_collection", "Fee-collection leg of a fee-bearing payment"),
+        (
+            "fee_collection",
+            "Fee-collection leg of a fee-bearing payment",
+        ),
     ];
-    Ok(Json(statuses.iter().map(|(k, d)| StatusModelEntry {
-        status: k.to_string(),
-        description: d.to_string(),
-    }).collect()))
+    Ok(Json(
+        statuses
+            .iter()
+            .map(|(k, d)| StatusModelEntry {
+                status: k.to_string(),
+                description: d.to_string(),
+            })
+            .collect(),
+    ))
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -4093,7 +5241,13 @@ pub async fn process_instruction_by_id(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -4105,17 +5259,29 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
               updated_at = now()
             WHERE id = $1 AND env_id = $2 RETURNING state"#,
     )
-    .bind(id).bind(a.env_id())
+    .bind(id)
+    .bind(a.env_id())
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?
     .ok_or((StatusCode::NOT_FOUND, format!("instruction {id} not found")))?;
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Instruction, &id.to_string(), "process_requested",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
-    Ok(Json(serde_json::json!({ "id": id, "state": row.get::<String, _>("state") })))
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Instruction,
+        &id.to_string(),
+        "process_requested",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
+    Ok(Json(
+        serde_json::json!({ "id": id, "state": row.get::<String, _>("state") }),
+    ))
 }
 
 /// `POST /v1/instructions/{id}:cancel` — cancel an instruction (business
@@ -4138,7 +5304,13 @@ pub async fn cancel_instruction_by_id(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -4148,22 +5320,38 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
               AND state IN ('awaiting_input', 'received', 'retry_needed', 'repair_needed')
             RETURNING state"#,
     )
-    .bind(id).bind(a.env_id())
+    .bind(id)
+    .bind(a.env_id())
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?
-    .ok_or((StatusCode::CONFLICT, format!("instruction {id} not in a cancellable state")))?;
+    .ok_or((
+        StatusCode::CONFLICT,
+        format!("instruction {id} not in a cancellable state"),
+    ))?;
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Instruction, &id.to_string(), "cancelled",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
-    Ok(Json(serde_json::json!({ "id": id, "state": row.get::<String, _>("state") })))
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Instruction,
+        &id.to_string(),
+        "cancelled",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
+    Ok(Json(
+        serde_json::json!({ "id": id, "state": row.get::<String, _>("state") }),
+    ))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct RepairInstructionRequest {
-    #[serde(default)] pub corrected_input: Option<JsonValue>,
+    #[serde(default)]
+    pub corrected_input: Option<JsonValue>,
 }
 
 /// `POST /v1/instructions/{id}:repair` — repair an instruction that is in
@@ -4188,7 +5376,13 @@ pub async fn repair_instruction_by_id(
     Json(req): Json<RepairInstructionRequest>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -4198,17 +5392,33 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             WHERE id = $1 AND env_id = $2 AND state = 'repair_needed'
             RETURNING state"#,
     )
-    .bind(id).bind(a.env_id()).bind(req.corrected_input)
+    .bind(id)
+    .bind(a.env_id())
+    .bind(req.corrected_input)
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?
-    .ok_or((StatusCode::CONFLICT, format!("instruction {id} not in repair_needed state")))?;
+    .ok_or((
+        StatusCode::CONFLICT,
+        format!("instruction {id} not in repair_needed state"),
+    ))?;
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Instruction, &id.to_string(), "repaired",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
-    Ok(Json(serde_json::json!({ "id": id, "state": row.get::<String, _>("state") })))
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Instruction,
+        &id.to_string(),
+        "repaired",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
+    Ok(Json(
+        serde_json::json!({ "id": id, "state": row.get::<String, _>("state") }),
+    ))
 }
 
 // ── : payment-initiation app + integrations/callback tokens ─────────
@@ -4226,10 +5436,14 @@ pub struct InitiationAppResponse {
 pub struct CreateInitiationAppRequest {
     pub name: String,
     /// payment_initiation | payment_app
-    #[serde(default = "default_app_type")] pub app_type: String,
-    #[serde(default)] pub config: JsonValue,
+    #[serde(default = "default_app_type")]
+    pub app_type: String,
+    #[serde(default)]
+    pub config: JsonValue,
 }
-fn default_app_type() -> String { "payment_initiation".into() }
+fn default_app_type() -> String {
+    "payment_initiation".into()
+}
 
 /// `POST /v1/integrations/payment-initiation-apps` — register a
 /// payment-initiation app.
@@ -4250,7 +5464,13 @@ pub async fn create_initiation_app(
     Json(req): Json<CreateInitiationAppRequest>,
 ) -> Result<Json<InitiationAppResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:integrations:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:integrations:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -4258,16 +5478,28 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
            VALUES ($1, $2, $3, 'active', $4)
            RETURNING id, name, app_type, status, created_at"#,
     )
-    .bind(a.env_id()).bind(&req.name).bind(&req.app_type).bind(&req.config)
+    .bind(a.env_id())
+    .bind(&req.name)
+    .bind(&req.app_type)
+    .bind(&req.config)
     .fetch_one(&mut *conn)
     .await
     .map_err(err_db)?;
     let app_id: Uuid = row.get("id");
     let _ = event_streaming::emit_event_tx(
-        &mut *conn, a.env_id(), ResourceType::Integration, &app_id.to_string(), "created",
-        None, None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        &mut *conn,
+        a.env_id(),
+        ResourceType::Integration,
+        &app_id.to_string(),
+        "created",
+        None,
+        None,
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(InitiationAppResponse {
         id: app_id,
         name: row.get("name"),
@@ -4294,7 +5526,13 @@ pub async fn list_initiation_apps(
     headers: HeaderMap,
 ) -> Result<Json<Vec<InitiationAppResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:integrations:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:integrations:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -4305,13 +5543,17 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
-    Ok(Json(rows.iter().map(|r| InitiationAppResponse {
-        id: r.get("id"),
-        name: r.get("name"),
-        app_type: r.get("app_type"),
-        status: r.get("status"),
-        created_at: r.get("created_at"),
-    }).collect()))
+    Ok(Json(
+        rows.iter()
+            .map(|r| InitiationAppResponse {
+                id: r.get("id"),
+                name: r.get("name"),
+                app_type: r.get("app_type"),
+                status: r.get("status"),
+                created_at: r.get("created_at"),
+            })
+            .collect(),
+    ))
 }
 
 // ── : cardholders/:cardholderId/cards + tokens/:tokenLifecycle ──────
@@ -4334,7 +5576,13 @@ pub async fn list_cardholder_cards(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<JsonValue>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -4342,7 +5590,8 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
              FROM cards WHERE env_id = $1 AND cardholder_id = $2
             ORDER BY created_at DESC"#,
     )
-    .bind(a.env_id()).bind(id)
+    .bind(a.env_id())
+    .bind(id)
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -4376,14 +5625,21 @@ pub async fn get_card_token(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
         r#"SELECT id, card_id, status, created_at
              FROM card_tokens WHERE id = $1 AND env_id = $2"#,
     )
-    .bind(id).bind(a.env_id())
+    .bind(id)
+    .bind(a.env_id())
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?
@@ -4415,7 +5671,13 @@ pub async fn list_config_packs(
     headers: HeaderMap,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rules: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM rules WHERE env_id = $1")
@@ -4461,7 +5723,13 @@ pub async fn list_on_us_routing(
     headers: HeaderMap,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:instructions:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:instructions:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -4484,7 +5752,6 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     })))
 }
 
-
 // ── Missing handler fixes (server.rs route wiring) ───────────────────────
 
 /// `DELETE /v1/payees/{id}` — remove a payee (soft-delete via status).
@@ -4506,13 +5773,20 @@ pub async fn delete_payee(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:payments:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:payments:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let updated = sqlx::query(
         "UPDATE payees SET status = 'removed', updated_at = now() WHERE id = $1 AND env_id = $2",
     )
-    .bind(id).bind(a.env_id())
+    .bind(id)
+    .bind(a.env_id())
     .execute(&mut *conn)
     .await
     .map_err(err_db)?
@@ -4528,8 +5802,12 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         "payee_removed",
         None,
         None,
-        event_streaming::PublisherIdentity::from_parts(bearer_token_of(&headers), Some(a.subject().to_string())),
-    ).await;
+        event_streaming::PublisherIdentity::from_parts(
+            bearer_token_of(&headers),
+            Some(a.subject().to_string()),
+        ),
+    )
+    .await;
     Ok(Json(serde_json::json!({ "id": id, "status": "removed" })))
 }
 
@@ -4553,8 +5831,23 @@ pub async fn retry_rule_version(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:write")).await?;
-    retry_version(&state, &headers, a.subject().as_str(), a.env_id(), "rule_versions", id, ResourceType::RuleVersion).await
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:write"),
+    )
+    .await?;
+    retry_version(
+        &state,
+        &headers,
+        a.subject().as_str(),
+        a.env_id(),
+        "rule_versions",
+        id,
+        ResourceType::RuleVersion,
+    )
+    .await
 }
 
 /// `POST /v1/rule-set-versions/{id}/retry` — retry a failed rule set
@@ -4577,8 +5870,23 @@ pub async fn retry_rule_set_version(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JsonValue>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:rules:write")).await?;
-    retry_version(&state, &headers, a.subject().as_str(), a.env_id(), "rule_set_versions", id, ResourceType::RuleSetVersion).await
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:rules:write"),
+    )
+    .await?;
+    retry_version(
+        &state,
+        &headers,
+        a.subject().as_str(),
+        a.env_id(),
+        "rule_set_versions",
+        id,
+        ResourceType::RuleSetVersion,
+    )
+    .await
 }
 
 /// `PUT /v1/parameter-values/{id}` — update (or unset via empty body) a
@@ -4678,41 +5986,98 @@ mod pay_api_tests {
     // cards/reference/decline_recommendations.md).
     #[test]
     fn decline_codes_product_value_constraints() {
-        assert_eq!(decline_response_code("PRODUCT_VALUE_CONSTRAINTS_VIOLATED", "AuthorisationInitiation"), "12");
+        assert_eq!(
+            decline_response_code(
+                "PRODUCT_VALUE_CONSTRAINTS_VIOLATED",
+                "AuthorisationInitiation"
+            ),
+            "12"
+        );
         // Payload-specific override: Inquiry=12.
-        assert_eq!(decline_response_code("PRODUCT_VALUE_CONSTRAINTS_VIOLATED", "InquiryInitiation"), "12");
+        assert_eq!(
+            decline_response_code("PRODUCT_VALUE_CONSTRAINTS_VIOLATED", "InquiryInitiation"),
+            "12"
+        );
         // CardManagement PIN Unblock=70, PIN Change=71.
-        assert_eq!(decline_response_code("PRODUCT_VALUE_CONSTRAINTS_VIOLATED", "CardManagementInitiation"), "70");
+        assert_eq!(
+            decline_response_code(
+                "PRODUCT_VALUE_CONSTRAINTS_VIOLATED",
+                "CardManagementInitiation"
+            ),
+            "70"
+        );
     }
 
     #[test]
     fn decline_codes_chip_crypto_failures() {
-        assert_eq!(decline_response_code("AC_TYPE_ABSENT", "AuthorisationInitiation"), "05");
-        assert_eq!(decline_response_code("ARQC_INVALID", "AuthorisationInitiation"), "05");
+        assert_eq!(
+            decline_response_code("AC_TYPE_ABSENT", "AuthorisationInitiation"),
+            "05"
+        );
+        assert_eq!(
+            decline_response_code("ARQC_INVALID", "AuthorisationInitiation"),
+            "05"
+        );
         // CVC failures → N7 (Unable to accept, CVC failure).
-        assert_eq!(decline_response_code("CHIP_CVC_INVALID", "AuthorisationInitiation"), "N7");
-        assert_eq!(decline_response_code("TOO_MANY_CVC2_FAILURES", "AuthorisationInitiation"), "N7");
+        assert_eq!(
+            decline_response_code("CHIP_CVC_INVALID", "AuthorisationInitiation"),
+            "N7"
+        );
+        assert_eq!(
+            decline_response_code("TOO_MANY_CVC2_FAILURES", "AuthorisationInitiation"),
+            "N7"
+        );
         // ATC misuse → 63 (Security violation).
-        assert_eq!(decline_response_code("ATC_DUPLICATE_INVALID", "AuthorisationInitiation"), "63");
+        assert_eq!(
+            decline_response_code("ATC_DUPLICATE_INVALID", "AuthorisationInitiation"),
+            "63"
+        );
         // IAV → N3; LVT/contactless limits → 62 (Restricted).
-        assert_eq!(decline_response_code("IAV_INVALID", "AuthorisationInitiation"), "N3");
-        assert_eq!(decline_response_code("LVT_COUNT_LIMIT_EXCEEDED", "AuthorisationInitiation"), "62");
+        assert_eq!(
+            decline_response_code("IAV_INVALID", "AuthorisationInitiation"),
+            "N3"
+        );
+        assert_eq!(
+            decline_response_code("LVT_COUNT_LIMIT_EXCEEDED", "AuthorisationInitiation"),
+            "62"
+        );
     }
 
     #[test]
     fn decline_codes_security_and_lifecycle() {
-        assert_eq!(decline_response_code("PIN_TRIES_LIMIT_EXCEEDED", "AuthorisationInitiation"), "38");
-        assert_eq!(decline_response_code("PIN_INVALID", "AuthorisationInitiation"), "55");
-        assert_eq!(decline_response_code("CARD_SUSPENDED", "AuthorisationInitiation"), "57");
-        assert_eq!(decline_response_code("CARD_EXPIRED", "AuthorisationInitiation"), "54");
-        assert_eq!(decline_response_code("CARD_NUMBER_INVALID", "AuthorisationInitiation"), "14");
-        assert_eq!(decline_response_code("INTERNAL_ERROR", "AuthorisationInitiation"), "96");
+        assert_eq!(
+            decline_response_code("PIN_TRIES_LIMIT_EXCEEDED", "AuthorisationInitiation"),
+            "38"
+        );
+        assert_eq!(
+            decline_response_code("PIN_INVALID", "AuthorisationInitiation"),
+            "55"
+        );
+        assert_eq!(
+            decline_response_code("CARD_SUSPENDED", "AuthorisationInitiation"),
+            "57"
+        );
+        assert_eq!(
+            decline_response_code("CARD_EXPIRED", "AuthorisationInitiation"),
+            "54"
+        );
+        assert_eq!(
+            decline_response_code("CARD_NUMBER_INVALID", "AuthorisationInitiation"),
+            "14"
+        );
+        assert_eq!(
+            decline_response_code("INTERNAL_ERROR", "AuthorisationInitiation"),
+            "96"
+        );
     }
 
     #[test]
     fn decline_codes_fallback() {
         // Unknown reason → generic 05 (Do not honor).
-        assert_eq!(decline_response_code("SOMETHING_ELSE", "AuthorisationInitiation"), "05");
+        assert_eq!(
+            decline_response_code("SOMETHING_ELSE", "AuthorisationInitiation"),
+            "05"
+        );
     }
 
     // : decline_for_instruction envelope parsing.
@@ -4764,9 +6129,18 @@ mod pay_api_tests {
     #[test]
     fn normalise_status_breadth() {
         assert_eq!(normalise_processing_status("RECEIVED"), "received");
-        assert_eq!(normalise_processing_status("awaiting_input"), "awaiting_input");
-        assert_eq!(normalise_processing_status("repair_needed"), "repair_needed");
-        assert_eq!(normalise_processing_status("FEE_COLLECTION"), "fee_collection");
+        assert_eq!(
+            normalise_processing_status("awaiting_input"),
+            "awaiting_input"
+        );
+        assert_eq!(
+            normalise_processing_status("repair_needed"),
+            "repair_needed"
+        );
+        assert_eq!(
+            normalise_processing_status("FEE_COLLECTION"),
+            "fee_collection"
+        );
         assert_eq!(normalise_processing_status("expired"), "expired");
         // Unknown → in_progress (safe default).
         assert_eq!(normalise_processing_status("mystery"), "in_progress");
@@ -4777,43 +6151,98 @@ mod pay_api_tests {
     #[test]
     fn decline_codes_table_breadth() {
         let reasons = [
-            "PRODUCT_VALUE_CONSTRAINTS_VIOLATED", "AC_TYPE_ABSENT", "AC_TYPE_INVALID",
-            "ARQC_ABSENT", "ARQC_INVALID", "ATC_OUTSIDE_ALLOWED_RANGE_LOW",
-            "ATC_OUTSIDE_ALLOWED_RANGE_HIGH", "ATC_DUPLICATE_INVALID",
-            "CHIP_CVC_ABSENT", "CHIP_CVC_INVALID", "CVC1_ABSENT", "CVC1_INVALID",
-            "CVC2_ABSENT", "CVC2_INVALID", "TOO_MANY_CVC2_FAILURES",
-            "CARD_SUSPENDED", "CARD_NOT_ACTIVE", "IAV_INVALID", "IAV_ABSENT",
-            "LVT_COUNT_LIMIT_EXCEEDED", "LVT_ACCUMULATOR_LIMIT_EXCEEDED",
-            "CONTACTLESS_AMOUNT_LIMIT_EXCEEDED", "MERCHANT_TYPE_NOT_ALLOWED",
-            "EXPIRATION_DATE_INVALID", "EXPIRATION_DATE_ABSENT", "CARD_EXPIRED",
-            "ADDRESS_INVALID", "CARD_NUMBER_INVALID", "PIN_TRIES_LIMIT_EXCEEDED",
-            "PIN_INVALID", "PIN_ABSENT", "NEW_PIN_INVALID", "NEW_PIN_ABSENT",
-            "OBS_MDES_PAN_MAPPING_FAILURE", "OBS_MDES_AC_SE_PRE_VALIDATION_FAILURE",
-            "OBS_MDES_AC_MCBP_PRE_VALIDATION_FAILURE", "CARDHOLDER_VERIFICATION_FAILURE",
-            "CVM_RESULT_RULE_UNRECOGNISED", "PIN_CHANGE_ALREADY_IN_PROGRESS",
-            "RECURRING_PAYMENT_INITIAL_AUTH_NOT_FOUND", "RECURRING_PAYMENT_INITIAL_AUTH_REJECTED",
-            "PARTIAL_GRADE_ACQUIRER_NOT_SUPPORTED", "INTERNAL_ERROR",
+            "PRODUCT_VALUE_CONSTRAINTS_VIOLATED",
+            "AC_TYPE_ABSENT",
+            "AC_TYPE_INVALID",
+            "ARQC_ABSENT",
+            "ARQC_INVALID",
+            "ATC_OUTSIDE_ALLOWED_RANGE_LOW",
+            "ATC_OUTSIDE_ALLOWED_RANGE_HIGH",
+            "ATC_DUPLICATE_INVALID",
+            "CHIP_CVC_ABSENT",
+            "CHIP_CVC_INVALID",
+            "CVC1_ABSENT",
+            "CVC1_INVALID",
+            "CVC2_ABSENT",
+            "CVC2_INVALID",
+            "TOO_MANY_CVC2_FAILURES",
+            "CARD_SUSPENDED",
+            "CARD_NOT_ACTIVE",
+            "IAV_INVALID",
+            "IAV_ABSENT",
+            "LVT_COUNT_LIMIT_EXCEEDED",
+            "LVT_ACCUMULATOR_LIMIT_EXCEEDED",
+            "CONTACTLESS_AMOUNT_LIMIT_EXCEEDED",
+            "MERCHANT_TYPE_NOT_ALLOWED",
+            "EXPIRATION_DATE_INVALID",
+            "EXPIRATION_DATE_ABSENT",
+            "CARD_EXPIRED",
+            "ADDRESS_INVALID",
+            "CARD_NUMBER_INVALID",
+            "PIN_TRIES_LIMIT_EXCEEDED",
+            "PIN_INVALID",
+            "PIN_ABSENT",
+            "NEW_PIN_INVALID",
+            "NEW_PIN_ABSENT",
+            "OBS_MDES_PAN_MAPPING_FAILURE",
+            "OBS_MDES_AC_SE_PRE_VALIDATION_FAILURE",
+            "OBS_MDES_AC_MCBP_PRE_VALIDATION_FAILURE",
+            "CARDHOLDER_VERIFICATION_FAILURE",
+            "CVM_RESULT_RULE_UNRECOGNISED",
+            "PIN_CHANGE_ALREADY_IN_PROGRESS",
+            "RECURRING_PAYMENT_INITIAL_AUTH_NOT_FOUND",
+            "RECURRING_PAYMENT_INITIAL_AUTH_REJECTED",
+            "PARTIAL_GRADE_ACQUIRER_NOT_SUPPORTED",
+            "INTERNAL_ERROR",
         ];
         for r in reasons {
             let code = decline_response_code(r, "AuthorisationInitiation");
             assert!(!code.is_empty(), "reason {r} mapped to empty code");
             // ISO8583 numeric codes are 2 digits; scheme alpha codes start with a letter.
-            assert!(code.len() == 2 || code.starts_with('N'), "reason {r} → unexpected code '{code}'");
+            assert!(
+                code.len() == 2 || code.starts_with('N'),
+                "reason {r} → unexpected code '{code}'"
+            );
         }
         // Groups that must be internally consistent.
-        for r in ["AC_TYPE_ABSENT", "ARQC_INVALID", "CARDHOLDER_VERIFICATION_FAILURE"] {
-            assert_eq!(decline_response_code(r, "AuthorisationInitiation"), "05", "{r} must be 05");
+        for r in [
+            "AC_TYPE_ABSENT",
+            "ARQC_INVALID",
+            "CARDHOLDER_VERIFICATION_FAILURE",
+        ] {
+            assert_eq!(
+                decline_response_code(r, "AuthorisationInitiation"),
+                "05",
+                "{r} must be 05"
+            );
         }
         for r in ["CVC2_INVALID", "TOO_MANY_CVC2_FAILURES"] {
-            assert_eq!(decline_response_code(r, "AuthorisationInitiation"), "N7", "{r} must be N7");
+            assert_eq!(
+                decline_response_code(r, "AuthorisationInitiation"),
+                "N7",
+                "{r} must be N7"
+            );
         }
-        for r in ["ATC_OUTSIDE_ALLOWED_RANGE_LOW", "ATC_OUTSIDE_ALLOWED_RANGE_HIGH"] {
-            assert_eq!(decline_response_code(r, "AuthorisationInitiation"), "63", "{r} must be 63");
+        for r in [
+            "ATC_OUTSIDE_ALLOWED_RANGE_LOW",
+            "ATC_OUTSIDE_ALLOWED_RANGE_HIGH",
+        ] {
+            assert_eq!(
+                decline_response_code(r, "AuthorisationInitiation"),
+                "63",
+                "{r} must be 63"
+            );
         }
         // CardManagement override applies to the whole CardManagement payload type.
-        assert_eq!(decline_response_code("PIN_CHANGE_ALREADY_IN_PROGRESS", "CardManagementInitiation"), "70");
+        assert_eq!(
+            decline_response_code("PIN_CHANGE_ALREADY_IN_PROGRESS", "CardManagementInitiation"),
+            "70"
+        );
         // Case-sensitive table: unknown casing falls back to generic 05.
-        assert_eq!(decline_response_code("pin_invalid", "AuthorisationInitiation"), "05");
+        assert_eq!(
+            decline_response_code("pin_invalid", "AuthorisationInitiation"),
+            "05"
+        );
     }
 
     /// Sandbox simulator envelopes: deterministic structure, outcome passthrough,
@@ -4833,8 +6262,14 @@ mod pay_api_tests {
         assert_eq!(card["iso8583_response_code"], "05"); // declined → 05
         assert!(card["auth_code"].is_string());
 
-        let approved_req = SandboxSimulateRequest { outcome: Some("approved".into()), ..req.clone() };
-        assert_eq!(sandbox_card_result(&approved_req)["iso8583_response_code"], "00");
+        let approved_req = SandboxSimulateRequest {
+            outcome: Some("approved".into()),
+            ..req.clone()
+        };
+        assert_eq!(
+            sandbox_card_result(&approved_req)["iso8583_response_code"],
+            "00"
+        );
 
         let ct = sandbox_credit_transfer_result(&req);
         assert_eq!(ct["simulation"], "credit_transfer");
@@ -4846,17 +6281,27 @@ mod pay_api_tests {
 
         let fw = sandbox_fedwire_result(&req);
         assert_eq!(fw["simulation"], "fedwire");
-        assert!(fw["note"].as_str().unwrap().contains("Sandbox"), "every envelope carries the sandbox-only note");
+        assert!(
+            fw["note"].as_str().unwrap().contains("Sandbox"),
+            "every envelope carries the sandbox-only note"
+        );
     }
 
     /// Sandbox default outcome per family (no outcome supplied).
     #[test]
     fn sandbox_default_outcomes() {
         let bare = SandboxSimulateRequest {
-            card_id: None, instruction_id: None, amount: None, currency: None, outcome: None,
+            card_id: None,
+            instruction_id: None,
+            amount: None,
+            currency: None,
+            outcome: None,
         };
         assert_eq!(sandbox_card_result(&bare)["outcome"], "approved");
-        assert_eq!(sandbox_credit_transfer_result(&bare)["outcome"], "completed");
+        assert_eq!(
+            sandbox_credit_transfer_result(&bare)["outcome"],
+            "completed"
+        );
         assert_eq!(sandbox_swift_result(&bare)["outcome"], "acknowledged");
         assert_eq!(sandbox_fedwire_result(&bare)["outcome"], "completed");
     }
@@ -4873,19 +6318,32 @@ mod pay_api_tests {
     /// range-comparable (the registry lists them for op filtering).
     #[test]
     fn search_registry_resources() {
-        for resource in ["payments", "payees", "payment-instruments", "membership-directory-records", "instructions"] {
-            let fields = search_registry(resource).unwrap_or_else(|| panic!("{resource} missing from registry"));
+        for resource in [
+            "payments",
+            "payees",
+            "payment-instruments",
+            "membership-directory-records",
+            "instructions",
+        ] {
+            let fields = search_registry(resource)
+                .unwrap_or_else(|| panic!("{resource} missing from registry"));
             assert!(!fields.is_empty(), "{resource} has no searchable fields");
         }
         // Resource-keyed entities expose id; directory records are entry rows.
         assert!(search_registry("payments").unwrap().contains(&"id"));
-        assert!(search_registry("membership-directory-records").unwrap().contains(&"bic"));
+        assert!(search_registry("membership-directory-records")
+            .unwrap()
+            .contains(&"bic"));
         // Registered fields are unique.
         let fields = search_registry("payments").unwrap();
         let mut sorted = fields.to_vec();
         sorted.sort_unstable();
         sorted.dedup();
-        assert_eq!(sorted.len(), fields.len(), "duplicate fields in payments registry");
+        assert_eq!(
+            sorted.len(),
+            fields.len(),
+            "duplicate fields in payments registry"
+        );
     }
 
     /// validate_search passes empty bodies (no filters = no constraints).

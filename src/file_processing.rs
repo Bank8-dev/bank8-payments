@@ -132,7 +132,9 @@ pub async fn process_inbound_file(
             &config.sentin8_flow_url,
             sentin8::middleware::http_client::Sentin8HttpClient::from_client(http.clone()),
         ),
-        None => sentin8_flow_sdk::client::FlowClient::new_dev_plain(config.sentin8_flow_url.clone()),
+        None => {
+            sentin8_flow_sdk::client::FlowClient::new_dev_plain(config.sentin8_flow_url.clone())
+        }
     };
     let workflow_req = sentin8_flow_sdk::client::CreateWorkflowRequest {
         domain: "payments".into(),
@@ -151,12 +153,13 @@ pub async fn process_inbound_file(
         },
         input: serde_json::json!({ "file_id": file_id, "batch_id": batch_id }),
         callback_config: sentin8_flow_sdk::client::CallbackConfig {
-            base_url: std::env::var("BANK8_PAYMENTS_BASE_URL")
-                .unwrap_or_else(|_| format!(
+            base_url: std::env::var("BANK8_PAYMENTS_BASE_URL").unwrap_or_else(|_| {
+                format!(
                     "http://{}:{}",
                     std::env::var("SENTIN8_CAPTAIN_LOCAL_IP").unwrap_or_else(|_| "0.0.0.0".into()),
                     std::env::var("BANK8_PAYMENTS_PORT").unwrap_or_else(|_| "0".into()),
-                )),
+                )
+            }),
             auth_token: config.sentin8_func_token.clone(),
             internal_path: "/v1/internal/files/debatch".into(),
             host_functions: std::collections::HashMap::new(),
@@ -221,9 +224,7 @@ pub async fn process_outbound_file(
 /// The format mirrors what Buck would return: a signed URL with an expiry
 /// parameter. No real signature is computed here.
 pub fn generate_presigned_url(sentin8_buck_path: &str, expiry_seconds: u64) -> String {
-    format!(
-        "https://buck.local/{sentin8_buck_path}?expires_in={expiry_seconds}&sig=placeholder"
-    )
+    format!("https://buck.local/{sentin8_buck_path}?expires_in={expiry_seconds}&sig=placeholder")
 }
 
 // ── Flow proxy-back: `POST /v1/internal/files/debatch` (design §10) ──────
@@ -348,7 +349,12 @@ pub async fn debatch_step(
         .bind(format!("batch-{file_id}-chunk-{chunk_index}"))
         .execute(&mut *tx)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("create chunk batch: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("create chunk batch: {e}"),
+            )
+        })?;
         let _ = chunk_key;
     }
 
@@ -357,8 +363,18 @@ pub async fn debatch_step(
         .bind(file_id)
         .execute(&mut *tx)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("mark processed: {e}")))?;
-    tx.commit().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("commit debatch: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("mark processed: {e}"),
+            )
+        })?;
+    tx.commit().await.map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("commit debatch: {e}"),
+        )
+    })?;
 
     Ok(axum::Json(DebatchResponse {
         status: "completed".into(),

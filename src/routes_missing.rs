@@ -46,8 +46,14 @@ pub async fn activate_card(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     crate::cards::activate_card(&state.pool, id)
@@ -63,8 +69,14 @@ pub async fn freeze_card(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     crate::cards::freeze_card(&state.pool, id)
@@ -80,8 +92,14 @@ pub async fn unfreeze_card(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     crate::cards::unfreeze_card(&state.pool, id)
@@ -104,8 +122,14 @@ pub async fn replace_card(
     Json(req): Json<ReplaceCardRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let new_id = crate::cards::replace_card(&state.pool, id, &req.new_pan)
@@ -142,8 +166,14 @@ pub async fn list_card_tokens(
     Query(q): Query<ListCardTokensQuery>,
 ) -> Result<Json<Vec<crate::cards::CardTokenResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let tokens = crate::cards::list_card_tokens(&state.pool, q.card_id)
@@ -176,8 +206,14 @@ pub async fn get_3ds_records(
     Query(q): Query<Get3dsQuery>,
 ) -> Result<Json<Vec<ThreeDsRecordResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:cards:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:cards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -216,8 +252,14 @@ pub async fn submit_file(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     // Debatch is a per-file Flow workflow (design §10): the file
@@ -242,7 +284,9 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         ),
     )
     .await;
-    Ok(Json(serde_json::json!({ "id": id, "status": "processed", "batches": batch_ids })))
+    Ok(Json(
+        serde_json::json!({ "id": id, "status": "processed", "batches": batch_ids }),
+    ))
 }
 
 // ── Instruction batches (§5.5) ──────────────────────────────────────────
@@ -263,8 +307,14 @@ pub async fn list_instruction_batches(
     headers: HeaderMap,
 ) -> Result<Json<Vec<InstructionBatchResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:files:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:files:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let rows = sqlx::query(
@@ -298,7 +348,13 @@ pub async fn get_logic(
     Path(id): Path<Uuid>,
 ) -> Result<Json<crate::handlers::LogicResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:logics:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:logics:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let row = sqlx::query(
@@ -357,18 +413,24 @@ pub async fn list_tasks(
     Query(q): Query<ListTasksQuery>,
 ) -> Result<Json<Vec<TaskResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Tasks)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:tasks:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Tasks)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:tasks:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!(
         "SELECT {TASK_COLUMNS} FROM tasks WHERE ($1::text IS NULL OR status = $1) ORDER BY created_at DESC LIMIT 100"
     );
     let rows = sqlx::query(&sql)
-    .bind(q.status.as_deref())
-    .fetch_all(&mut *conn)
-    .await
-    .map_err(err_db)?;
+        .bind(q.status.as_deref())
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_task).collect()))
 }
 
@@ -379,16 +441,22 @@ pub async fn get_task(
     Path(id): Path<Uuid>,
 ) -> Result<Json<TaskResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Tasks)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:tasks:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Tasks)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:tasks:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     let sql = format!("SELECT {TASK_COLUMNS} FROM tasks WHERE id = $1");
     let row = sqlx::query(&sql)
-    .bind(id)
-    .fetch_one(&mut *conn)
-    .await
-    .map_err(err_db)?;
+        .bind(id)
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(row_to_task(&row)))
 }
 
@@ -405,8 +473,14 @@ pub async fn claim_task(
     Json(req): Json<ClaimTaskRequest>,
 ) -> Result<Json<TaskResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Tasks)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:tasks:write")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Tasks)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:tasks:write"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     crate::manual_decisions::claim_task(&state.pool, id, &req.assignee_id)
@@ -414,10 +488,10 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         .map_err(|e| (StatusCode::CONFLICT, e))?;
     let sql = format!("SELECT {TASK_COLUMNS} FROM tasks WHERE id = $1");
     let row = sqlx::query(&sql)
-    .bind(id)
-    .fetch_one(&mut *conn)
-    .await
-    .map_err(err_db)?;
+        .bind(id)
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(row_to_task(&row)))
 }
 
@@ -434,8 +508,14 @@ pub async fn approve_task(
     Json(req): Json<ReviewTaskRequest>,
 ) -> Result<Json<TaskResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Tasks)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:tasks:approve")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Tasks)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:tasks:approve"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     crate::manual_decisions::approve_task(&state.pool, id, &req.reviewer_id)
@@ -443,10 +523,10 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         .map_err(|e| (StatusCode::CONFLICT, e))?;
     let sql = format!("SELECT {TASK_COLUMNS} FROM tasks WHERE id = $1");
     let row = sqlx::query(&sql)
-    .bind(id)
-    .fetch_one(&mut *conn)
-    .await
-    .map_err(err_db)?;
+        .bind(id)
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(row_to_task(&row)))
 }
 
@@ -458,8 +538,14 @@ pub async fn reject_task(
     Json(req): Json<ReviewTaskRequest>,
 ) -> Result<Json<TaskResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Tasks)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:tasks:approve")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Tasks)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:tasks:approve"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
     crate::manual_decisions::reject_task(&state.pool, id, &req.reviewer_id)
@@ -467,10 +553,10 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
         .map_err(|e| (StatusCode::CONFLICT, e))?;
     let sql = format!("SELECT {TASK_COLUMNS} FROM tasks WHERE id = $1");
     let row = sqlx::query(&sql)
-    .bind(id)
-    .fetch_one(&mut *conn)
-    .await
-    .map_err(err_db)?;
+        .bind(id)
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(err_db)?;
     Ok(Json(row_to_task(&row)))
 }
 
@@ -493,8 +579,12 @@ pub struct AggregationQuery {
     pub group_by: Option<String>,
 }
 
-fn default_resource() -> String { "instructions".into() }
-fn default_aggregation() -> String { "count".into() }
+fn default_resource() -> String {
+    "instructions".into()
+}
+fn default_aggregation() -> String {
+    "count".into()
+}
 
 pub async fn query_aggregations(
     State(state): State<AppState>,
@@ -502,8 +592,14 @@ pub async fn query_aggregations(
     Query(q): Query<AggregationQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
-crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:payments:dashboards:read")).await?;
+    auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:payments:dashboards:read"),
+    )
+    .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
@@ -512,7 +608,12 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
     let (table, field_col) = match q.resource.as_str() {
         "instructions" => ("instructions", "state"),
         "payments" => ("payments", "status"),
-        other => return Err((StatusCode::BAD_REQUEST, format!("unknown resource: {other}"))),
+        other => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("unknown resource: {other}"),
+            ))
+        }
     };
     let func = match q.aggregation.as_str() {
         "count" => "COUNT(*)::BIGINT",
@@ -521,14 +622,26 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
             if f != "amount" {
                 return Err((StatusCode::BAD_REQUEST, "field must be 'amount'".into()));
             }
-            if q.aggregation == "sum" { "COALESCE(SUM(amount), 0)::TEXT" } else { "COALESCE(AVG(amount), 0)::TEXT" }
+            if q.aggregation == "sum" {
+                "COALESCE(SUM(amount), 0)::TEXT"
+            } else {
+                "COALESCE(AVG(amount), 0)::TEXT"
+            }
         }
-        other => return Err((StatusCode::BAD_REQUEST, format!("unknown aggregation: {other}"))),
+        other => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("unknown aggregation: {other}"),
+            ))
+        }
     };
 
     let sql = if let Some(group_by) = &q.group_by {
         if group_by != field_col && !(q.resource == "payments" && group_by == "payment_type") {
-            return Err((StatusCode::BAD_REQUEST, format!("cannot group by {group_by}")));
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("cannot group by {group_by}"),
+            ));
         }
         format!("SELECT {group_by} AS bucket, {func} AS value FROM {table} GROUP BY {group_by} ORDER BY bucket LIMIT 100")
     } else {
@@ -549,12 +662,16 @@ crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget:
                 })
             })
             .collect();
-        Ok(Json(serde_json::json!({ "aggregation": q.aggregation, "buckets": buckets })))
+        Ok(Json(
+            serde_json::json!({ "aggregation": q.aggregation, "buckets": buckets }),
+        ))
     } else {
         let value: String = rows
             .first()
             .map(|r| r.get("value"))
             .unwrap_or_else(|| "0".into());
-        Ok(Json(serde_json::json!({ "aggregation": q.aggregation, "value": value })))
+        Ok(Json(
+            serde_json::json!({ "aggregation": q.aggregation, "value": value }),
+        ))
     }
 }

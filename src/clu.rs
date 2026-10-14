@@ -45,7 +45,7 @@ pub const SUPPORTED_RESOURCES: &[&str] = &[
 
 /// Returns true if `resource_type` is a supported CLU resource type.
 pub fn is_supported_resource(resource_type: &str) -> bool {
-    SUPPORTED_RESOURCES.iter().any(|r| *r == resource_type)
+    SUPPORTED_RESOURCES.contains(&resource_type)
 }
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -97,7 +97,10 @@ pub fn parse_config_pack(
         resources.push(res);
     }
 
-    Ok(CluConfigPack { manifest, resources })
+    Ok(CluConfigPack {
+        manifest,
+        resources,
+    })
 }
 
 // ── Validation ─────────────────────────────────────────────────────────
@@ -292,11 +295,7 @@ mod tests {
 
     #[test]
     fn parse_config_pack_bad_resource() {
-        let err = parse_config_pack(
-            sample_manifest_yaml(),
-            &["bad: yaml: :".into()],
-        )
-        .unwrap_err();
+        let err = parse_config_pack(sample_manifest_yaml(), &["bad: yaml: :".into()]).unwrap_err();
         assert!(err.contains("resource file"));
     }
 

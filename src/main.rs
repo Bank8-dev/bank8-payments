@@ -20,6 +20,8 @@
 static GLOBAL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[allow(dead_code)]
+mod admin_data;
+#[allow(dead_code)]
 mod app_auth;
 #[allow(dead_code)]
 mod auth;
@@ -41,13 +43,11 @@ mod cores;
 mod dashboards;
 #[allow(dead_code)]
 mod event_streaming;
-mod worker;
 #[allow(dead_code)]
 mod file_processing;
 #[allow(dead_code)]
 mod handlers;
-#[allow(dead_code)]
-mod admin_data;
+mod worker;
 
 #[allow(dead_code)]
 mod admin_ui;
@@ -63,32 +63,32 @@ mod interruption;
 mod iso8583;
 #[allow(dead_code)]
 mod load_test;
-mod openapi;
-mod registration;
-pub mod policy;
-#[allow(dead_code)]
-mod manual_decisions;
 #[allow(dead_code)]
 mod mandates;
+#[allow(dead_code)]
+mod manual_decisions;
 #[allow(dead_code)]
 mod mdes;
 #[allow(dead_code)]
 mod membership_dirs;
+mod openapi;
 #[allow(dead_code)]
 mod parameters;
+pub mod policy;
 #[allow(dead_code)]
 mod postings;
+mod registration;
 
-#[allow(dead_code)]
-mod payment_context;
 #[allow(dead_code)]
 mod pay_api;
 #[allow(dead_code)]
+mod payment_context;
+#[allow(dead_code)]
 mod payment_matching;
 #[allow(dead_code)]
-mod routing;
-#[allow(dead_code)]
 mod routes_missing;
+#[allow(dead_code)]
+mod routing;
 #[allow(dead_code)]
 mod rule_execution;
 #[allow(dead_code)]

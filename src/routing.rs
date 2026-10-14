@@ -8,8 +8,8 @@
 
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
-use uuid::Uuid;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -144,12 +144,17 @@ pub fn extract_routing_info(input: &serde_json::Value) -> RoutingInfo {
 
     // Also check nested routing_information object.
     if bank_identifier.is_none() || instrument_identifier.is_none() {
-        if let Some(ri) = input.get("routing_information").or_else(|| input.get("routingInformation")) {
-            let bi = ri.get("bank_identifier")
+        if let Some(ri) = input
+            .get("routing_information")
+            .or_else(|| input.get("routingInformation"))
+        {
+            let bi = ri
+                .get("bank_identifier")
                 .or_else(|| ri.get("bankIdentifier"))
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
-            let ii = ri.get("instrument_identifier")
+            let ii = ri
+                .get("instrument_identifier")
                 .or_else(|| ri.get("instrumentIdentifier"))
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
@@ -179,7 +184,10 @@ mod tests {
         });
         let ri = extract_routing_info(&input);
         assert_eq!(ri.bank_identifier.as_deref(), Some("BANKBIC"));
-        assert_eq!(ri.instrument_identifier.as_deref(), Some("DE89370400440532013000"));
+        assert_eq!(
+            ri.instrument_identifier.as_deref(),
+            Some("DE89370400440532013000")
+        );
     }
 
     #[test]
@@ -190,7 +198,10 @@ mod tests {
         });
         let ri = extract_routing_info(&input);
         assert_eq!(ri.bank_identifier.as_deref(), Some("BANKBIC"));
-        assert_eq!(ri.instrument_identifier.as_deref(), Some("DE89370400440532013000"));
+        assert_eq!(
+            ri.instrument_identifier.as_deref(),
+            Some("DE89370400440532013000")
+        );
     }
 
     #[test]
@@ -201,7 +212,10 @@ mod tests {
         });
         let ri = extract_routing_info(&input);
         assert_eq!(ri.bank_identifier.as_deref(), Some("BANKBIC"));
-        assert_eq!(ri.instrument_identifier.as_deref(), Some("DE89370400440532013000"));
+        assert_eq!(
+            ri.instrument_identifier.as_deref(),
+            Some("DE89370400440532013000")
+        );
     }
 
     #[test]
@@ -214,7 +228,10 @@ mod tests {
         });
         let ri = extract_routing_info(&input);
         assert_eq!(ri.bank_identifier.as_deref(), Some("BANKBIC"));
-        assert_eq!(ri.instrument_identifier.as_deref(), Some("DE89370400440532013000"));
+        assert_eq!(
+            ri.instrument_identifier.as_deref(),
+            Some("DE89370400440532013000")
+        );
     }
 
     #[test]
@@ -225,7 +242,10 @@ mod tests {
         });
         let ri = extract_routing_info(&input);
         assert_eq!(ri.bank_identifier.as_deref(), Some("BANKBIC"));
-        assert_eq!(ri.instrument_identifier.as_deref(), Some("4111111111111111"));
+        assert_eq!(
+            ri.instrument_identifier.as_deref(),
+            Some("4111111111111111")
+        );
     }
 
     #[test]

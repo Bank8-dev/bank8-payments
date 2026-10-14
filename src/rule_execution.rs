@@ -75,14 +75,9 @@ mod tests {
     /// contacting Func Server.
     #[tokio::test]
     async fn test_execute_rule_sentin8_func_rejects_unknown_function_name() {
-        let err = execute_rule_func(
-            &stub(),
-            "module-1",
-            "bogus_function",
-            json!({}),
-        )
-        .await
-        .expect_err("should reject unknown function name");
+        let err = execute_rule_func(&stub(), "module-1", "bogus_function", json!({}))
+            .await
+            .expect_err("should reject unknown function name");
         assert!(
             err.contains("unsupported rule function name"),
             "unexpected error: {err}"
@@ -95,14 +90,9 @@ mod tests {
         // The function name validation happens before any HTTP call, so
         // passing `rule` should pass the validation step and then fail at the
         // (non-existent) HTTP layer rather than the validation layer.
-        let err = execute_rule_func(
-            &stub(),
-            "module-1",
-            "rule",
-            json!({}),
-        )
-        .await
-        .expect_err("should fail at HTTP layer, not validation");
+        let err = execute_rule_func(&stub(), "module-1", "rule", json!({}))
+            .await
+            .expect_err("should fail at HTTP layer, not validation");
         // We expect the error to mention the HTTP/Func call, not the
         // function-name validation.
         assert!(
@@ -114,14 +104,9 @@ mod tests {
     /// Verify the function accepts `account_link_selection`.
     #[tokio::test]
     async fn test_execute_rule_sentin8_func_accepts_account_link_selection_function_name() {
-        let err = execute_rule_func(
-            &stub(),
-            "module-1",
-            "account_link_selection",
-            json!({}),
-        )
-        .await
-        .expect_err("should fail at HTTP layer, not validation");
+        let err = execute_rule_func(&stub(), "module-1", "account_link_selection", json!({}))
+            .await
+            .expect_err("should fail at HTTP layer, not validation");
         assert!(
             !err.contains("unsupported rule function name"),
             "expected non-validation error, got: {err}"

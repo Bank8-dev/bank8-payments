@@ -80,9 +80,7 @@ pub struct InstructionInput {
 /// The idempotency key is derived using UUIDv5 over the raw message bytes
 /// (via [`crate::idempotency::derive_from_payload`]) so that re-delivered
 /// indications collapse to the same instruction.
-pub fn map_receive_indication_to_instruction(
-    indication: ReceiveIndication,
-) -> InstructionInput {
+pub fn map_receive_indication_to_instruction(indication: ReceiveIndication) -> InstructionInput {
     // Parse the raw message as JSON; fall back to a wrapper object if it is
     // not valid JSON (e.g. a FIN message).
     let payload: Value = serde_json::from_str(&indication.raw_message)
@@ -95,17 +93,28 @@ pub fn map_receive_indication_to_instruction(
         .or_else(|| payload.get("MessageId"))
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
-        .unwrap_or_else(|| indication.headers.get("message_id").cloned().unwrap_or_default());
+        .unwrap_or_else(|| {
+            indication
+                .headers
+                .get("message_id")
+                .cloned()
+                .unwrap_or_default()
+        });
 
     let message_type = payload
         .get("message_type")
         .or_else(|| payload.get("MessageType"))
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
-        .unwrap_or_else(|| indication.headers.get("message_type").cloned().unwrap_or_default());
+        .unwrap_or_else(|| {
+            indication
+                .headers
+                .get("message_type")
+                .cloned()
+                .unwrap_or_default()
+        });
 
-    let idempotency_key =
-        crate::idempotency::derive_from_payload(&payload).to_string();
+    let idempotency_key = crate::idempotency::derive_from_payload(&payload).to_string();
 
     InstructionInput {
         message_type: message_type.clone(),

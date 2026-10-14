@@ -304,10 +304,7 @@ pub fn evaluate_abac_policy(
         .get("resource_type")
         .and_then(|v| v.as_str())
         .unwrap_or("");
-    let action = ctx
-        .get("action")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let action = ctx.get("action").and_then(|v| v.as_str()).unwrap_or("");
     if resource_type != policy.resource_type || action != policy.action {
         return Ok(false);
     }
@@ -460,8 +457,7 @@ mod tests {
     #[test]
     fn exchange_code_for_session_returns_session() {
         let cfg = sample_config();
-        let session =
-            exchange_code_for_session(&cfg, "authcode123", "verifier456").unwrap();
+        let session = exchange_code_for_session(&cfg, "authcode123", "verifier456").unwrap();
         assert!(!session.session_id.is_empty());
         assert!(!session.user_sub.is_empty());
         assert!(session.expires_at > chrono::Utc::now());
@@ -477,8 +473,7 @@ mod tests {
     #[test]
     fn renew_session_returns_new_session_id() {
         let cfg = sample_config();
-        let session =
-            exchange_code_for_session(&cfg, "authcode123", "verifier456").unwrap();
+        let session = exchange_code_for_session(&cfg, "authcode123", "verifier456").unwrap();
         let renewed = renew_session(&session).unwrap();
         assert_ne!(session.session_id, renewed.session_id);
         assert_eq!(session.user_sub, renewed.user_sub);
@@ -614,7 +609,7 @@ mod tests {
             "payment_type": "credit_transfer",
             "status": "completed"
         });
-        assert_eq!(evaluate_abac_policy(&policy, &ctx).unwrap(), true);
+        assert!(evaluate_abac_policy(&policy, &ctx).unwrap());
     }
 
     #[test]
@@ -629,7 +624,7 @@ mod tests {
             "resource_type": "payment",
             "action": "write"
         });
-        assert_eq!(evaluate_abac_policy(&policy, &ctx).unwrap(), false);
+        assert!(!evaluate_abac_policy(&policy, &ctx).unwrap());
     }
 
     #[test]
@@ -644,7 +639,7 @@ mod tests {
             "resource_type": "instruction",
             "action": "read"
         });
-        assert_eq!(evaluate_abac_policy(&policy, &ctx).unwrap(), false);
+        assert!(!evaluate_abac_policy(&policy, &ctx).unwrap());
     }
 
     #[test]
@@ -659,7 +654,7 @@ mod tests {
             "resource_type": "payment",
             "action": "write"
         });
-        assert_eq!(evaluate_abac_policy(&policy, &ctx).unwrap(), false);
+        assert!(!evaluate_abac_policy(&policy, &ctx).unwrap());
     }
 
     #[test]
@@ -677,7 +672,7 @@ mod tests {
             "action": "read",
             "payment_system": "B8"
         });
-        assert_eq!(evaluate_abac_policy(&policy, &ctx).unwrap(), true);
+        assert!(evaluate_abac_policy(&policy, &ctx).unwrap());
     }
 
     #[test]
@@ -695,7 +690,7 @@ mod tests {
             "action": "read",
             "payment_system": "SWIFT"
         });
-        assert_eq!(evaluate_abac_policy(&policy, &ctx).unwrap(), false);
+        assert!(!evaluate_abac_policy(&policy, &ctx).unwrap());
     }
 
     #[test]
@@ -710,7 +705,7 @@ mod tests {
             "resource_type": "payment",
             "action": "read"
         });
-        assert_eq!(evaluate_abac_policy(&policy, &ctx).unwrap(), false);
+        assert!(!evaluate_abac_policy(&policy, &ctx).unwrap());
     }
 
     #[test]
@@ -790,10 +785,10 @@ mod tests {
         };
         let resp = issue_sentin8_token(&req).unwrap();
         let parts: Vec<&str> = resp.access_token.split('.').collect();
-        let payload_bytes =
-            base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(parts[1]).unwrap();
-        let payload: serde_json::Value =
-            serde_json::from_slice(&payload_bytes).unwrap();
+        let payload_bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(parts[1])
+            .unwrap();
+        let payload: serde_json::Value = serde_json::from_slice(&payload_bytes).unwrap();
         assert_eq!(payload["sandbox"], true);
         assert_eq!(payload["sub"], "c");
     }

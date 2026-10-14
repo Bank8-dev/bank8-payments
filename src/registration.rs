@@ -7,29 +7,27 @@
 //! Output via `--print-registration` flag. See `sentin8/design/sentin8-service-self-registration-design.md`.
 
 use sentin8::registration::{
-    AdminScope, CrossSchemaGrant, PolicySetDecl, RelationDecl, AdminUi, AdminUiPage, ErrorCode, M2mGrant, PgRole, Registration, ScheduleDecl, SqlMigration};
+    AdminScope, AdminUi, AdminUiPage, CrossSchemaGrant, ErrorCode, M2mGrant, PgRole, PolicySetDecl,
+    Registration, RelationDecl, ScheduleDecl, SqlMigration,
+};
 use utoipa::OpenApi;
 
-const PG_ROLES: &[PgRole] = &[
-    PgRole {
-        scope: "bank8:payments:read,bank8:payments:write",
-        role: "bank8_payments_service",
-        bypass_rls: false,
-        // Grants live in the bank8 vertical database only (DBX §6.6
-        // database-per-vertical, schema-per-service).
-        database: "bank8",
-        // One declared cross-schema read: the cardholder holder binding
-        // resolves the caller's Ledger customer id — SELECT-only, no
-        // write path, no blanket schema grant (payments DESIGN.md §3).
-        cross_schema_grants: &[
-            CrossSchemaGrant {
-                schema: "ledger",
-                table: "customers",
-                privilege: "SELECT",
-            },
-        ],
-    },
-];
+const PG_ROLES: &[PgRole] = &[PgRole {
+    scope: "bank8:payments:read,bank8:payments:write",
+    role: "bank8_payments_service",
+    bypass_rls: false,
+    // Grants live in the bank8 vertical database only (DBX §6.6
+    // database-per-vertical, schema-per-service).
+    database: "bank8",
+    // One declared cross-schema read: the cardholder holder binding
+    // resolves the caller's Ledger customer id — SELECT-only, no
+    // write path, no blanket schema grant (payments DESIGN.md §3).
+    cross_schema_grants: &[CrossSchemaGrant {
+        schema: "ledger",
+        table: "customers",
+        privilege: "SELECT",
+    }],
+}];
 
 /// M2M DCR scope grants (self-registration design §3.11). One entry per
 /// workload this service registers via DCR; `vertical enroll` upserts
@@ -44,7 +42,12 @@ const PG_ROLES: &[PgRole] = &[
 const M2M_GRANTS: &[M2mGrant] = &[
     M2mGrant {
         workload: "bank8:payments",
-        scopes: &["sentin8:bus:produce", "sentin8:bus:consume", "sentin8:stat:measure", "sentin8:cron:write"],
+        scopes: &[
+            "sentin8:bus:produce",
+            "sentin8:bus:consume",
+            "sentin8:stat:measure",
+            "sentin8:cron:write",
+        ],
     },
     // Payments emits outbox-first (the shell's 8b relay holds the bus
     // client), but grant the bare short form too so the telemetry DCR
@@ -52,7 +55,12 @@ const M2M_GRANTS: &[M2mGrant] = &[
     // the gate looks up the exact client_name.
     M2mGrant {
         workload: "payments",
-        scopes: &["sentin8:bus:produce", "sentin8:bus:consume", "sentin8:stat:measure", "sentin8:cron:write"],
+        scopes: &[
+            "sentin8:bus:produce",
+            "sentin8:bus:consume",
+            "sentin8:stat:measure",
+            "sentin8:cron:write",
+        ],
     },
     // CERTFREE-8V: the payments→ledger posting proxy workload — the
     // flow step-handler posts batches through the ledger public API (the
@@ -102,82 +110,337 @@ const M2M_GRANTS: &[M2mGrant] = &[
     M2mGrant {
         workload: "bank8-payments-sys",
         scopes: &["sentin8:auth:admin:read"],
-    },];
+    },
+];
 
 const ADMIN_SCOPES: &[AdminScope] = &[
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:instructions:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:instructions:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:internal:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:payments:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:logics:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:logics:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:payment-instruments:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:payment-instruments:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:account-links:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:account-links:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:rules:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:rules:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:rules:publish" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:parameters:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:parameters:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:files:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:files:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:manual-decisions:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:manual-decisions:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:admin" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:integrations:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:integrations:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:cores:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:cores:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:cards:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:cards:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:mandates:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:mandates:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:membership-directories:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:membership-directories:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:templates:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:templates:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:calendars:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:calendars:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:dashboards:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:dashboards:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:audit:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:metrics:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:tasks:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:tasks:write" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:tasks:approve" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:cards:encrypted" },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:instructions:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:instructions:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:internal:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:payments:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:logics:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:logics:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:payment-instruments:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:payment-instruments:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:account-links:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:account-links:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:rules:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:rules:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:rules:publish",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:parameters:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:parameters:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:files:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:files:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:manual-decisions:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:manual-decisions:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:admin",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:integrations:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:integrations:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:cores:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:cores:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:cards:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:cards:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:mandates:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:mandates:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:membership-directories:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:membership-directories:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:templates:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:templates:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:calendars:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:calendars:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:dashboards:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:dashboards:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:audit:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:metrics:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:tasks:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:tasks:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:tasks:approve",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:cards:encrypted",
+    },
     // Policy-admin surface (policy design §3.6; principles §6.0b per-service scope).
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:policy:read" },
-    AdminScope::Typed { role: "bank8:payments:admin", scope: "bank8:payments:policy:write" },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:policy:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:payments:admin",
+        scope: "bank8:payments:policy:write",
+    },
 ];
 
 const ERROR_CODES: &[ErrorCode] = &[
-    ErrorCode { enum_name: "PaymentsInstructionNotFound", error_code: "payments_instruction_not_found", status_code: 404 },
-    ErrorCode { enum_name: "PaymentsInstructionFailed", error_code: "payments_instruction_failed", status_code: 500 },
+    ErrorCode {
+        enum_name: "PaymentsInstructionNotFound",
+        error_code: "payments_instruction_not_found",
+        status_code: 404,
+    },
+    ErrorCode {
+        enum_name: "PaymentsInstructionFailed",
+        error_code: "payments_instruction_failed",
+        status_code: 500,
+    },
 ];
 
 const ADMIN_UI_PAGES: &[AdminUiPage] = &[
-    AdminUiPage { route: "overview", label: "Overview", ui_endpoint: "/v1/admin/ui/overview", data_endpoint: "/v1/admin/overview", icon: "0xe1b1" },
-    AdminUiPage { route: "instructions", label: "Instructions", ui_endpoint: "/v1/admin/ui/instructions", data_endpoint: "/v1/admin/instructions", icon: "0xe896" },
-    AdminUiPage { route: "payments", label: "Payments", ui_endpoint: "/v1/admin/ui/payments", data_endpoint: "/v1/admin/payments", icon: "0xe482" },
-    AdminUiPage { route: "rules", label: "Rules", ui_endpoint: "/v1/admin/ui/rules", data_endpoint: "/v1/admin/rules", icon: "0xe547" },
-    AdminUiPage { route: "cards", label: "Cards", ui_endpoint: "/v1/admin/ui/cards", data_endpoint: "/v1/admin/cards", icon: "0xe19f" },
-    AdminUiPage { route: "files", label: "Files", ui_endpoint: "/v1/admin/ui/files", data_endpoint: "/v1/admin/files", icon: "0xe2a4" },
-    AdminUiPage { route: "integrations", label: "Integrations", ui_endpoint: "/v1/admin/ui/integrations", data_endpoint: "/v1/admin/integrations", icon: "0xe348" },
-    AdminUiPage { route: "parameters", label: "Parameters", ui_endpoint: "/v1/admin/ui/parameters", data_endpoint: "/v1/admin/parameters", icon: "0xe683" },
-    AdminUiPage { route: "cores", label: "Cores", ui_endpoint: "/v1/admin/ui/cores", data_endpoint: "/v1/admin/cores", icon: "0xe1e5" },
-    AdminUiPage { route: "mandates", label: "Mandates", ui_endpoint: "/v1/admin/ui/mandates", data_endpoint: "/v1/admin/mandates", icon: "0xe88f" },
-    AdminUiPage { route: "directories", label: "Directories", ui_endpoint: "/v1/admin/ui/directories", data_endpoint: "/v1/admin/directories", icon: "0xe2a3" },
-    AdminUiPage { route: "calendars", label: "Calendars", ui_endpoint: "/v1/admin/ui/calendars", data_endpoint: "/v1/admin/calendars", icon: "0xe122" },
-    AdminUiPage { route: "decisions", label: "Decisions", ui_endpoint: "/v1/admin/ui/decisions", data_endpoint: "/v1/admin/decisions", icon: "0xe547" },
-    AdminUiPage { route: "simulator", label: "Simulator", ui_endpoint: "/v1/admin/ui/simulator", data_endpoint: "/v1/admin/simulator", icon: "0xe4cc" },
-    AdminUiPage { route: "settings", label: "Settings", ui_endpoint: "/v1/admin/ui/settings", data_endpoint: "/v1/admin/settings", icon: "0xe57f" },
+    AdminUiPage {
+        route: "overview",
+        label: "Overview",
+        ui_endpoint: "/v1/admin/ui/overview",
+        data_endpoint: "/v1/admin/overview",
+        icon: "0xe1b1",
+    },
+    AdminUiPage {
+        route: "instructions",
+        label: "Instructions",
+        ui_endpoint: "/v1/admin/ui/instructions",
+        data_endpoint: "/v1/admin/instructions",
+        icon: "0xe896",
+    },
+    AdminUiPage {
+        route: "payments",
+        label: "Payments",
+        ui_endpoint: "/v1/admin/ui/payments",
+        data_endpoint: "/v1/admin/payments",
+        icon: "0xe482",
+    },
+    AdminUiPage {
+        route: "rules",
+        label: "Rules",
+        ui_endpoint: "/v1/admin/ui/rules",
+        data_endpoint: "/v1/admin/rules",
+        icon: "0xe547",
+    },
+    AdminUiPage {
+        route: "cards",
+        label: "Cards",
+        ui_endpoint: "/v1/admin/ui/cards",
+        data_endpoint: "/v1/admin/cards",
+        icon: "0xe19f",
+    },
+    AdminUiPage {
+        route: "files",
+        label: "Files",
+        ui_endpoint: "/v1/admin/ui/files",
+        data_endpoint: "/v1/admin/files",
+        icon: "0xe2a4",
+    },
+    AdminUiPage {
+        route: "integrations",
+        label: "Integrations",
+        ui_endpoint: "/v1/admin/ui/integrations",
+        data_endpoint: "/v1/admin/integrations",
+        icon: "0xe348",
+    },
+    AdminUiPage {
+        route: "parameters",
+        label: "Parameters",
+        ui_endpoint: "/v1/admin/ui/parameters",
+        data_endpoint: "/v1/admin/parameters",
+        icon: "0xe683",
+    },
+    AdminUiPage {
+        route: "cores",
+        label: "Cores",
+        ui_endpoint: "/v1/admin/ui/cores",
+        data_endpoint: "/v1/admin/cores",
+        icon: "0xe1e5",
+    },
+    AdminUiPage {
+        route: "mandates",
+        label: "Mandates",
+        ui_endpoint: "/v1/admin/ui/mandates",
+        data_endpoint: "/v1/admin/mandates",
+        icon: "0xe88f",
+    },
+    AdminUiPage {
+        route: "directories",
+        label: "Directories",
+        ui_endpoint: "/v1/admin/ui/directories",
+        data_endpoint: "/v1/admin/directories",
+        icon: "0xe2a3",
+    },
+    AdminUiPage {
+        route: "calendars",
+        label: "Calendars",
+        ui_endpoint: "/v1/admin/ui/calendars",
+        data_endpoint: "/v1/admin/calendars",
+        icon: "0xe122",
+    },
+    AdminUiPage {
+        route: "decisions",
+        label: "Decisions",
+        ui_endpoint: "/v1/admin/ui/decisions",
+        data_endpoint: "/v1/admin/decisions",
+        icon: "0xe547",
+    },
+    AdminUiPage {
+        route: "simulator",
+        label: "Simulator",
+        ui_endpoint: "/v1/admin/ui/simulator",
+        data_endpoint: "/v1/admin/simulator",
+        icon: "0xe4cc",
+    },
+    AdminUiPage {
+        route: "settings",
+        label: "Settings",
+        ui_endpoint: "/v1/admin/ui/settings",
+        data_endpoint: "/v1/admin/settings",
+        icon: "0xe57f",
+    },
     // Sentin8:Policy admin surface (§3.6, post pattern).
-    AdminUiPage { route: "policy-sets", label: "Policy Sets", ui_endpoint: "/v1/admin/ui/policy-sets", data_endpoint: "/v1/admin/policy-sets", icon: "0xe8b8" },
-    AdminUiPage { route: "policy-decisions", label: "Policy Decisions", ui_endpoint: "/v1/admin/ui/policy-decisions", data_endpoint: "/v1/admin/policy-decisions", icon: "0xf070" },
-    AdminUiPage { route: "relations", label: "Relations", ui_endpoint: "/v1/admin/ui/relations", data_endpoint: "/v1/admin/relations", icon: "0xe572" },
-    AdminUiPage { route: "attributes", label: "Attributes", ui_endpoint: "/v1/admin/ui/attributes", data_endpoint: "/v1/admin/attributes", icon: "0xe8d3" },
+    AdminUiPage {
+        route: "policy-sets",
+        label: "Policy Sets",
+        ui_endpoint: "/v1/admin/ui/policy-sets",
+        data_endpoint: "/v1/admin/policy-sets",
+        icon: "0xe8b8",
+    },
+    AdminUiPage {
+        route: "policy-decisions",
+        label: "Policy Decisions",
+        ui_endpoint: "/v1/admin/ui/policy-decisions",
+        data_endpoint: "/v1/admin/policy-decisions",
+        icon: "0xf070",
+    },
+    AdminUiPage {
+        route: "relations",
+        label: "Relations",
+        ui_endpoint: "/v1/admin/ui/relations",
+        data_endpoint: "/v1/admin/relations",
+        icon: "0xe572",
+    },
+    AdminUiPage {
+        route: "attributes",
+        label: "Attributes",
+        ui_endpoint: "/v1/admin/ui/attributes",
+        data_endpoint: "/v1/admin/attributes",
+        icon: "0xe8d3",
+    },
 ];
 
 /// Default declarative policy set (Sentin8:Policy design §3.2/§3.4,
@@ -209,7 +472,8 @@ const RELATIONS: &[RelationDecl] = &[];
 const SQL_1_INIT: &str = include_str!("../sql/init.sql");
 
 fn openapi_spec() -> serde_json::Value {
-    serde_json::to_value(crate::openapi::PaymentsOpenApi::openapi()).unwrap_or(serde_json::Value::Null)
+    serde_json::to_value(crate::openapi::PaymentsOpenApi::openapi())
+        .unwrap_or(serde_json::Value::Null)
 }
 
 /// Print the registration JSON to stdout.
@@ -273,9 +537,11 @@ pub fn print(section: Option<String>) -> anyhow::Result<()> {
             service_flag: "payments",
             pages: ADMIN_UI_PAGES,
         }),
-        sql_migrations: vec![
-            SqlMigration { version: 1, name: "init", sql: SQL_1_INIT },
-        ],
+        sql_migrations: vec![SqlMigration {
+            version: 1,
+            name: "init",
+            sql: SQL_1_INIT,
+        }],
         pg_roles: PG_ROLES,
         audit_findings: None,
         service_actions: None,

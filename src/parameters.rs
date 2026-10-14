@@ -94,7 +94,10 @@ impl ParameterType {
                         .map(|_| ())
                         .map_err(|e| format!("invalid datetime value '{s}': {e}"))
                 }
-                other => Err(format!("expected datetime string, got {}", value_kind(other))),
+                other => Err(format!(
+                    "expected datetime string, got {}",
+                    value_kind(other)
+                )),
             },
             Self::JSON => {
                 // Any valid JSON value is acceptable.
@@ -336,10 +339,22 @@ mod tests {
 
     #[test]
     fn test_parameter_type_from_str_accepts_aliases() {
-        assert_eq!(ParameterType::from_str("string_list").unwrap(), ParameterType::StringList);
-        assert_eq!(ParameterType::from_str("string-list").unwrap(), ParameterType::StringList);
-        assert_eq!(ParameterType::from_str("date_time").unwrap(), ParameterType::DateTime);
-        assert_eq!(ParameterType::from_str("date-time").unwrap(), ParameterType::DateTime);
+        assert_eq!(
+            ParameterType::from_str("string_list").unwrap(),
+            ParameterType::StringList
+        );
+        assert_eq!(
+            ParameterType::from_str("string-list").unwrap(),
+            ParameterType::StringList
+        );
+        assert_eq!(
+            ParameterType::from_str("date_time").unwrap(),
+            ParameterType::DateTime
+        );
+        assert_eq!(
+            ParameterType::from_str("date-time").unwrap(),
+            ParameterType::DateTime
+        );
     }
 
     #[test]
@@ -349,62 +364,95 @@ mod tests {
 
     #[test]
     fn test_parameter_type_from_str_is_case_insensitive() {
-        assert_eq!(ParameterType::from_str("BOOLEAN").unwrap(), ParameterType::Boolean);
-        assert_eq!(ParameterType::from_str("Json").unwrap(), ParameterType::JSON);
+        assert_eq!(
+            ParameterType::from_str("BOOLEAN").unwrap(),
+            ParameterType::Boolean
+        );
+        assert_eq!(
+            ParameterType::from_str("Json").unwrap(),
+            ParameterType::JSON
+        );
     }
 
     #[test]
     fn test_validate_value_boolean() {
         assert!(ParameterType::Boolean.validate_value(&json!(true)).is_ok());
         assert!(ParameterType::Boolean.validate_value(&json!(false)).is_ok());
-        assert!(ParameterType::Boolean.validate_value(&json!("true")).is_err());
+        assert!(ParameterType::Boolean
+            .validate_value(&json!("true"))
+            .is_err());
         assert!(ParameterType::Boolean.validate_value(&json!(1)).is_err());
     }
 
     #[test]
     fn test_validate_value_string() {
-        assert!(ParameterType::String.validate_value(&json!("hello")).is_ok());
+        assert!(ParameterType::String
+            .validate_value(&json!("hello"))
+            .is_ok());
         assert!(ParameterType::String.validate_value(&json!(42)).is_err());
         assert!(ParameterType::String.validate_value(&json!(true)).is_err());
     }
 
     #[test]
     fn test_validate_value_decimal() {
-        assert!(ParameterType::Decimal.validate_value(&json!("100.50")).is_ok());
+        assert!(ParameterType::Decimal
+            .validate_value(&json!("100.50"))
+            .is_ok());
         assert!(ParameterType::Decimal.validate_value(&json!("0")).is_ok());
-        assert!(ParameterType::Decimal.validate_value(&json!("-3.14159")).is_ok());
-        assert!(ParameterType::Decimal.validate_value(&json!("not-a-number")).is_err());
+        assert!(ParameterType::Decimal
+            .validate_value(&json!("-3.14159"))
+            .is_ok());
+        assert!(ParameterType::Decimal
+            .validate_value(&json!("not-a-number"))
+            .is_err());
         assert!(ParameterType::Decimal.validate_value(&json!(true)).is_err());
     }
 
     #[test]
     fn test_validate_value_string_list() {
-        assert!(ParameterType::StringList.validate_value(&json!(["a", "b"])).is_ok());
+        assert!(ParameterType::StringList
+            .validate_value(&json!(["a", "b"]))
+            .is_ok());
         assert!(ParameterType::StringList.validate_value(&json!([])).is_ok());
-        assert!(ParameterType::StringList.validate_value(&json!(["a", 1])).is_err());
-        assert!(ParameterType::StringList.validate_value(&json!("a")).is_err());
+        assert!(ParameterType::StringList
+            .validate_value(&json!(["a", 1]))
+            .is_err());
+        assert!(ParameterType::StringList
+            .validate_value(&json!("a"))
+            .is_err());
     }
 
     #[test]
     fn test_validate_value_datetime() {
-        assert!(ParameterType::DateTime.validate_value(&json!("2026-07-18T12:00:00Z")).is_ok());
-        assert!(ParameterType::DateTime.validate_value(&json!("not-a-date")).is_err());
+        assert!(ParameterType::DateTime
+            .validate_value(&json!("2026-07-18T12:00:00Z"))
+            .is_ok());
+        assert!(ParameterType::DateTime
+            .validate_value(&json!("not-a-date"))
+            .is_err());
         assert!(ParameterType::DateTime.validate_value(&json!(123)).is_err());
     }
 
     #[test]
     fn test_validate_value_json_accepts_anything() {
         assert!(ParameterType::JSON.validate_value(&json!({})).is_ok());
-        assert!(ParameterType::JSON.validate_value(&json!([1, 2, 3])).is_ok());
+        assert!(ParameterType::JSON
+            .validate_value(&json!([1, 2, 3]))
+            .is_ok());
         assert!(ParameterType::JSON.validate_value(&json!(null)).is_ok());
-        assert!(ParameterType::JSON.validate_value(&json!("any string")).is_ok());
+        assert!(ParameterType::JSON
+            .validate_value(&json!("any string"))
+            .is_ok());
     }
 
     // ── ParameterLevel  ─────────────────────────────────────
 
     #[test]
     fn test_parameter_level_from_str_round_trip() {
-        assert_eq!(ParameterLevel::from_str("Global").unwrap(), ParameterLevel::Global);
+        assert_eq!(
+            ParameterLevel::from_str("Global").unwrap(),
+            ParameterLevel::Global
+        );
         assert_eq!(
             ParameterLevel::from_str("PaymentInstrument").unwrap(),
             ParameterLevel::PaymentInstrument
@@ -423,7 +471,10 @@ mod tests {
     #[test]
     fn test_parameter_level_as_str() {
         assert_eq!(ParameterLevel::Global.as_str(), "Global");
-        assert_eq!(ParameterLevel::PaymentInstrument.as_str(), "PaymentInstrument");
+        assert_eq!(
+            ParameterLevel::PaymentInstrument.as_str(),
+            "PaymentInstrument"
+        );
     }
 
     // ── Parameter timeseries SQL  ───────────────────────────

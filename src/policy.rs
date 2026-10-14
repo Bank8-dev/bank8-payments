@@ -16,7 +16,6 @@
 //! gate; ABAC resource attrs (instruction type/status/system) and ReBAC
 //! approver↔payment edges extend the scope-mirror via tenant sets.
 
-
 #[allow(unused_imports)]
 pub use sentin8::shield::runtime::{
     check_policy, engine_for, policy_bus_client, request_ctx, spawn_hot_reload,

@@ -119,7 +119,11 @@ pub fn parse_tips_xml(content: &str) -> Result<Vec<DirectoryEntry>, String> {
             continue;
         }
         let bic: String = record.chars().take(11).collect();
-        let name: String = record.chars().skip(11).take_while(|c| !c.is_whitespace()).collect();
+        let name: String = record
+            .chars()
+            .skip(11)
+            .take_while(|c| !c.is_whitespace())
+            .collect();
         // Country = last 2 non-whitespace characters.
         let country: String = record
             .chars()
@@ -248,8 +252,8 @@ pub async fn process_directory_upload(
 
     let (status, entries_json) = match result {
         Ok(entries) => {
-            let json = serde_json::to_value(&entries)
-                .map_err(|e| format!("serialise entries: {e}"))?;
+            let json =
+                serde_json::to_value(&entries).map_err(|e| format!("serialise entries: {e}"))?;
             (DirectoryStatus::Ready.as_str(), json)
         }
         Err(e) => {
@@ -295,7 +299,11 @@ mod tests {
 
     #[test]
     fn directory_type_round_trip() {
-        for t in [DirectoryType::Tips, DirectoryType::Fedach, DirectoryType::Fedwire] {
+        for t in [
+            DirectoryType::Tips,
+            DirectoryType::Fedach,
+            DirectoryType::Fedwire,
+        ] {
             assert_eq!(DirectoryType::from_str(t.as_str()).unwrap(), t);
         }
         assert!(DirectoryType::from_str("bogus").is_err());
@@ -360,7 +368,8 @@ mod tests {
         let content = json!([
             { "routingNumber": "111111111", "customerName": "Bank A" },
             { "routingNumber": "222222222", "customerName": "Bank B", "country": "PR" }
-        ]).to_string();
+        ])
+        .to_string();
         let entries = parse_fedach_json(&content).unwrap();
         assert_eq!(entries.len(), 2);
         assert_eq!(entries[1].country, "PR");
@@ -377,7 +386,8 @@ mod tests {
             "fedwireParticipants": [
                 { "routingNumber": "021000021", "customerName": "Wire Bank", "location": "NY" }
             ]
-        }).to_string();
+        })
+        .to_string();
         let entries = parse_fedwire_json(&content).unwrap();
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].bic, "021000021");
@@ -388,7 +398,8 @@ mod tests {
     fn parse_fedwire_json_bare_array_with_bic_field() {
         let content = json!([
             { "bic": "ABCDEFGHJKL", "name": "Wire Bank" }
-        ]).to_string();
+        ])
+        .to_string();
         let entries = parse_fedwire_json(&content).unwrap();
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].bic, "ABCDEFGHJKL");
@@ -397,8 +408,16 @@ mod tests {
     #[test]
     fn check_bic_reachability_finds_match() {
         let entries = vec![
-            DirectoryEntry { bic: "ABCDEFGHJKL".into(), name: "Bank A".into(), country: "US".into() },
-            DirectoryEntry { bic: "BCDEFGHJKLMN".into(), name: "Bank B".into(), country: "DE".into() },
+            DirectoryEntry {
+                bic: "ABCDEFGHJKL".into(),
+                name: "Bank A".into(),
+                country: "US".into(),
+            },
+            DirectoryEntry {
+                bic: "BCDEFGHJKLMN".into(),
+                name: "Bank B".into(),
+                country: "DE".into(),
+            },
         ];
         assert!(check_bic_reachability(&entries, "ABCDEFGHJKL"));
         assert!(!check_bic_reachability(&entries, "ZZZZZZZZZZZ"));

@@ -29,29 +29,29 @@
 // Pull in the source modules. Because payments is a binary crate with
 // no library target, we use the `#[path]` attribute to compile the relevant
 // modules into this integration test binary.
-#[path = "../src/state_machine.rs"]
-mod state_machine;
-#[path = "../src/payment_matching.rs"]
-mod payment_matching;
 #[path = "../src/cards.rs"]
 mod cards;
 #[path = "../src/idempotency.rs"]
 mod idempotency;
-#[path = "../src/routing.rs"]
-mod routing;
 #[path = "../src/iso8583.rs"]
 mod iso8583;
 #[path = "../src/parameters.rs"]
 mod parameters;
 #[path = "../src/payment_context.rs"]
 mod payment_context;
+#[path = "../src/payment_matching.rs"]
+mod payment_matching;
+#[path = "../src/routing.rs"]
+mod routing;
+#[path = "../src/state_machine.rs"]
+mod state_machine;
 // Pure-logic modules with no DB/axum dependency:
-#[path = "../src/postings.rs"]
-mod postings;
-#[path = "../src/event_streaming.rs"]
-mod event_streaming;
 #[path = "../src/config.rs"]
 mod config;
+#[path = "../src/event_streaming.rs"]
+mod event_streaming;
+#[path = "../src/postings.rs"]
+mod postings;
 
 // Re-export the sqlx macro so the modules that use `query_scalar!`-style
 // macros compile. We only exercise pure-logic paths here, but the modules
@@ -88,7 +88,14 @@ async fn test_instruction_lifecycle_state_transitions() {
     assert!(Cancelled.validate_transition(Pending).is_err());
 
     // from_str / as_str roundtrip.
-    for s in ["pending", "processing", "waiting", "completed", "failed", "cancelled"] {
+    for s in [
+        "pending",
+        "processing",
+        "waiting",
+        "completed",
+        "failed",
+        "cancelled",
+    ] {
         let st = state_machine::InstructionState::from_str(s).unwrap();
         assert_eq!(st.as_str(), s);
     }
@@ -134,35 +141,17 @@ async fn test_card_state_machine_transitions() {
     use cards::CardState;
 
     // Happy path: pending_creation → inactive → active.
-    assert!(cards::validate_card_transition(
-        CardState::PendingCreation,
-        CardState::Inactive
-    )
-    .is_ok());
-    assert!(cards::validate_card_transition(
-        CardState::Inactive,
-        CardState::Active
-    )
-    .is_ok());
+    assert!(
+        cards::validate_card_transition(CardState::PendingCreation, CardState::Inactive).is_ok()
+    );
+    assert!(cards::validate_card_transition(CardState::Inactive, CardState::Active).is_ok());
 
     // active → suspended → active (freeze/unfreeze).
-    assert!(cards::validate_card_transition(
-        CardState::Active,
-        CardState::Suspended
-    )
-    .is_ok());
-    assert!(cards::validate_card_transition(
-        CardState::Suspended,
-        CardState::Active
-    )
-    .is_ok());
+    assert!(cards::validate_card_transition(CardState::Active, CardState::Suspended).is_ok());
+    assert!(cards::validate_card_transition(CardState::Suspended, CardState::Active).is_ok());
 
     // Disabled is terminal.
-    assert!(cards::validate_card_transition(
-        CardState::Disabled,
-        CardState::Active
-    )
-    .is_err());
+    assert!(cards::validate_card_transition(CardState::Disabled, CardState::Active).is_err());
 
     // Round-trip.
     for s in [
@@ -335,11 +324,11 @@ async fn test_3ds_risk_evaluation() {
     use cards::{evaluate_3ds_risk, recommend_3ds_action, ThreeDSAuthResult};
 
     // Green band: low risk, low amount, trusted merchant.
+    assert_eq!(evaluate_3ds_risk(0.1, 25.0, true), ThreeDSAuthResult::Green);
     assert_eq!(
-        evaluate_3ds_risk(0.1, 25.0, true),
-        ThreeDSAuthResult::Green
+        recommend_3ds_action(&ThreeDSAuthResult::Green),
+        "frictionless"
     );
-    assert_eq!(recommend_3ds_action(&ThreeDSAuthResult::Green), "frictionless");
 
     // Green requires a trusted merchant.
     assert_eq!(
@@ -355,29 +344,17 @@ async fn test_3ds_risk_evaluation() {
     assert_eq!(recommend_3ds_action(&ThreeDSAuthResult::Amber), "challenge");
 
     // Red band: high risk score.
-    assert_eq!(
-        evaluate_3ds_risk(0.8, 100.0, true),
-        ThreeDSAuthResult::Red
-    );
+    assert_eq!(evaluate_3ds_risk(0.8, 100.0, true), ThreeDSAuthResult::Red);
 
     // Red band: high amount (over 5000).
-    assert_eq!(
-        evaluate_3ds_risk(0.1, 6000.0, true),
-        ThreeDSAuthResult::Red
-    );
+    assert_eq!(evaluate_3ds_risk(0.1, 6000.0, true), ThreeDSAuthResult::Red);
     assert_eq!(recommend_3ds_action(&ThreeDSAuthResult::Red), "decline");
 
     // Red boundary: risk 0.7 exactly → Red.
-    assert_eq!(
-        evaluate_3ds_risk(0.7, 100.0, true),
-        ThreeDSAuthResult::Red
-    );
+    assert_eq!(evaluate_3ds_risk(0.7, 100.0, true), ThreeDSAuthResult::Red);
 
     // Red takes priority over Green.
-    assert_eq!(
-        evaluate_3ds_risk(0.9, 10.0, true),
-        ThreeDSAuthResult::Red
-    );
+    assert_eq!(evaluate_3ds_risk(0.9, 10.0, true), ThreeDSAuthResult::Red);
 }
 
 // ── 8. Decline recommendations ───────────────────────────────────────
@@ -423,9 +400,7 @@ async fn test_parameter_type_validation() {
     use parameters::ParameterType;
 
     // Boolean.
-    assert!(ParameterType::Boolean
-        .validate_value(&json!(true))
-        .is_ok());
+    assert!(ParameterType::Boolean.validate_value(&json!(true)).is_ok());
     assert!(ParameterType::Boolean.validate_value(&json!("x")).is_err());
 
     // String.
@@ -442,9 +417,7 @@ async fn test_parameter_type_validation() {
         .validate_value(&json!("not-a-number"))
         .is_err());
     // Number is accepted.
-    assert!(ParameterType::Decimal
-        .validate_value(&json!(100.5))
-        .is_ok());
+    assert!(ParameterType::Decimal.validate_value(&json!(100.5)).is_ok());
 
     // StringList — array of strings.
     assert!(ParameterType::StringList
@@ -530,7 +503,11 @@ async fn test_posting_type_model() {
     let dst = uuid::Uuid::new_v4();
     let instr = postings::build_instruction(
         PostingType::OutboundHardSettlement,
-        src, dst, "250.75", "EUR", None,
+        src,
+        dst,
+        "250.75",
+        "EUR",
+        None,
     );
     assert_eq!(instr.instruction_type, "outbound_hard_settlement");
     assert_eq!(instr.debit_account, src);
@@ -623,12 +600,18 @@ async fn test_feature_gate_completeness() {
         sandbox: true,
     };
     for g in gates {
-        assert!(!all_off.is_enabled(g), "gate {g:?} should be off when master off");
+        assert!(
+            !all_off.is_enabled(g),
+            "gate {g:?} should be off when master off"
+        );
     }
     // Master on → each gate's own flag decides.
     all_off.payments = true;
     for g in gates {
-        assert!(all_off.is_enabled(g), "gate {g:?} should be on when master on");
+        assert!(
+            all_off.is_enabled(g),
+            "gate {g:?} should be on when master on"
+        );
     }
     // Sandbox default off (design §7).
     assert!(!config::FeatureGates::from_env().sandbox);

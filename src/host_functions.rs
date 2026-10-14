@@ -190,10 +190,7 @@ mod tests {
 
     #[test]
     fn resolve_host_function_path_substitutes_args() {
-        let path = resolve_host_function_path(
-            "/v1/internal/instructions/{args.0}",
-            &["abc-123"],
-        );
+        let path = resolve_host_function_path("/v1/internal/instructions/{args.0}", &["abc-123"]);
         assert_eq!(path.as_deref(), Some("/v1/internal/instructions/abc-123"));
     }
 
@@ -205,8 +202,7 @@ mod tests {
 
     #[test]
     fn resolve_host_function_path_ignores_extra_args() {
-        let path =
-            resolve_host_function_path("/v1/internal/payments/{args.0}", &["p-1", "extra"]);
+        let path = resolve_host_function_path("/v1/internal/payments/{args.0}", &["p-1", "extra"]);
         assert_eq!(path.as_deref(), Some("/v1/internal/payments/p-1"));
     }
 

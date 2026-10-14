@@ -117,19 +117,13 @@ impl VisaDpsSyncDirection {
 
 /// Push card data from Payments to Visa DPS.
 /// Stub — would call DPS `PUT /cards/{card_id}` with the card record.
-pub async fn sync_card_to_dps(
-    _pool: &sqlx::PgPool,
-    _card_id: uuid::Uuid,
-) -> Result<(), String> {
+pub async fn sync_card_to_dps(_pool: &sqlx::PgPool, _card_id: uuid::Uuid) -> Result<(), String> {
     Ok(())
 }
 
 /// Pull card data from Visa DPS into Payments.
 /// Stub — would call DPS `GET /cards/{card_id}` and update the local record.
-pub async fn sync_card_from_dps(
-    _pool: &sqlx::PgPool,
-    _card_id: uuid::Uuid,
-) -> Result<(), String> {
+pub async fn sync_card_from_dps(_pool: &sqlx::PgPool, _card_id: uuid::Uuid) -> Result<(), String> {
     Ok(())
 }
 
@@ -225,7 +219,10 @@ mod tests {
 
     #[test]
     fn sync_direction_round_trip() {
-        for d in [VisaDpsSyncDirection::PaymentsToDps, VisaDpsSyncDirection::DpsToPayments] {
+        for d in [
+            VisaDpsSyncDirection::PaymentsToDps,
+            VisaDpsSyncDirection::DpsToPayments,
+        ] {
             assert_eq!(VisaDpsSyncDirection::from_str(d.as_str()).unwrap(), d);
         }
         assert!(VisaDpsSyncDirection::from_str("sideways").is_err());

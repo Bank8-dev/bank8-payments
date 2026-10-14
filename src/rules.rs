@@ -11,8 +11,8 @@
 
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
-use uuid::Uuid;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -143,19 +143,12 @@ pub fn filter_links_by_rule(
     // If the rule result is a boolean, filter all candidates (true = keep all,
     // false = reject all).
     if let Some(keep) = rule_result.as_bool() {
-        return if keep {
-            candidates.to_vec()
-        } else {
-            vec![]
-        };
+        return if keep { candidates.to_vec() } else { vec![] };
     }
 
     // If the rule result has "allowed_ids", filter by ID.
     if let Some(allowed) = rule_result.get("allowed_ids").and_then(|v| v.as_array()) {
-        let allowed_ids: Vec<&str> = allowed
-            .iter()
-            .filter_map(|v| v.as_str())
-            .collect();
+        let allowed_ids: Vec<&str> = allowed.iter().filter_map(|v| v.as_str()).collect();
         return candidates
             .iter()
             .filter(|c| {
