@@ -1,0 +1,8 @@
+{
+  "vertical": "bank8",
+  "services": [
+    {
+      "service_type": "bank8:payments"
+    }
+  ]
+}

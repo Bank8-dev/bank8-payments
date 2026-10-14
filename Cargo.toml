@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: Copyright Logically Magic Inc. <hello@logicallymagic.com>
+# SPDX-FileCopyrightText: Copyright Hamid Jahanzad <Hamid@Jahanzad.com>
+# SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bank8-payments"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Bank8-dev/bank8-payments"
+rust-version = "1.85"
+description = "Sentin8 Bank8:Payments — payment orchestration, delegates to Sentin8:Flow."
+
+[[bin]]
+name = "bank8-payments"
+path = "src/main.rs"
+
+[lib]
+name = "bank8_payments_server"
+path = "src/lib.rs"
+
+[dependencies]
+# Platform SDK pin (RS 2.3) - the only cross-repo dependency; carries the
+# entire shared library workspace behind the `sentin8` facade.
+sentin8 = { git = "https://github.com/Sentin8/sentin8-sdk", tag = "sdk-v0.6.3" }
+# bank8 namespace facade pin - carries this vertical's contracts/clients.
+bank8 = { git = "https://github.com/Bank8-dev/bank8-sdk", tag = "bank8-v0.5.3" }
+
+axum = { version = "0.8", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.7", features = ["trace", "cors", "compression-gzip", "limit"] }
+hyper = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls-native-roots-no-provider", "stream"], default-features = false }
+mimalloc = { version = "0.1", default-features = false }
+rustls = { version = "0.23", features = ["std", "tls12", "logging"], default-features = false }
+rustls-graviola = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls-ring", "postgres", "uuid", "chrono", "json", "macros", "rust_decimal"] }
+dotenvy = "0.15"
+uuid = { version = "1", features = ["v4", "v5", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1"
+anyhow = "1"
+rust_decimal = { version = "1", features = ["serde-with-str", "db-postgres"] }
+futures-util = "0.3"
+base64 = "0.22"
+serde_yaml = "0.9"
+utoipa = { version = "5", features = ["chrono", "uuid", "decimal"] }
+sentin8-cron-sdk = { git = "https://github.com/Sentin8/sentin8-cron", tag = "cron-sdk-v0.6.2" }
+sentin8-flow-sdk = { git = "https://github.com/Sentin8/sentin8-flow", tag = "flow-sdk-v0.6.2" }
+sentin8-func-sdk = { git = "https://github.com/Sentin8/sentin8-func", tag = "func-sdk-v0.6.2" }
