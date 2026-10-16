@@ -11,14 +11,9 @@
 //! merge, middleware stack and PQ-TLS listener are owned by the shell. This
 //! binary supplies only its registration data, state and routes.
 
-// — mimalloc as the global allocator (declared FIRST so every
 // allocation in the process routes through it). Rationale in the workspace
 // Cargo.toml: glibc's per-thread arenas fragment under the many-worker tokio
 // runtime and never return memory; measured 4 MB+ RSS growth per request
-// burst with no recovery at idle.
-#[global_allocator]
-static GLOBAL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
-
 #[allow(dead_code)]
 mod admin_data;
 #[allow(dead_code)]
