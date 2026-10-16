@@ -130,7 +130,7 @@ sequenceDiagram
     else Flow unavailable
         P-->>C: 5xx — nothing committed
     end
-    Note over F,L: Flow drives steps; posting steps call Ledger public API
+    Note over C,L: Flow drives steps, posting steps call Ledger public API
     F->>P: POST /v1/internal/steps/execute (M2M)
     P->>SH: step gate (payments enforced set)
     P->>L: POST /v1/postings (M2M/steps)

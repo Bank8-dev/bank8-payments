@@ -40,7 +40,6 @@ graph TD
         LEDGER["Bank8:Ledger"]
         PG[("bank8 database<br/>schema payments: payments_* · payments.outbox")]
     end
-    end
     subgraph clients
         BFF["Sentin8:BFF /proxy/payments/*"]
     end
