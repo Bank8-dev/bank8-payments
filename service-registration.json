@@ -2,7 +2,11 @@
   "vertical": "bank8",
   "services": [
     {
-      "service_type": "bank8:payments"
+      "service_type": "bank8:payments",
+      "telemetry_property": {
+        "slug": "payments",
+        "name": "Bank8:Payments Telemetry"
+      }
     }
   ]
 }
