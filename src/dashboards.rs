@@ -549,6 +549,17 @@ fn err_db(e: sqlx::Error) -> (StatusCode, String) {
 }
 
 // ── Handlers ────────────────────────────────────────────────────────────
+#[utoipa::path(
+    post,
+    path = "/v1/dashboards",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/dashboards` — create a dashboard.
 pub async fn create_dashboard(
@@ -581,6 +592,17 @@ pub async fn create_dashboard(
         .map_err(err_db)?;
     Ok(Json(row_to_dashboard(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/dashboards",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/dashboards` — list dashboards.
 pub async fn list_dashboards(
@@ -606,6 +628,17 @@ pub async fn list_dashboards(
         .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_dashboard).collect()))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/dashboards/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/dashboards/{id}` — get a dashboard.
 pub async fn get_dashboard(
@@ -632,6 +665,17 @@ pub async fn get_dashboard(
         .map_err(err_db)?;
     Ok(Json(row_to_dashboard(&row)))
 }
+#[utoipa::path(
+    post,
+    path = "/v1/dashboards/{id}/versions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/dashboards/{id}/versions` — create a new dashboard version.
 pub async fn create_dashboard_version(
@@ -679,6 +723,17 @@ pub async fn create_dashboard_version(
         .map_err(err_db)?;
     Ok(Json(row_to_version(&row)))
 }
+#[utoipa::path(
+    post,
+    path = "/v1/dashboards/{id}/publish",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/dashboards/{id}/publish` — publish the latest draft version.
 pub async fn publish_dashboard(

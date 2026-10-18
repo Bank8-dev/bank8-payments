@@ -755,6 +755,17 @@ pub struct EncryptedSessionResponse {
     pub public_key: String,
     pub expires_at: DateTime<Utc>,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/cards/{id}/encrypted-session",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// Create a new encrypted card session.
 /// Inserts a row in `card_sessions` (defined by migration
@@ -817,6 +828,17 @@ pub struct PinVerifyResult {
     pub verified: bool,
     pub attempts_remaining: i32,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/cards/{id}/pin/verify",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// Verify a card PIN.
 /// `pin_hash` is the (already hashed) PIN the client sent, encrypted with
@@ -893,6 +915,17 @@ pub struct PinChangeResult {
     pub card_id: Uuid,
     pub changed: bool,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/cards/{id}/pin/change",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// Change a card PIN.
 /// Verifies `old_pin_hash` against the stored `pin_hash`; on success the

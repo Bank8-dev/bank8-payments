@@ -38,6 +38,17 @@ fn map_card_err(e: String) -> (StatusCode, String) {
         (StatusCode::CONFLICT, e)
     }
 }
+#[utoipa::path(
+    post,
+    path = "/v1/cards/{id}/activate",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/cards/{id}/activate` — pending_creation/inactive → active.
 pub async fn activate_card(
@@ -61,6 +72,17 @@ pub async fn activate_card(
         .map_err(map_card_err)?;
     Ok(Json(serde_json::json!({ "id": id, "status": "active" })))
 }
+#[utoipa::path(
+    post,
+    path = "/v1/cards/{id}/freeze",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/cards/{id}/freeze` — active → suspended.
 pub async fn freeze_card(
@@ -84,6 +106,17 @@ pub async fn freeze_card(
         .map_err(map_card_err)?;
     Ok(Json(serde_json::json!({ "id": id, "status": "suspended" })))
 }
+#[utoipa::path(
+    post,
+    path = "/v1/cards/{id}/unfreeze",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/cards/{id}/unfreeze` — suspended → active.
 pub async fn unfreeze_card(
@@ -113,6 +146,17 @@ pub struct ReplaceCardRequest {
     /// New (encrypted-at-rest) PAN for the replacement card.
     pub new_pan: String,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/cards/{id}/replace",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/cards/{id}/replace` — create a replacement card, disable the old.
 pub async fn replace_card(
@@ -159,6 +203,17 @@ pub async fn replace_card(
 pub struct ListCardTokensQuery {
     pub card_id: Uuid,
 }
+#[utoipa::path(
+    get,
+    path = "/v1/card-tokens",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 pub async fn list_card_tokens(
     State(state): State<AppState>,
@@ -199,6 +254,17 @@ pub struct ThreeDsRecordResponse {
     pub challenge_method: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
+#[utoipa::path(
+    get,
+    path = "/v1/3ds-records",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 pub async fn get_3ds_records(
     State(state): State<AppState>,
@@ -243,6 +309,17 @@ pub async fn get_3ds_records(
 }
 
 // ── Files submit (§5.5) ─────────────────────────────────────────────────
+#[utoipa::path(
+    post,
+    path = "/v1/files/{id}/submit",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/files/{id}/submit` — submit an uploaded file for debatch +
 /// processing (inbound flow).
@@ -300,6 +377,17 @@ pub struct InstructionBatchResponse {
     pub status: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
+#[utoipa::path(
+    get,
+    path = "/v1/instruction-batches",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/instruction-batches` — list instruction batches.
 pub async fn list_instruction_batches(
@@ -340,6 +428,17 @@ pub async fn list_instruction_batches(
 }
 
 // ── Logics detail (§5.2) ────────────────────────────────────────────────
+#[utoipa::path(
+    get,
+    path = "/v1/logics/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/logics/{id}` — logic detail.
 pub async fn get_logic(
@@ -406,6 +505,17 @@ pub struct ListTasksQuery {
     #[serde(default)]
     pub status: Option<String>,
 }
+#[utoipa::path(
+    get,
+    path = "/v1/tasks",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 pub async fn list_tasks(
     State(state): State<AppState>,
@@ -433,6 +543,17 @@ pub async fn list_tasks(
         .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_task).collect()))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/tasks/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/tasks/{id}` — task detail.
 pub async fn get_task(
@@ -464,6 +585,17 @@ pub async fn get_task(
 pub struct ClaimTaskRequest {
     pub assignee_id: String,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/tasks/{id}/claim",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/tasks/{id}/claim` — claim a task.
 pub async fn claim_task(
@@ -499,6 +631,17 @@ pub async fn claim_task(
 pub struct ReviewTaskRequest {
     pub reviewer_id: String,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/tasks/{id}/approve",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/tasks/{id}/approve` — approve a task (advances approval stages).
 pub async fn approve_task(
@@ -529,6 +672,17 @@ pub async fn approve_task(
         .map_err(err_db)?;
     Ok(Json(row_to_task(&row)))
 }
+#[utoipa::path(
+    post,
+    path = "/v1/tasks/{id}/reject",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/tasks/{id}/reject` — reject a task.
 pub async fn reject_task(
@@ -585,6 +739,17 @@ fn default_resource() -> String {
 fn default_aggregation() -> String {
     "count".into()
 }
+#[utoipa::path(
+    get,
+    path = "/v1/aggregations",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 pub async fn query_aggregations(
     State(state): State<AppState>,

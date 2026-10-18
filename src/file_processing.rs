@@ -257,6 +257,16 @@ pub struct DebatchResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/internal/files/debatch",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// Execute the `debatch_file` step: split the file's records into chunked
 /// instruction batches (design §10). The step is idempotent on

@@ -643,7 +643,7 @@ pub async fn create_logic(
     get,
     path = "/v1/logics",
     responses(
-        (status = 200, description = "List of logics", body = Vec<LogicResponse>),
+        (status = 200, description = "Logics list", body = serde_json::Value),
         (status = 403, description = "Missing bank8:payments:logics:read scope"),
     ),
     security(("bank8:payments:logics:read" = [])),
@@ -671,6 +671,16 @@ pub async fn list_logics(
 }
 
 // ── Routing: Payment Instruments (Story ) ──────────────────────
+#[utoipa::path(
+    post,
+    path = "/v1/payment-instruments",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/payment-instruments` — create a payment instrument.
 pub async fn create_payment_instrument(
@@ -745,6 +755,17 @@ pub async fn create_payment_instrument(
 
     Ok(Json(crate::routing::row_to_payment_instrument(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/payment-instruments",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/payment-instruments` — list payment instruments.
 pub async fn list_payment_instruments(
@@ -776,6 +797,17 @@ pub async fn list_payment_instruments(
             .collect(),
     ))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/payment-instruments/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/payment-instruments/{id}` — get a payment instrument.
 pub async fn get_payment_instrument(
@@ -804,6 +836,17 @@ pub async fn get_payment_instrument(
     .map_err(err_db)?;
     Ok(Json(crate::routing::row_to_payment_instrument(&row)))
 }
+#[utoipa::path(
+    patch,
+    path = "/v1/payment-instruments/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `PATCH /v1/payment-instruments/{id}` — update a payment instrument.
 pub async fn update_payment_instrument(
@@ -862,6 +905,17 @@ pub async fn update_payment_instrument(
 
     Ok(Json(crate::routing::row_to_payment_instrument(&row)))
 }
+#[utoipa::path(
+    delete,
+    path = "/v1/payment-instruments/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `DELETE /v1/payment-instruments/{id}` — deactivate a payment instrument.
 pub async fn delete_payment_instrument(
@@ -907,6 +961,17 @@ pub async fn delete_payment_instrument(
 }
 
 // ── Routing: Account Links (Story ) ─────────────────────────────
+#[utoipa::path(
+    post,
+    path = "/v1/account-links",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/account-links` — create an account link.
 pub async fn create_account_link(
@@ -974,6 +1039,17 @@ pub async fn create_account_link(
 
     Ok(Json(crate::routing::row_to_account_link(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/account-links",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/account-links` — list account links.
 pub async fn list_account_links(
@@ -1005,6 +1081,17 @@ pub async fn list_account_links(
             .collect(),
     ))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/account-links/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/account-links/{id}` — get an account link.
 pub async fn get_account_link(
@@ -1033,6 +1120,17 @@ pub async fn get_account_link(
     .map_err(err_db)?;
     Ok(Json(crate::routing::row_to_account_link(&row)))
 }
+#[utoipa::path(
+    delete,
+    path = "/v1/account-links/{id}",
+    responses(
+        (status = 200, description = "Account link deactivated", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Caller lacks the bank8 scope"),
+    ),
+    security(),
+    tag = "account-links",
+)]
 
 /// `DELETE /v1/account-links/{id}` — deactivate an account link.
 pub async fn delete_account_link(
@@ -1269,6 +1367,17 @@ pub async fn publish_rule_version(
         created_at: row.get("created_at"),
     }))
 }
+#[utoipa::path(
+    post,
+    path = "/v1/rule-sets",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/rule-sets` — create a rule set (Story ).
 pub async fn create_rule_set(
@@ -1341,6 +1450,17 @@ pub async fn create_rule_set(
 
     Ok(Json(crate::rules::row_to_rule_set(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/rule-sets",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/rule-sets` — list rule sets.
 pub async fn list_rule_sets(
@@ -1425,6 +1545,17 @@ fn row_to_parameter(row: &sqlx::postgres::PgRow) -> ParameterResponse {
 
 const PARAM_COLUMNS: &str =
     "id, name, parameter_type, value, payment_instrument_id, description, status, version, created_at, updated_at";
+#[utoipa::path(
+    post,
+    path = "/v1/parameters",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/parameters` — create a parameter.
 pub async fn create_parameter(
@@ -1496,6 +1627,17 @@ pub async fn create_parameter(
 
     Ok(Json(row_to_parameter(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/parameters",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/parameters` — list parameters.
 pub async fn list_parameters(
@@ -1521,6 +1663,17 @@ pub async fn list_parameters(
         .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_parameter).collect()))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/parameters/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/parameters/{id}` — get a parameter.
 pub async fn get_parameter(
@@ -1548,6 +1701,17 @@ pub async fn get_parameter(
         .map_err(err_db)?;
     Ok(Json(row_to_parameter(&row)))
 }
+#[utoipa::path(
+    patch,
+    path = "/v1/parameters/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `PATCH /v1/parameters/{id}` — update a parameter.
 pub async fn update_parameter(
@@ -1625,6 +1789,17 @@ pub async fn update_parameter(
 
     Ok(Json(row_to_parameter(&row)))
 }
+#[utoipa::path(
+    delete,
+    path = "/v1/parameters/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `DELETE /v1/parameters/{id}` — soft delete a parameter.
 /// Sets `status = 'deleted'` so the row is retained for audit but excluded
@@ -1707,6 +1882,17 @@ fn row_to_file(row: &sqlx::postgres::PgRow) -> FileResponse {
         created_at: row.get("created_at"),
     }
 }
+#[utoipa::path(
+    post,
+    path = "/v1/files",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/files` — register an uploaded file.
 pub async fn upload_file(
@@ -1736,6 +1922,17 @@ pub async fn upload_file(
     .fetch_one(&mut *conn).await.map_err(err_db)?;
     Ok(Json(row_to_file(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/files",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/files` — list uploaded files.
 pub async fn list_files(
@@ -1762,6 +1959,17 @@ pub async fn list_files(
     .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_file).collect()))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/files/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/files/{id}` — file detail.
 pub async fn get_file(
@@ -1818,6 +2026,17 @@ pub struct CreateInstructionFileRequest {
     pub direction: String,
     pub file_id: Option<Uuid>,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/instruction-files",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/instruction-files` — create an instruction file.
 pub async fn create_instruction_file(
@@ -1853,6 +2072,17 @@ pub async fn create_instruction_file(
     .map_err(err_db)?;
     Ok(Json(row_to_instruction_file(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/instruction-files",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/instruction-files` — list instruction files.
 pub async fn list_instruction_files(
@@ -1912,6 +2142,17 @@ pub struct CreateSpecificationRequest {
 fn default_capacity_limit() -> i32 {
     1000
 }
+#[utoipa::path(
+    post,
+    path = "/v1/instruction-file-specifications",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/instruction-file-specifications` — create a specification.
 pub async fn create_specification(
@@ -1940,6 +2181,17 @@ pub async fn create_specification(
     .fetch_one(&mut *conn).await.map_err(err_db)?;
     Ok(Json(row_to_specification(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/instruction-file-specifications",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/instruction-file-specifications` — list specifications.
 pub async fn list_specifications(
@@ -1991,6 +2243,17 @@ fn row_to_manual_decision(row: &sqlx::postgres::PgRow) -> ManualDecisionResponse
         created_at: row.get("created_at"),
     }
 }
+#[utoipa::path(
+    get,
+    path = "/v1/manual-decisions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/manual-decisions` — list manual decisions.
 pub async fn list_manual_decisions(
@@ -2017,6 +2280,17 @@ pub async fn list_manual_decisions(
     .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_manual_decision).collect()))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/manual-decisions/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/manual-decisions/{id}` — manual decision detail.
 pub async fn get_manual_decision(
@@ -2050,6 +2324,17 @@ pub async fn get_manual_decision(
 pub struct SubmitManualDecisionRequest {
     pub decision: serde_json::Value,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/manual-decisions/{id}/submit",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/manual-decisions/{id}/submit` — submit a manual decision.
 /// Records the submitter, the decision payload, and marks the decision as
@@ -2127,6 +2412,16 @@ pub struct ProxyBackResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<String>,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/internal/steps/execute",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `POST /v1/internal/steps/execute` — Flow proxy-back for Payments domain steps.
 pub async fn execute_step(
@@ -3059,6 +3354,17 @@ pub async fn list_audit_events(
 }
 
 // ── Metrics: `GET /v1/metrics` (Story ) ─────────────────────────
+#[utoipa::path(
+    get,
+    path = "/v1/metrics",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/metrics` — Prometheus/OpenMetrics text format (Story ).
 /// Exports instruction counts, payment counts, and processing latency.
@@ -3339,6 +3645,17 @@ pub async fn get_integration(
         .map_err(err_db)?;
     Ok(Json(row_to_integration(&row)))
 }
+#[utoipa::path(
+    patch,
+    path = "/v1/integrations/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `PATCH /v1/integrations/{id}` — update an integration (Story ).
 pub async fn update_integration(
@@ -3395,6 +3712,17 @@ pub async fn update_integration(
 
     Ok(Json(row_to_integration(&row)))
 }
+#[utoipa::path(
+    delete,
+    path = "/v1/integrations/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `DELETE /v1/integrations/{id}` — soft delete an integration (Story ).
 pub async fn delete_integration(
@@ -3615,6 +3943,17 @@ pub async fn get_core(
         .map_err(err_db)?;
     Ok(Json(row_to_core(&row)))
 }
+#[utoipa::path(
+    patch,
+    path = "/v1/cores/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `PATCH /v1/cores/{id}` — update a core (Story ).
 pub async fn update_core(
@@ -3668,6 +4007,17 @@ pub async fn update_core(
 
     Ok(Json(row_to_core(&row)))
 }
+#[utoipa::path(
+    delete,
+    path = "/v1/cores/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `DELETE /v1/cores/{id}` — soft delete a core (Story ).
 pub async fn delete_core(
@@ -3723,6 +4073,17 @@ pub struct CreateCoreVersionRequest {
     #[serde(default)]
     pub balance_integration_id: Option<Uuid>,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/cores/{id}/versions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/cores/{id}/versions` — create a core version (Story ).
 pub async fn create_core_version(
@@ -3826,6 +4187,17 @@ pub struct CreateCardholderRequest {
     #[serde(default)]
     pub last_name: Option<String>,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/cardholders",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/cardholders` — create a cardholder.
 /// .7: `customer_id` is a Ledger customer id (by value; existence is the
@@ -3879,6 +4251,17 @@ pub async fn create_cardholder(
 
     Ok(Json(row_to_cardholder(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/cardholders",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/cardholders` — list cardholders.
 /// .7: holder callers see only their own cardholders
@@ -3917,6 +4300,17 @@ pub async fn list_cardholders(
     let rows = q.fetch_all(&mut *conn).await.map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_cardholder).collect()))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/cardholders/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/cardholders/{id}` — get a cardholder.
 /// .7: holder callers can only fetch their own cardholders.
@@ -4207,6 +4601,17 @@ pub async fn get_card(
         .map_err(err_db)?;
     Ok(Json(row_to_card(&row)))
 }
+#[utoipa::path(
+    patch,
+    path = "/v1/cards/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `PATCH /v1/cards/{id}` — update a card (status / expiry).
 /// When `status` is provided it is validated against the card state machine
@@ -4411,6 +4816,17 @@ pub struct CreateCardProductRequest {
     #[serde(default)]
     pub account_range_id: Option<Uuid>,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/card-products",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/card-products` — create a card product.
 pub async fn create_card_product(
@@ -4461,6 +4877,17 @@ pub async fn create_card_product(
 
     Ok(Json(row_to_card_product(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/card-products",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/card-products` — list card products.
 pub async fn list_card_products(
@@ -4486,6 +4913,17 @@ pub async fn list_card_products(
         .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_card_product).collect()))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/card-products/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/card-products/{id}` — get a card product.
 pub async fn get_card_product(
@@ -4549,6 +4987,17 @@ pub struct CreateAccountRangeRequest {
 fn default_pan_length() -> i32 {
     16
 }
+#[utoipa::path(
+    post,
+    path = "/v1/account-ranges",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/account-ranges` — create an account range.
 pub async fn create_account_range(
@@ -4582,6 +5031,17 @@ pub async fn create_account_range(
         .map_err(err_db)?;
     Ok(Json(row_to_account_range(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/account-ranges",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/account-ranges` — list account ranges.
 pub async fn list_account_ranges(
@@ -4609,6 +5069,17 @@ pub async fn list_account_ranges(
 }
 
 // ── Health ───────────────────────────────────────────────────────────────
+#[utoipa::path(
+    get,
+    path = "/v1/health",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "meta",
+)]
 
 pub async fn health() -> Json<serde_json::Value> {
     Json(
@@ -4867,6 +5338,17 @@ pub async fn get_mandate(
         .map_err(err_db)?;
     Ok(Json(row_to_mandate(&row)))
 }
+#[utoipa::path(
+    patch,
+    path = "/v1/mandates/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `PATCH /v1/mandates/{id}` — update a mandate.
 pub async fn update_mandate(
@@ -4956,6 +5438,17 @@ fn row_to_membership_directory(row: &sqlx::postgres::PgRow) -> MembershipDirecto
         updated_at: row.get("updated_at"),
     }
 }
+#[utoipa::path(
+    post,
+    path = "/v1/membership-directories",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/membership-directories` — create a membership directory.
 pub async fn create_membership_directory(
@@ -4995,6 +5488,17 @@ pub async fn create_membership_directory(
         .map_err(err_db)?;
     Ok(Json(row_to_membership_directory(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/membership-directories",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/membership-directories` — list membership directories.
 pub async fn list_membership_directories(
@@ -5024,6 +5528,17 @@ pub async fn list_membership_directories(
         .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_membership_directory).collect()))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/membership-directories/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/membership-directories/{id}` — get a membership directory.
 pub async fn get_membership_directory(
@@ -5082,6 +5597,16 @@ pub(crate) async fn require_internal_caller(
     .await?;
     Ok(a)
 }
+#[utoipa::path(
+    get,
+    path = "/v1/internal/instructions/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `GET /v1/internal/instructions/{id}` — internal instruction lookup.
 pub async fn get_instruction_internal(
@@ -5114,6 +5639,16 @@ pub struct UpdateInstructionInternalRequest {
     #[serde(default)]
     pub state: Option<String>,
 }
+#[utoipa::path(
+    patch,
+    path = "/v1/internal/instructions/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 pub async fn update_instruction_internal(
     State(state): State<AppState>,
@@ -5159,6 +5694,16 @@ pub async fn update_instruction_internal(
 
     Ok(Json(row_to_instruction(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/internal/payments/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `GET /v1/internal/payments/{id}` — internal payment lookup.
 pub async fn get_payment_internal(
@@ -5179,6 +5724,16 @@ pub async fn get_payment_internal(
     .map_err(err_db)?;
     Ok(Json(row_to_payment(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/internal/payment-instruments/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `GET /v1/internal/payment-instruments/{id}` — internal lookup.
 pub async fn get_payment_instrument_internal(
@@ -5200,6 +5755,16 @@ pub async fn get_payment_instrument_internal(
     .map_err(err_db)?;
     Ok(Json(crate::routing::row_to_payment_instrument(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/internal/account-links/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `GET /v1/internal/account-links/{id}` — internal lookup.
 pub async fn get_account_link_internal(
@@ -5221,6 +5786,16 @@ pub async fn get_account_link_internal(
     .map_err(err_db)?;
     Ok(Json(crate::routing::row_to_account_link(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/internal/parameters/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `GET /v1/internal/parameters/{id}` — internal lookup.
 pub async fn get_parameter_internal(
@@ -5239,6 +5814,16 @@ pub async fn get_parameter_internal(
         .map_err(err_db)?;
     Ok(Json(row_to_parameter(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/internal/rules/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `GET /v1/internal/rules/{id}` — internal lookup.
 pub async fn get_rule_internal(
@@ -5260,6 +5845,16 @@ pub async fn get_rule_internal(
     .map_err(err_db)?;
     Ok(Json(crate::rules::row_to_rule(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/internal/integrations/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `GET /v1/internal/integrations/{id}` — internal lookup.
 pub async fn get_integration_internal(
@@ -5278,6 +5873,16 @@ pub async fn get_integration_internal(
         .map_err(err_db)?;
     Ok(Json(row_to_integration(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/internal/mandates/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `GET /v1/internal/mandates/{id}` — internal lookup.
 pub async fn get_mandate_internal(
@@ -5296,6 +5901,16 @@ pub async fn get_mandate_internal(
         .map_err(err_db)?;
     Ok(Json(row_to_mandate(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/internal/manual-decisions/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `GET /v1/internal/manual-decisions/{id}` — internal lookup.
 pub async fn get_manual_decision_internal(
@@ -5316,6 +5931,16 @@ pub async fn get_manual_decision_internal(
     .map_err(err_db)?;
     Ok(Json(row_to_manual_decision(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/internal/calendars/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `GET /v1/internal/calendars/{id}` — internal lookup.
 pub async fn get_calendar_internal(
@@ -5334,6 +5959,16 @@ pub async fn get_calendar_internal(
         .map_err(err_db)?;
     Ok(Json(crate::calendars::row_to_calendar(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/internal/cards/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `GET /v1/internal/cards/{id}` — internal lookup.
 pub async fn get_card_internal(
@@ -5352,6 +5987,16 @@ pub async fn get_card_internal(
         .map_err(err_db)?;
     Ok(Json(row_to_card(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/internal/cardholders/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 /// `GET /v1/internal/cardholders/{id}` — internal lookup.
 pub async fn get_cardholder_internal(
@@ -5387,6 +6032,17 @@ pub struct MigrationModule {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/logics/{id}/migrate-wasm",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/logics/{id}/migrate-wasm` — migrate an instruction logic's inline
 /// hooks to Func WASM modules (Story ).
@@ -5535,6 +6191,16 @@ pub struct ScheduleTriggerResponse {
     pub instruction_id: Uuid,
     pub status: String,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/internal/schedules/trigger",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "payments-internal",
+)]
 
 pub async fn trigger_schedule_internal(
     State(state): State<AppState>,

@@ -154,6 +154,17 @@ fn err_db(e: sqlx::Error) -> (StatusCode, String) {
 }
 
 // ── Handlers ────────────────────────────────────────────────────────────
+#[utoipa::path(
+    post,
+    path = "/v1/templates",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/templates` — create a template.
 pub async fn create_template(
@@ -187,6 +198,17 @@ pub async fn create_template(
         .map_err(err_db)?;
     Ok(Json(row_to_template(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/templates",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/templates` — list templates.
 pub async fn list_templates(
@@ -212,6 +234,17 @@ pub async fn list_templates(
         .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_template).collect()))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/templates/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/templates/{id}` — get a template.
 pub async fn get_template(
@@ -238,6 +271,17 @@ pub async fn get_template(
         .map_err(err_db)?;
     Ok(Json(row_to_template(&row)))
 }
+#[utoipa::path(
+    post,
+    path = "/v1/templates/{id}/versions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/templates/{id}/versions` — create a new template version.
 pub async fn create_template_version(
@@ -285,6 +329,17 @@ pub async fn create_template_version(
         .map_err(err_db)?;
     Ok(Json(row_to_version(&row)))
 }
+#[utoipa::path(
+    post,
+    path = "/v1/templates/{id}/publish",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/templates/{id}/publish` — publish the latest draft version of
 /// a template. Marks the latest draft version as `published` and sets it as

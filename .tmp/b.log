@@ -1,0 +1,182 @@
+    Updating git repository `https://github.com/Sentin8/sentin8-sdk`
+    Updating git repository `https://github.com/Sentin8/sentin8-sdk`
+     Locking 47 packages to latest compatible versions
+      Adding sentin8 v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8 v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-audit v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-audit v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-auth-client v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-auth-client v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-build-info v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-build-info v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-bus-client v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-bus-client v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-bus-contracts v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-bus-contracts v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-config v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-crypto v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-errors v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-errors v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-fapiclient v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-fapiclient v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-idempotency v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-idempotency v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-jwt v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-jwt v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-m2m v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-membus v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-membus v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-middleware v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-middleware v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-openapi v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-openapi v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-outbox v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-outbox v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-registration v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-registration v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-rfw v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-rfw v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-service-discovery v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-service-discovery v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-shell v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-shell v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-shield v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-shield v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-tls v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-tls v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-tls-contracts v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-tls-contracts v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+      Adding sentin8-workload-registry v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.5#b3169cd5)
+      Adding sentin8-workload-registry v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-errors v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-crypto v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-jwt v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-bus-contracts v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-openapi v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-build-info v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-registration v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-idempotency v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-rfw v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-config v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-fapiclient v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-tls-contracts v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-middleware v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-m2m v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-workload-registry v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-service-discovery v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-membus v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-audit v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-auth-client v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-tls v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-bus-client v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-outbox v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-shield v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8-shell v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling sentin8 v0.1.0 (https://github.com/Sentin8/sentin8-sdk?tag=sdk-v0.6.6#29e56709)
+   Compiling bank8-payments v0.1.0 (/home/hamid/dev/sentin8.new/bank8/bank8-payments)
+error[E0308]: mismatched types
+   --> src/file_processing.rs:133:13
+    |
+131 | ...ome(http) => sentin8_flow_sdk::client::FlowClient::from_transport(
+    |                 ---------------------------------------------------- arguments to this function are incorrect
+132 | ...   &config.sentin8_flow_url,
+133 | ...   sentin8::middleware::http_client::Sentin8HttpClient::from_client(http.clone()),
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Sentin8HttpClient`, found a different `Sentin8HttpClient`
+    |
+note: there are multiple different versions of crate `sentin8_middleware` in the dependency graph
+   --> /home/hamid/.cargo/git/checkouts/sentin8-sdk-319270d606f1f63c/b3169cd/core/middleware/src/http_client.rs:59:1
+    |
+ 59 | pub struct Sentin8HttpClient {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is the expected type
+    |
+   ::: /home/hamid/.cargo/git/checkouts/sentin8-sdk-319270d606f1f63c/29e5670/core/middleware/src/http_client.rs:59:1
+    |
+ 59 | pub struct Sentin8HttpClient {
+    | ---------------------------- this is the found type
+    = help: you can use `cargo tree` to explore your dependency tree
+note: associated function defined here
+   --> /home/hamid/.cargo/git/checkouts/sentin8-flow-c079f4d1d69e4227/41e71ae/sdk/crates/flow-client/src/lib.rs:94:12
+    |
+ 94 |     pub fn from_transport(base_url: impl Into<String>, http: Sentin8Htt...
+    |            ^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+   --> src/handlers.rs:270:17
+    |
+268 | ...ome(http) => sentin8_flow_sdk::client::FlowClient::from_transport(
+    |                 ---------------------------------------------------- arguments to this function are incorrect
+269 | ...   &state.config.sentin8_flow_url,
+270 | ...   sentin8::middleware::http_client::Sentin8HttpClient::from_client(http.clone()),
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Sentin8HttpClient`, found a different `Sentin8HttpClient`
+    |
+note: there are multiple different versions of crate `sentin8_middleware` in the dependency graph
+   --> /home/hamid/.cargo/git/checkouts/sentin8-sdk-319270d606f1f63c/b3169cd/core/middleware/src/http_client.rs:59:1
+    |
+ 59 | pub struct Sentin8HttpClient {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is the expected type
+    |
+   ::: /home/hamid/.cargo/git/checkouts/sentin8-sdk-319270d606f1f63c/29e5670/core/middleware/src/http_client.rs:59:1
+    |
+ 59 | pub struct Sentin8HttpClient {
+    | ---------------------------- this is the found type
+    = help: you can use `cargo tree` to explore your dependency tree
+note: associated function defined here
+   --> /home/hamid/.cargo/git/checkouts/sentin8-flow-c079f4d1d69e4227/41e71ae/sdk/crates/flow-client/src/lib.rs:94:12
+    |
+ 94 |     pub fn from_transport(base_url: impl Into<String>, http: Sentin8Htt...
+    |            ^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+    --> src/handlers.rs:3223:17
+     |
+3221 | ...ome(http) => sentin8_flow_sdk::client::FlowClient::from_transport(
+     |                 ---------------------------------------------------- arguments to this function are incorrect
+3222 | ...   &state.config.sentin8_flow_url,
+3223 | ...   sentin8::middleware::http_client::Sentin8HttpClient::from_client(http.clone()),
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Sentin8HttpClient`, found a different `Sentin8HttpClient`
+     |
+note: there are multiple different versions of crate `sentin8_middleware` in the dependency graph
+    --> /home/hamid/.cargo/git/checkouts/sentin8-sdk-319270d606f1f63c/b3169cd/core/middleware/src/http_client.rs:59:1
+     |
+  59 | pub struct Sentin8HttpClient {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is the expected type
+     |
+    ::: /home/hamid/.cargo/git/checkouts/sentin8-sdk-319270d606f1f63c/29e5670/core/middleware/src/http_client.rs:59:1
+     |
+  59 | pub struct Sentin8HttpClient {
+     | ---------------------------- this is the found type
+     = help: you can use `cargo tree` to explore your dependency tree
+note: associated function defined here
+    --> /home/hamid/.cargo/git/checkouts/sentin8-flow-c079f4d1d69e4227/41e71ae/sdk/crates/flow-client/src/lib.rs:94:12
+     |
+  94 |     pub fn from_transport(base_url: impl Into<String>, http: Sentin8Ht...
+     |            ^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+   --> src/worker/mod.rs:111:13
+    |
+109 | ...k(http) => sentin8_flow_sdk::client::FlowClient::from_transport(
+    |               ---------------------------------------------------- arguments to this function are incorrect
+110 | ...   config.sentin8_flow_url.clone(),
+111 | ...   sentin8::middleware::http_client::Sentin8HttpClient::from_client(http),
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Sentin8HttpClient`, found a different `Sentin8HttpClient`
+    |
+note: there are multiple different versions of crate `sentin8_middleware` in the dependency graph
+   --> /home/hamid/.cargo/git/checkouts/sentin8-sdk-319270d606f1f63c/b3169cd/core/middleware/src/http_client.rs:59:1
+    |
+ 59 | pub struct Sentin8HttpClient {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is the expected type
+    |
+   ::: /home/hamid/.cargo/git/checkouts/sentin8-sdk-319270d606f1f63c/29e5670/core/middleware/src/http_client.rs:59:1
+    |
+ 59 | pub struct Sentin8HttpClient {
+    | ---------------------------- this is the found type
+    = help: you can use `cargo tree` to explore your dependency tree
+note: associated function defined here
+   --> /home/hamid/.cargo/git/checkouts/sentin8-flow-c079f4d1d69e4227/41e71ae/sdk/crates/flow-client/src/lib.rs:94:12
+    |
+ 94 |     pub fn from_transport(base_url: impl Into<String>, http: Sentin8Htt...
+    |            ^^^^^^^^^^^^^^
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `bank8-payments` (lib) due to 4 previous errors

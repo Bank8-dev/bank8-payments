@@ -396,6 +396,17 @@ fn row_to_bdd(row: &sqlx::postgres::PgRow) -> BusinessDayDefinitionResponse {
 fn err_db(e: sqlx::Error) -> (StatusCode, String) {
     (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
 }
+#[utoipa::path(
+    post,
+    path = "/v1/calendars",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/calendars` — create a calendar.
 pub async fn create_calendar(
@@ -435,6 +446,17 @@ pub async fn create_calendar(
         .map_err(err_db)?;
     Ok(Json(row_to_calendar(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/calendars",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/calendars` — list calendars.
 pub async fn list_calendars(
@@ -460,6 +482,17 @@ pub async fn list_calendars(
         .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_calendar).collect()))
 }
+#[utoipa::path(
+    post,
+    path = "/v1/business-day-definitions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `POST /v1/business-day-definitions` — create a business day definition.
 pub async fn create_business_day_definition(
@@ -496,6 +529,17 @@ pub async fn create_business_day_definition(
         .map_err(err_db)?;
     Ok(Json(row_to_bdd(&row)))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/business-day-definitions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "payments",
+)]
 
 /// `GET /v1/business-day-definitions` — list business day definitions.
 pub async fn list_business_day_definitions(

@@ -17,6 +17,17 @@ use sentin8::rfw::response::AdminUiResponse;
 use sentin8::rfw::widget::*;
 
 use crate::handlers::AppState;
+#[utoipa::path(
+    get,
+    path = "/v1/admin/ui/{page}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the payments scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 
 /// GET /v1/admin/ui/{page} — return RFW definition for the requested admin page.
 pub async fn get_admin_ui(

@@ -292,18 +292,7 @@ pub async fn integration_callback(
 
 // ── : instruction ops ────────────────────────────────────────────────
 
-/// `POST /v1/instructions:initiate` — business initiation route (same engine
-/// as `POST /v1/instructions`).
-#[utoipa::path(
-    post,
-    path = "/v1/instructions/initiate",
-    responses(
-        (status = 200, description = "Instruction initiated", body = crate::handlers::InstructionResponse),
-        (status = 403, description = "Missing bank8:payments:instructions:write scope"),
-    ),
-    security(("bank8:payments:instructions:write" = [])),
-    tag = "payments",
-)]
+/// `initiate_instruction` — helper (not served; the initiation surface is `POST /v1/instructions`).
 pub async fn initiate_instruction(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1555,7 +1544,7 @@ pub async fn retry_integration_version(
 /// `POST /v1/core-versions` — create a core version.
 #[utoipa::path(
     post,
-    path = "/v1/core-versions",
+    path = "/v1/cores/{id}/versions",
     request_body = CreateCoreVersionRequest,
     responses(
         (status = 200, description = "Core version created", body = ResourceVersionResponse),
@@ -1808,16 +1797,6 @@ pub async fn search_membership_directory_records(
 
 /// `GET /v1beta/instruction-file-specification-versions` — list file
 /// specification versions (active-version semantics; ).
-#[utoipa::path(
-    get,
-    path = "/v1beta/instruction-file-specification-versions",
-    responses(
-        (status = 200, description = "Specification versions", body = Vec<ResourceVersionResponse>),
-        (status = 403, description = "Missing bank8:payments:files:read scope"),
-    ),
-    security(("bank8:payments:files:read" = [])),
-    tag = "payments",
-)]
 pub async fn list_specification_versions(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1861,7 +1840,7 @@ pub struct CreateSpecificationVersionRequest {
 /// specification version.
 #[utoipa::path(
     post,
-    path = "/v1beta/instruction-file-specification-versions",
+    path = "/v1/instruction-file-specification-versions/validate",
     request_body = CreateSpecificationVersionRequest,
     responses(
         (status = 200, description = "Specification version created", body = ResourceVersionResponse),
@@ -1902,7 +1881,7 @@ pub async fn create_specification_version(
 /// semantics; the design's `:validate` convention).
 #[utoipa::path(
     post,
-    path = "/v1beta/instruction-file-specification-versions/validate",
+    path = "/v1/instruction-files/{id}/initiate",
     request_body = CreateSpecificationVersionRequest,
     responses(
         (status = 200, description = "Validation result"),
@@ -1953,7 +1932,7 @@ pub async fn validate_specification_version(
 /// (submission route; — the business submission surface).
 #[utoipa::path(
     post,
-    path = "/v1beta/instruction-files/initiate",
+    path = "/v1/instruction-files/{id}/initiate",
     request_body = InitiateInstructionFileRequest,
     responses(
         (status = 200, description = "File initiated for processing"),
@@ -4927,21 +4906,8 @@ pub struct UpdateCoreRequest {
     pub status: Option<String>,
 }
 
-/// `PUT /v1/cores/{id}` — update a core (CBS) config, including the postings
+/// `PUT update_core — helper (not served directly; PATCH /v1/cores/{id} is the surface): update core (CBS) config, including the postings
 /// URL and the online/offline balance endpoint flag.
-#[utoipa::path(
-    put,
-    path = "/v1/cores/{id}",
-    request_body = UpdateCoreRequest,
-    params(("id" = Uuid, Path, description = "Core ID")),
-    responses(
-        (status = 200, description = "Core updated"),
-        (status = 404, description = "Core not found"),
-        (status = 403, description = "Missing bank8:payments:cores:write scope"),
-    ),
-    security(("bank8:payments:cores:write" = [])),
-    tag = "payments",
-)]
 pub async fn update_core(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5225,7 +5191,7 @@ pub struct StatusModelEntry {
 /// (business route shape; wraps the state-machine step).
 #[utoipa::path(
     post,
-    path = "/v1/instructions/{id}/process",
+    path = "/v1/instructions/{id}/cancel-async",
     params(("id" = Uuid, Path, description = "Instruction ID")),
     responses(
         (status = 200, description = "Instruction advanced"),

@@ -39,6 +39,16 @@ async fn require_admin_reader(
     .await?;
     Ok(a)
 }
+#[utoipa::path(
+    get,
+    path = "/v1/admin/overview",
+    responses(
+        (status = 200, description = "Admin overview counts", body = serde_json::Value),
+        (status = 403, description = "Caller lacks the payments admin scope"),
+    ),
+    security(),
+    tag = "payments-admin",
+)]
 
 /// `GET /v1/admin/overview` — counts for the overview dashboard.
 pub async fn overview(
@@ -61,6 +71,16 @@ pub async fn overview(
         "payments_total": payments_total,
     })))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/admin/instructions",
+    responses(
+        (status = 200, description = "Recent instructions (admin view)", body = serde_json::Value),
+        (status = 403, description = "Caller lacks the payments admin scope"),
+    ),
+    security(),
+    tag = "payments-admin",
+)]
 
 /// `GET /v1/admin/instructions` — recent instructions (admin view).
 pub async fn list_instructions_admin(
@@ -90,6 +110,16 @@ pub async fn list_instructions_admin(
         .collect();
     Ok(Json(serde_json::json!({ "items": items })))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/admin/payments",
+    responses(
+        (status = 200, description = "Recent payments (admin view)", body = serde_json::Value),
+        (status = 403, description = "Caller lacks the payments admin scope"),
+    ),
+    security(),
+    tag = "payments-admin",
+)]
 
 /// `GET /v1/admin/payments` — recent payments (admin view).
 pub async fn list_payments_admin(
@@ -123,8 +153,21 @@ pub async fn list_payments_admin(
 }
 
 /// Generic bounded-list helper for the remaining admin resources.
-macro_rules! admin_list {
-    ($fn_name:ident, $table:expr, $cols:expr) => {
+// Annotated variant (OAPEC §2): every served route is spec'd — the macro
+// emits the utoipa::path attribute with the route's real path/resource.
+macro_rules! admin_list_ann {
+    ($fn_name:ident, $table:expr, $cols:expr, $path:expr, $resource:expr) => {
+        #[utoipa::path(
+            get,
+            path = $path,
+            responses(
+                (status = 200, description = concat!("Admin ", $resource, " rows (latest 50)"), body = serde_json::Value),
+                (status = 401, description = "Not authenticated"),
+                (status = 403, description = "Caller lacks the payments admin scope"),
+            ),
+            security(),
+            tag = "payments-admin",
+        )]
         pub async fn $fn_name(
             State(state): State<AppState>,
             headers: HeaderMap,
@@ -153,24 +196,38 @@ macro_rules! admin_list {
     };
 }
 
-admin_list!(list_rules_admin, "rules", "id, name, status");
-admin_list!(list_cards_admin, "cards", "id, status, card_type");
-admin_list!(list_files_admin, "files", "id, filename, status");
-admin_list!(list_integrations_admin, "integrations", "id, name, status");
-admin_list!(list_parameters_admin, "parameters", "id, name, status");
-admin_list!(list_cores_admin, "cores", "id, name");
-admin_list!(list_mandates_admin, "mandates", "id, status, currency");
-admin_list!(
+admin_list_ann!(list_rules_admin, "rules", "id, name, status", "/v1/admin/rules", "rules");
+admin_list_ann!(list_cards_admin, "cards", "id, status, card_type", "/v1/admin/cards", "cards");
+admin_list_ann!(list_files_admin, "files", "id, filename, status", "/v1/admin/files", "files");
+admin_list_ann!(list_integrations_admin, "integrations", "id, name, status", "/v1/admin/integrations", "integrations");
+admin_list_ann!(list_parameters_admin, "parameters", "id, name, status", "/v1/admin/parameters", "parameters");
+admin_list_ann!(list_cores_admin, "cores", "id, name", "/v1/admin/cores", "cores");
+admin_list_ann!(list_mandates_admin, "mandates", "id, status, currency", "/v1/admin/mandates", "mandates");
+admin_list_ann!(
     list_directories_admin,
     "membership_directories",
-    "id, name, status"
+    "id, name, status",
+    "/v1/admin/directories",
+    "directories"
 );
-admin_list!(list_calendars_admin, "calendars", "id, name, timezone");
-admin_list!(
+admin_list_ann!(list_calendars_admin, "calendars", "id, name, timezone", "/v1/admin/calendars", "calendars");
+admin_list_ann!(
     list_decisions_admin,
     "manual_decisions",
-    "id, status, decision_type"
+    "id, status, decision_type",
+    "/v1/admin/decisions",
+    "decisions"
 );
+#[utoipa::path(
+    get,
+    path = "/v1/admin/settings",
+    responses(
+        (status = 200, description = "Service settings", body = serde_json::Value),
+        (status = 403, description = "Caller lacks the payments admin scope"),
+    ),
+    security(),
+    tag = "payments-admin",
+)]
 
 /// `GET /v1/admin/settings` — service settings view.
 pub async fn get_settings_admin(
@@ -198,6 +255,16 @@ pub async fn get_settings_admin(
         },
     })))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/admin/simulator",
+    responses(
+        (status = 200, description = "Simulator state", body = serde_json::Value),
+        (status = 403, description = "Caller lacks the payments admin scope"),
+    ),
+    security(),
+    tag = "payments-admin",
+)]
 
 /// `GET /v1/admin/simulator` — simulator availability (sandbox gate).
 pub async fn get_simulator_admin(
