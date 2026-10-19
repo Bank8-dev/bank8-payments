@@ -9,6 +9,7 @@
 //! file direction & status enums, inbound/outbound batch builders, presigned
 //! URL generation, filename validation, and instruction-file-spec records.
 
+use utoipa::ToSchema;
 use axum::extract::State;
 use axum::Json;
 use serde::{Deserialize, Serialize};
@@ -249,7 +250,7 @@ pub struct DebatchRequest {
 }
 
 /// Proxy-back response - the same shape the instruction step contract uses.
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, ToSchema)]
 pub struct DebatchResponse {
     pub status: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -261,7 +262,7 @@ pub struct DebatchResponse {
     post,
     path = "/v1/internal/files/debatch",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = DebatchResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),

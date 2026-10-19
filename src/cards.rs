@@ -15,6 +15,7 @@
 //! dependencies. Production deployments MUST replace `CardEncryption` with
 //! a real HSM/KMS-backed implementation.
 
+use utoipa::ToSchema;
 use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
@@ -317,7 +318,7 @@ pub async fn replace_card(
 // ── Story - Card tokens ─────────────────────────────────────────
 
 /// API response for a card token.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CardTokenResponse {
     pub id: Uuid,
     pub card_id: Uuid,
@@ -746,7 +747,7 @@ impl EncryptedSessionType {
 }
 
 /// Response returned when an encrypted card session is created.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct EncryptedSessionResponse {
     pub session_id: Uuid,
     pub card_id: Uuid,
@@ -759,7 +760,7 @@ pub struct EncryptedSessionResponse {
     post,
     path = "/v1/cards/{id}/encrypted-session",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = EncryptedSessionResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -822,7 +823,7 @@ pub async fn create_encrypted_session(
 }
 
 /// Result of a PIN verification.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct PinVerifyResult {
     pub card_id: Uuid,
     pub verified: bool,
@@ -832,7 +833,7 @@ pub struct PinVerifyResult {
     post,
     path = "/v1/cards/{id}/pin/verify",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = PinVerifyResult),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -910,7 +911,7 @@ pub async fn verify_pin(
 }
 
 /// Result of a PIN change operation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct PinChangeResult {
     pub card_id: Uuid,
     pub changed: bool,
@@ -919,7 +920,7 @@ pub struct PinChangeResult {
     post,
     path = "/v1/cards/{id}/pin/change",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = PinChangeResult),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),

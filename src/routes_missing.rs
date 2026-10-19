@@ -16,6 +16,7 @@
 //! - Tasks API: list / get / claim / approve / reject
 //! - Aggregations query
 
+use utoipa::ToSchema;
 use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
@@ -25,6 +26,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use uuid::Uuid;
 
+use crate::cards::CardTokenResponse;
+use crate::handlers::LogicResponse;
 use crate::auth;
 use crate::event_streaming::{self, ResourceType};
 use crate::handlers::{bearer_token_of, err_db, set_tenant_context, AppState};
@@ -42,7 +45,7 @@ fn map_card_err(e: String) -> (StatusCode, String) {
     post,
     path = "/v1/cards/{id}/activate",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = CardLifecycleAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -55,7 +58,7 @@ pub async fn activate_card(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<CardLifecycleAck>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
     crate::policy::require(
@@ -70,13 +73,16 @@ pub async fn activate_card(
     crate::cards::activate_card(&state.pool, id)
         .await
         .map_err(map_card_err)?;
-    Ok(Json(serde_json::json!({ "id": id, "status": "active" })))
+    Ok(Json(CardLifecycleAck {
+        id,
+        status: "active".into(),
+    }))
 }
 #[utoipa::path(
     post,
     path = "/v1/cards/{id}/freeze",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = CardLifecycleAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -89,7 +95,7 @@ pub async fn freeze_card(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<CardLifecycleAck>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
     crate::policy::require(
@@ -104,13 +110,16 @@ pub async fn freeze_card(
     crate::cards::freeze_card(&state.pool, id)
         .await
         .map_err(map_card_err)?;
-    Ok(Json(serde_json::json!({ "id": id, "status": "suspended" })))
+    Ok(Json(CardLifecycleAck {
+        id,
+        status: "suspended".into(),
+    }))
 }
 #[utoipa::path(
     post,
     path = "/v1/cards/{id}/unfreeze",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = CardLifecycleAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -123,7 +132,7 @@ pub async fn unfreeze_card(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<CardLifecycleAck>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
     crate::policy::require(
@@ -138,7 +147,10 @@ pub async fn unfreeze_card(
     crate::cards::unfreeze_card(&state.pool, id)
         .await
         .map_err(map_card_err)?;
-    Ok(Json(serde_json::json!({ "id": id, "status": "active" })))
+    Ok(Json(CardLifecycleAck {
+        id,
+        status: "active".into(),
+    }))
 }
 
 #[derive(Debug, Deserialize)]
@@ -150,7 +162,7 @@ pub struct ReplaceCardRequest {
     post,
     path = "/v1/cards/{id}/replace",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = CardReplaceAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -164,7 +176,7 @@ pub async fn replace_card(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<ReplaceCardRequest>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<CardReplaceAck>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     auth::require_feature(&state.config, crate::config::FeatureGate::Cards)?;
     crate::policy::require(
@@ -193,7 +205,10 @@ pub async fn replace_card(
         ),
     )
     .await;
-    Ok(Json(serde_json::json!({ "id": new_id, "replaces": id })))
+    Ok(Json(CardReplaceAck {
+        id: new_id,
+        replaces: id,
+    }))
 }
 
 // ── Card tokens (§5.4) ──────────────────────────────────────────────────
@@ -207,7 +222,7 @@ pub struct ListCardTokensQuery {
     get,
     path = "/v1/card-tokens",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<CardTokenResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -245,7 +260,59 @@ pub struct Get3dsQuery {
     pub transaction_id: String,
 }
 
-#[derive(Debug, Serialize)]
+/// Card lifecycle mutation acknowledgement (activate/freeze/unfreeze).
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CardLifecycleAck {
+    /// The affected card id.
+    pub id: Uuid,
+    /// The new card status.
+    pub status: String,
+}
+
+/// Replacement-issuance acknowledgement.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CardReplaceAck {
+    /// The newly issued card id.
+    pub id: Uuid,
+    /// The replaced (disabled) card id.
+    pub replaces: Uuid,
+}
+
+/// File debatch submission acknowledgement.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct FileSubmitAck {
+    /// The processed file id.
+    pub id: Uuid,
+    /// The resulting status.
+    pub status: String,
+    /// Instruction batch ids produced by the debatch workflow.
+    pub batches: Vec<Uuid>,
+}
+
+/// Whitelisted-SQL aggregation result (OAPEC-9 typed body).
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AggregationResponse {
+    /// The aggregation name that ran.
+    pub aggregation: String,
+    /// Buckets when `group_by` is present.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub buckets: Option<Vec<AggregationBucket>>,
+    /// Single scalar (rendered as text) when no `group_by`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+}
+
+/// One aggregation bucket.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AggregationBucket {
+    /// The group key (absent for global aggregates).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bucket: Option<String>,
+    /// The aggregate value rendered as text (numeric-as-text contract).
+    pub value: String,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ThreeDsRecordResponse {
     pub id: Uuid,
     pub card_id: Option<Uuid>,
@@ -258,7 +325,7 @@ pub struct ThreeDsRecordResponse {
     get,
     path = "/v1/3ds-records",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<ThreeDsRecordResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -313,7 +380,7 @@ pub async fn get_3ds_records(
     post,
     path = "/v1/files/{id}/submit",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = FileSubmitAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -327,7 +394,7 @@ pub async fn submit_file(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<FileSubmitAck>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     auth::require_feature(&state.config, crate::config::FeatureGate::Files)?;
     crate::policy::require(
@@ -361,14 +428,16 @@ pub async fn submit_file(
         ),
     )
     .await;
-    Ok(Json(
-        serde_json::json!({ "id": id, "status": "processed", "batches": batch_ids }),
-    ))
+    Ok(Json(FileSubmitAck {
+        id,
+        status: "processed".into(),
+        batches: batch_ids,
+    }))
 }
 
 // ── Instruction batches (§5.5) ──────────────────────────────────────────
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct InstructionBatchResponse {
     pub id: Uuid,
     pub instruction_file_id: Uuid,
@@ -381,7 +450,7 @@ pub struct InstructionBatchResponse {
     get,
     path = "/v1/instruction-batches",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<InstructionBatchResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -432,7 +501,7 @@ pub async fn list_instruction_batches(
     get,
     path = "/v1/logics/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = LogicResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -468,7 +537,7 @@ pub async fn get_logic(
 
 // ── Tasks API (§5.7) ────────────────────────────────────────────────────
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct TaskResponse {
     pub id: Uuid,
     pub task_type: String,
@@ -509,7 +578,7 @@ pub struct ListTasksQuery {
     get,
     path = "/v1/tasks",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<TaskResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -547,7 +616,7 @@ pub async fn list_tasks(
     get,
     path = "/v1/tasks/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = TaskResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -589,7 +658,7 @@ pub struct ClaimTaskRequest {
     post,
     path = "/v1/tasks/{id}/claim",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = TaskResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -635,7 +704,7 @@ pub struct ReviewTaskRequest {
     post,
     path = "/v1/tasks/{id}/approve",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = TaskResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -676,7 +745,7 @@ pub async fn approve_task(
     post,
     path = "/v1/tasks/{id}/reject",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = TaskResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -743,7 +812,7 @@ fn default_aggregation() -> String {
     get,
     path = "/v1/aggregations",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = AggregationResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -755,7 +824,7 @@ pub async fn query_aggregations(
     State(state): State<AppState>,
     headers: HeaderMap,
     Query(q): Query<AggregationQuery>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<AggregationResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     auth::require_feature(&state.config, crate::config::FeatureGate::Dashboards)?;
     crate::policy::require(
@@ -818,25 +887,27 @@ pub async fn query_aggregations(
         .map_err(err_db)?;
 
     if q.group_by.is_some() {
-        let buckets: Vec<serde_json::Value> = rows
+        let buckets: Vec<AggregationBucket> = rows
             .iter()
-            .map(|r| {
-                serde_json::json!({
-                    "bucket": r.get::<Option<String>, _>("bucket"),
-                    "value": r.get::<String, _>("value"),
-                })
+            .map(|r| AggregationBucket {
+                bucket: r.get::<Option<String>, _>("bucket"),
+                value: r.get::<String, _>("value"),
             })
             .collect();
-        Ok(Json(
-            serde_json::json!({ "aggregation": q.aggregation, "buckets": buckets }),
-        ))
+        Ok(Json(AggregationResponse {
+            aggregation: q.aggregation,
+            buckets: Some(buckets),
+            value: None,
+        }))
     } else {
         let value: String = rows
             .first()
             .map(|r| r.get("value"))
             .unwrap_or_else(|| "0".into());
-        Ok(Json(
-            serde_json::json!({ "aggregation": q.aggregation, "value": value }),
-        ))
+        Ok(Json(AggregationResponse {
+            aggregation: q.aggregation,
+            buckets: None,
+            value: Some(value),
+        }))
     }
 }

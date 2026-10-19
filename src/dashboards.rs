@@ -10,6 +10,7 @@
 //! (Value, Table, PieChart, BarChart, LineChart) and a config that may
 //! include aggregation settings and a search query.
 
+use utoipa::ToSchema;
 use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
@@ -465,7 +466,7 @@ pub struct Widget {
 
 // ── Response types ──────────────────────────────────────────────────────
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct DashboardResponse {
     pub id: Uuid,
     pub name: String,
@@ -476,7 +477,7 @@ pub struct DashboardResponse {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct DashboardVersionResponse {
     pub id: Uuid,
     pub dashboard_id: Uuid,
@@ -553,7 +554,7 @@ fn err_db(e: sqlx::Error) -> (StatusCode, String) {
     post,
     path = "/v1/dashboards",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Created dashboard", body = DashboardResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -596,7 +597,7 @@ pub async fn create_dashboard(
     get,
     path = "/v1/dashboards",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Dashboard list", body = Vec<DashboardResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -632,7 +633,7 @@ pub async fn list_dashboards(
     get,
     path = "/v1/dashboards/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = DashboardResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -669,7 +670,7 @@ pub async fn get_dashboard(
     post,
     path = "/v1/dashboards/{id}/versions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = DashboardVersionResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -727,7 +728,7 @@ pub async fn create_dashboard_version(
     post,
     path = "/v1/dashboards/{id}/publish",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = DashboardVersionResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),

@@ -9,11 +9,18 @@
 
 use utoipa::OpenApi;
 
+use crate::admin_data;
+use crate::calendars;
+use crate::cards;
 use crate::cores;
+use crate::dashboards;
+use crate::file_processing;
 use crate::handlers;
 use crate::pay_api;
+use crate::routes_missing;
 use crate::routing;
 use crate::rules;
+use crate::templates;
 
 /// OpenAPI spec for the Payments admin API.
 #[derive(OpenApi)]
@@ -335,6 +342,51 @@ use crate::rules;
         pay_api::CoreBalanceEndpointRequest,
         pay_api::RepairInstructionRequest,
         pay_api::UpdatePinRequest,
+        pay_api::InitiateCardSessionRequest,
+        pay_api::SearchRecordsRequest,
+        handlers::ParameterResponse,
+        handlers::FileResponse,
+        handlers::InstructionFileResponse,
+        handlers::InstructionFileSpecificationResponse,
+        handlers::ManualDecisionResponse,
+        handlers::ProxyBackResponse,
+        handlers::MigrateWasmResponse,
+        handlers::MigrationModule,
+        handlers::ScheduleTriggerResponse,
+        handlers::EncryptedSessionResponse,
+        handlers::PinVerifyResponse,
+        handlers::PinChangeResponse,
+        handlers::CardProductResponse,
+        handlers::ResourceIdAck,
+        handlers::ManualDecisionSubmitted,
+        cards::CardTokenResponse,
+        cards::EncryptedSessionResponse,
+        cards::PinVerifyResult,
+        cards::PinChangeResult,
+        routing::AccountLinkResponse,
+        rules::RuleSetResponse,
+        calendars::CalendarResponse,
+        calendars::BusinessDayDefinitionResponse,
+        dashboards::DashboardResponse,
+        dashboards::DashboardVersionResponse,
+        templates::TemplateResponse,
+        templates::TemplateVersionResponse,
+        file_processing::DebatchResponse,
+        routes_missing::ThreeDsRecordResponse,
+        routes_missing::TaskResponse,
+        routes_missing::InstructionBatchResponse,
+        routes_missing::CardLifecycleAck,
+        routes_missing::CardReplaceAck,
+        routes_missing::FileSubmitAck,
+        routes_missing::AggregationResponse,
+        routes_missing::AggregationBucket,
+        admin_data::AdminOverviewStats,
+        admin_data::AdminFeatures,
+        admin_data::AdminSettingsResponse,
+        admin_data::AdminSimulatorState,
+        admin_data::AdminSimulatorToggle,
+        sentin8::rfw::policy_pages::AdminDataRows,
+        sentin8::middleware::health::LiveHealth,
     )),
     security(),
     tags(

@@ -41,9 +41,10 @@ use sqlx::Row;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::routes_missing::{CardReplaceAck, FileSubmitAck};
 use crate::auth;
 use crate::event_streaming::{self, ResourceType};
-use crate::handlers::{bearer_token_of, err_db, set_tenant_context, AppState};
+use crate::handlers::{EncryptedSessionResponse, bearer_token_of, err_db, set_tenant_context, AppState};
 
 // ── Decline recommendations  ──────────────────────────────────────
 
@@ -1945,7 +1946,7 @@ pub async fn initiate_instruction_file(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(req): Json<InitiateInstructionFileRequest>,
-) -> Result<Json<JsonValue>, (StatusCode, String)> {
+) -> Result<Json<FileSubmitAck>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
         &state.policy,
@@ -2418,7 +2419,7 @@ pub async fn replace_card_issuance(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<JsonValue>, (StatusCode, String)> {
+) -> Result<Json<CardReplaceAck>, (StatusCode, String)> {
     crate::routes_missing::replace_card(
         State(state),
         headers,
@@ -2698,12 +2699,30 @@ pub async fn reset_card_lvt(
 
 /// `POST /v1/cards/sessions:initiate` - initiate an encrypted card session
 /// (client key exchange; delegates to the existing session handler).
+/// Client-initiated encrypted-session request (OAPEC-9 typed body).
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct InitiateCardSessionRequest {
+    /// The card to open the session for.
+    pub card_id: Uuid,
+    /// Session type (`pin_verify` | `pin_change` | `3ds`); default `3ds`.
+    #[serde(default)]
+    pub session_type: Option<String>,
+}
+
+/// Directory record-search filters (registry-validated; the search surface
+/// accepts dynamic record documents, carried as a JSON value).
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct SearchRecordsRequest {
+    /// Free-form search operators validated against the record registry.
+    pub filters: serde_json::Value,
+}
+
 #[utoipa::path(
     post,
     path = "/v1/cards/sessions/initiate",
-    request_body = serde_json::Value,
+    request_body = InitiateCardSessionRequest,
     responses(
-        (status = 200, description = "Session created (public key + token)"),
+        (status = 200, description = "Session created (public key + token)", body = EncryptedSessionResponse),
         (status = 403, description = "Missing bank8:payments:issuance:write scope"),
     ),
     security(("bank8:payments:issuance:write" = [])),
@@ -5049,7 +5068,7 @@ pub async fn update_core_balance_endpoint(
     get,
     path = "/v1/openmetrics/metrics",
     responses(
-        (status = 200, description = "OpenMetrics metrics", content_type = "text/plain"),
+        (status = 200, description = "OpenMetrics metrics (text)", content_type = "text/plain", body = String),
         (status = 403, description = "Missing bank8:payments:openmetrics:read scope"),
     ),
     security(("bank8:payments:openmetrics:read" = [])),
@@ -5076,7 +5095,7 @@ pub async fn openmetrics_metrics(
     get,
     path = "/v1/openmetrics/federate",
     responses(
-        (status = 200, description = "Federation metrics", content_type = "text/plain"),
+        (status = 200, description = "Federation metrics (OpenMetrics text)", content_type = "text/plain", body = String),
         (status = 403, description = "Missing bank8:payments:openmetrics:read scope"),
     ),
     security(("bank8:payments:openmetrics:read" = [])),
@@ -5925,7 +5944,7 @@ pub async fn create_instruction_file_specification_version(
 #[utoipa::path(
     post,
     path = "/v1/records/search",
-    request_body = serde_json::Value,
+    request_body = SearchRecordsRequest,
     responses(
         (status = 200, description = "Search results"),
         (status = 400, description = "Invalid search operators (registry)"),

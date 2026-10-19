@@ -10,6 +10,9 @@
 //! matching public handler. All routes go through the standard authorization
 //! pipeline and set tenant context before querying.
 
+use serde::Serialize;
+use utoipa::ToSchema;
+use sentin8::rfw::policy_pages::AdminDataRows;
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
@@ -39,11 +42,76 @@ async fn require_admin_reader(
     .await?;
     Ok(a)
 }
+/// Admin overview counters (OAPEC-9 typed body).
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminOverviewStats {
+    /// Total payment instructions.
+    pub instructions_total: i64,
+    /// Total payments.
+    pub payments_total: i64,
+}
+
+/// Enabled feature gates for this instance (OAPEC-9 typed body).
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminSettingsResponse {
+    /// The service identifier.
+    pub service: String,
+    /// Feature-by-feature enablement.
+    pub features: AdminFeatures,
+}
+
+/// The feature flag set.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminFeatures {
+    /// Synchronous instruction processing enabled.
+    pub instructions_sync: bool,
+    /// Asynchronous instruction processing enabled.
+    pub instructions_async: bool,
+    /// Card module enabled.
+    pub cards: bool,
+    /// Encrypted card sessions enabled.
+    pub cards_encrypted: bool,
+    /// File processing enabled.
+    pub files: bool,
+    /// Mandates enabled.
+    pub mandates: bool,
+    /// Recurring instructions enabled.
+    pub recurring: bool,
+    /// Manual decision tasks enabled.
+    pub manual_decisions: bool,
+    /// Task API enabled.
+    pub tasks: bool,
+    /// Templates enabled.
+    pub templates: bool,
+    /// Dashboards enabled.
+    pub dashboards: bool,
+    /// Membership directories enabled.
+    pub membership_directories: bool,
+    /// Calendars enabled.
+    pub calendars: bool,
+    /// Simulator enabled.
+    pub sandbox: bool,
+}
+
+/// Simulator state (OAPEC-9 typed body).
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminSimulatorState {
+    /// Whether the card/insight simulator is enabled.
+    pub simulator: AdminSimulatorToggle,
+}
+
+/// The simulator toggle.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminSimulatorToggle {
+    /// Enabled state.
+    pub enabled: bool,
+}
+
 #[utoipa::path(
     get,
     path = "/v1/admin/overview",
     responses(
-        (status = 200, description = "Admin overview counts", body = serde_json::Value),
+        (status = 200, description = "OK", body = AdminOverviewStats),
         (status = 403, description = "Caller lacks the payments admin scope"),
     ),
     security(),
@@ -54,7 +122,7 @@ async fn require_admin_reader(
 pub async fn overview(
     State(state): State<AppState>,
     headers: HeaderMap,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<AdminOverviewStats>, (StatusCode, String)> {
     let a = require_admin_reader(&state, &headers).await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
@@ -66,16 +134,16 @@ pub async fn overview(
         .fetch_one(&mut *conn)
         .await
         .map_err(err_db)?;
-    Ok(Json(serde_json::json!({
-        "instructions_total": instructions_total,
-        "payments_total": payments_total,
-    })))
+    Ok(Json(AdminOverviewStats {
+        instructions_total,
+        payments_total,
+    }))
 }
 #[utoipa::path(
     get,
     path = "/v1/admin/instructions",
     responses(
-        (status = 200, description = "Recent instructions (admin view)", body = serde_json::Value),
+        (status = 200, description = "OK", body = AdminDataRows),
         (status = 403, description = "Caller lacks the payments admin scope"),
     ),
     security(),
@@ -86,7 +154,7 @@ pub async fn overview(
 pub async fn list_instructions_admin(
     State(state): State<AppState>,
     headers: HeaderMap,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<AdminDataRows>, (StatusCode, String)> {
     let a = require_admin_reader(&state, &headers).await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
@@ -108,13 +176,13 @@ pub async fn list_instructions_admin(
             })
         })
         .collect();
-    Ok(Json(serde_json::json!({ "items": items })))
+    Ok(Json(AdminDataRows::Items { items }))
 }
 #[utoipa::path(
     get,
     path = "/v1/admin/payments",
     responses(
-        (status = 200, description = "Recent payments (admin view)", body = serde_json::Value),
+        (status = 200, description = "OK", body = AdminDataRows),
         (status = 403, description = "Caller lacks the payments admin scope"),
     ),
     security(),
@@ -125,7 +193,7 @@ pub async fn list_instructions_admin(
 pub async fn list_payments_admin(
     State(state): State<AppState>,
     headers: HeaderMap,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<AdminDataRows>, (StatusCode, String)> {
     let a = require_admin_reader(&state, &headers).await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
@@ -149,7 +217,7 @@ pub async fn list_payments_admin(
             })
         })
         .collect();
-    Ok(Json(serde_json::json!({ "items": items })))
+    Ok(Json(AdminDataRows::Items { items }))
 }
 
 /// Generic bounded-list helper for the remaining admin resources.
@@ -161,7 +229,7 @@ macro_rules! admin_list_ann {
             get,
             path = $path,
             responses(
-                (status = 200, description = concat!("Admin ", $resource, " rows (latest 50)"), body = serde_json::Value),
+                (status = 200, description = concat!("Admin ", $resource, " rows (latest 50)"), body = AdminDataRows),
                 (status = 401, description = "Not authenticated"),
                 (status = 403, description = "Caller lacks the payments admin scope"),
             ),
@@ -171,7 +239,7 @@ macro_rules! admin_list_ann {
         pub async fn $fn_name(
             State(state): State<AppState>,
             headers: HeaderMap,
-        ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+        ) -> Result<Json<AdminDataRows>, (StatusCode, String)> {
             let a = require_admin_reader(&state, &headers).await?;
             let mut conn = state.pool.acquire().await.map_err(err_db)?;
             set_tenant_context(&mut conn, a.env_id()).await;
@@ -191,7 +259,7 @@ macro_rules! admin_list_ann {
                 }
                 serde_json::Value::Object(obj)
             }).collect();
-            Ok(Json(serde_json::json!({ "items": items })))
+            Ok(Json(AdminDataRows::Items { items }))
         }
     };
 }
@@ -222,7 +290,7 @@ admin_list_ann!(
     get,
     path = "/v1/admin/settings",
     responses(
-        (status = 200, description = "Service settings", body = serde_json::Value),
+        (status = 200, description = "OK", body = AdminSettingsResponse),
         (status = 403, description = "Caller lacks the payments admin scope"),
     ),
     security(),
@@ -233,33 +301,33 @@ admin_list_ann!(
 pub async fn get_settings_admin(
     State(state): State<AppState>,
     headers: HeaderMap,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<AdminSettingsResponse>, (StatusCode, String)> {
     let _a = require_admin_reader(&state, &headers).await?;
-    Ok(Json(serde_json::json!({
-        "service": "bank8:payments",
-        "features": {
-            "instructions_sync": state.config.features.instructions_sync,
-            "instructions_async": state.config.features.instructions_async,
-            "cards": state.config.features.cards,
-            "cards_encrypted": state.config.features.cards_encrypted,
-            "files": state.config.features.files,
-            "mandates": state.config.features.mandates,
-            "recurring": state.config.features.recurring,
-            "manual_decisions": state.config.features.manual_decisions,
-            "tasks": state.config.features.tasks,
-            "templates": state.config.features.templates,
-            "dashboards": state.config.features.dashboards,
-            "membership_directories": state.config.features.membership_directories,
-            "calendars": state.config.features.calendars,
-            "sandbox": state.config.features.sandbox,
+    Ok(Json(AdminSettingsResponse {
+        service: "bank8:payments".into(),
+        features: AdminFeatures {
+            instructions_sync: state.config.features.instructions_sync,
+            instructions_async: state.config.features.instructions_async,
+            cards: state.config.features.cards,
+            cards_encrypted: state.config.features.cards_encrypted,
+            files: state.config.features.files,
+            mandates: state.config.features.mandates,
+            recurring: state.config.features.recurring,
+            manual_decisions: state.config.features.manual_decisions,
+            tasks: state.config.features.tasks,
+            templates: state.config.features.templates,
+            dashboards: state.config.features.dashboards,
+            membership_directories: state.config.features.membership_directories,
+            calendars: state.config.features.calendars,
+            sandbox: state.config.features.sandbox,
         },
-    })))
+    }))
 }
 #[utoipa::path(
     get,
     path = "/v1/admin/simulator",
     responses(
-        (status = 200, description = "Simulator state", body = serde_json::Value),
+        (status = 200, description = "OK", body = AdminSimulatorState),
         (status = 403, description = "Caller lacks the payments admin scope"),
     ),
     security(),
@@ -270,10 +338,10 @@ pub async fn get_settings_admin(
 pub async fn get_simulator_admin(
     State(state): State<AppState>,
     headers: HeaderMap,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<AdminSimulatorState>, (StatusCode, String)> {
     let _a = require_admin_reader(&state, &headers).await?;
     let enabled = state.config.features.sandbox;
-    Ok(Json(serde_json::json!({
-        "simulator": { "enabled": enabled },
-    })))
+    Ok(Json(AdminSimulatorState {
+        simulator: AdminSimulatorToggle { enabled },
+    }))
 }

@@ -10,6 +10,7 @@
 //! instruction, and a set of declared inputs. Templates are versioned; one
 //! version is active at a time (`active_version_id`).
 
+use utoipa::ToSchema;
 use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
@@ -24,7 +25,7 @@ use crate::handlers::AppState;
 
 // ── Types ───────────────────────────────────────────────────────────────
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct TemplateResponse {
     pub id: Uuid,
     pub name: String,
@@ -45,7 +46,7 @@ pub struct CreateTemplateRequest {
     pub scheme: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct TemplateVersionResponse {
     pub id: Uuid,
     pub template_id: Uuid,
@@ -158,7 +159,7 @@ fn err_db(e: sqlx::Error) -> (StatusCode, String) {
     post,
     path = "/v1/templates",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Created template", body = TemplateResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -202,7 +203,7 @@ pub async fn create_template(
     get,
     path = "/v1/templates",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Template list", body = Vec<TemplateResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -238,7 +239,7 @@ pub async fn list_templates(
     get,
     path = "/v1/templates/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = TemplateResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -275,7 +276,7 @@ pub async fn get_template(
     post,
     path = "/v1/templates/{id}/versions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = TemplateVersionResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -333,7 +334,7 @@ pub async fn create_template_version(
     post,
     path = "/v1/templates/{id}/publish",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = TemplateVersionResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),

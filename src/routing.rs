@@ -51,7 +51,7 @@ pub struct UpdatePaymentInstrumentRequest {
     pub routing_information: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct AccountLinkResponse {
     pub id: Uuid,
     pub account_id: Uuid,

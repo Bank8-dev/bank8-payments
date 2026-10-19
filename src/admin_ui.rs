@@ -21,7 +21,7 @@ use crate::handlers::AppState;
     get,
     path = "/v1/admin/ui/{page}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = sentin8::rfw::AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -34,7 +34,7 @@ pub async fn get_admin_ui(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(page): Path<String>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminUiResponse>, (axum::http::StatusCode, String)> {
     let _a = crate::auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
         &state.policy,
@@ -75,9 +75,7 @@ pub async fn get_admin_ui(
         }
     };
 
-    Ok(Json(
-        serde_json::to_value(AdminUiResponse::page(page_def)).unwrap(),
-    ))
+    Ok(Json(AdminUiResponse::page(page_def)))
 }
 
 fn overview_page() -> AdminUiPage {

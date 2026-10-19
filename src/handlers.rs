@@ -18,6 +18,11 @@ use sqlx::Row;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use sentin8::middleware::health::LiveHealth;
+use crate::calendars::CalendarResponse;
+use crate::cores::CoreVersionResponse;
+use crate::routing::{AccountLinkResponse, PaymentInstrumentResponse};
+use crate::rules::{RuleResponse, RuleSetResponse};
 use crate::auth;
 use crate::config::PaymentsConfig;
 use crate::event_streaming::{self, ResourceType};
@@ -643,7 +648,7 @@ pub async fn create_logic(
     get,
     path = "/v1/logics",
     responses(
-        (status = 200, description = "Logics list", body = serde_json::Value),
+        (status = 200, description = "Logics list", body = Vec<LogicResponse>),
         (status = 403, description = "Missing bank8:payments:logics:read scope"),
     ),
     security(("bank8:payments:logics:read" = [])),
@@ -675,7 +680,7 @@ pub async fn list_logics(
     post,
     path = "/v1/payment-instruments",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<PaymentInstrumentResponse>),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -759,7 +764,7 @@ pub async fn create_payment_instrument(
     get,
     path = "/v1/payment-instruments",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Instrument list", body = Vec<PaymentInstrumentResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -801,7 +806,7 @@ pub async fn list_payment_instruments(
     get,
     path = "/v1/payment-instruments/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = PaymentInstrumentResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -840,7 +845,7 @@ pub async fn get_payment_instrument(
     patch,
     path = "/v1/payment-instruments/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Updated instrument", body = PaymentInstrumentResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -909,7 +914,7 @@ pub async fn update_payment_instrument(
     delete,
     path = "/v1/payment-instruments/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Instrument deactivated", body = ResourceIdAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -922,7 +927,7 @@ pub async fn delete_payment_instrument(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<ResourceIdAck>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
         &state.policy,
@@ -957,7 +962,10 @@ pub async fn delete_payment_instrument(
     )
     .await;
 
-    Ok(Json(serde_json::json!({ "id": id, "status": "inactive" })))
+    Ok(Json(ResourceIdAck {
+        id,
+        status: "inactive".into(),
+    }))
 }
 
 // ── Routing: Account Links (Story ) ─────────────────────────────
@@ -965,7 +973,7 @@ pub async fn delete_payment_instrument(
     post,
     path = "/v1/account-links",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<AccountLinkResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1043,7 +1051,7 @@ pub async fn create_account_link(
     get,
     path = "/v1/account-links",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Account link list", body = Vec<AccountLinkResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1085,7 +1093,7 @@ pub async fn list_account_links(
     get,
     path = "/v1/account-links/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = AccountLinkResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1124,7 +1132,7 @@ pub async fn get_account_link(
     delete,
     path = "/v1/account-links/{id}",
     responses(
-        (status = 200, description = "Account link deactivated", body = serde_json::Value),
+        (status = 200, description = "Account link deactivated", body = ResourceIdAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Caller lacks the bank8 scope"),
     ),
@@ -1137,7 +1145,7 @@ pub async fn delete_account_link(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<ResourceIdAck>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
         &state.policy,
@@ -1169,7 +1177,10 @@ pub async fn delete_account_link(
     )
     .await;
 
-    Ok(Json(serde_json::json!({ "id": id, "status": "inactive" })))
+    Ok(Json(ResourceIdAck {
+        id,
+        status: "inactive".into(),
+    }))
 }
 
 // ── Proxy-back: `POST /v1/internal/steps/execute` ────────────────────────
@@ -1371,7 +1382,7 @@ pub async fn publish_rule_version(
     post,
     path = "/v1/rule-sets",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<RuleSetResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1454,7 +1465,7 @@ pub async fn create_rule_set(
     get,
     path = "/v1/rule-sets",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Rule set list", body = Vec<RuleSetResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1491,7 +1502,7 @@ pub async fn list_rule_sets(
 
 // ── Parameters API (Story ) ──────────────────────────────────────
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ParameterResponse {
     pub id: Uuid,
     pub name: String,
@@ -1549,7 +1560,7 @@ const PARAM_COLUMNS: &str =
     post,
     path = "/v1/parameters",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<ParameterResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1631,7 +1642,7 @@ pub async fn create_parameter(
     get,
     path = "/v1/parameters",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Parameter list", body = Vec<ParameterResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1667,7 +1678,7 @@ pub async fn list_parameters(
     get,
     path = "/v1/parameters/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = ParameterResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1705,7 +1716,7 @@ pub async fn get_parameter(
     patch,
     path = "/v1/parameters/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Updated parameter", body = ParameterResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1793,7 +1804,7 @@ pub async fn update_parameter(
     delete,
     path = "/v1/parameters/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Parameter deleted", body = ResourceIdAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1808,7 +1819,7 @@ pub async fn delete_parameter(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<ResourceIdAck>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
         &state.policy,
@@ -1847,7 +1858,10 @@ pub async fn delete_parameter(
     )
     .await;
 
-    Ok(Json(serde_json::json!({ "id": id, "status": "deleted" })))
+    Ok(Json(ResourceIdAck {
+        id,
+        status: "deleted".into(),
+    }))
 }
 
 // ── Files (Story ) ───────────────────────────────────────────────
@@ -1860,7 +1874,7 @@ pub struct UploadFileRequest {
     pub sentin8_buck_path: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct FileResponse {
     pub id: Uuid,
     pub filename: String,
@@ -1886,7 +1900,7 @@ fn row_to_file(row: &sqlx::postgres::PgRow) -> FileResponse {
     post,
     path = "/v1/files",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<FileResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1926,7 +1940,7 @@ pub async fn upload_file(
     get,
     path = "/v1/files",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "File list", body = Vec<FileResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1963,7 +1977,7 @@ pub async fn list_files(
     get,
     path = "/v1/files/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = FileResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -1999,7 +2013,7 @@ pub async fn get_file(
     Ok(Json(row_to_file(&row)))
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct InstructionFileResponse {
     pub id: Uuid,
     pub file_id: Option<Uuid>,
@@ -2030,7 +2044,7 @@ pub struct CreateInstructionFileRequest {
     post,
     path = "/v1/instruction-files",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<InstructionFileResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -2076,7 +2090,7 @@ pub async fn create_instruction_file(
     get,
     path = "/v1/instruction-files",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Instruction file list", body = Vec<InstructionFileResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -2110,7 +2124,7 @@ pub async fn list_instruction_files(
     Ok(Json(rows.iter().map(row_to_instruction_file).collect()))
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct InstructionFileSpecificationResponse {
     pub id: Uuid,
     pub name: String,
@@ -2146,7 +2160,7 @@ fn default_capacity_limit() -> i32 {
     post,
     path = "/v1/instruction-file-specifications",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<InstructionFileSpecificationResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -2185,7 +2199,7 @@ pub async fn create_specification(
     get,
     path = "/v1/instruction-file-specifications",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Specification list", body = Vec<InstructionFileSpecificationResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -2221,7 +2235,31 @@ pub async fn list_specifications(
 
 // ── Manual Decisions  ───────────────
 
-#[derive(Debug, Serialize)]
+/// Generic resource mutation acknowledgement (`status` reflects the new state).
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ResourceIdAck {
+    /// The affected resource id.
+    pub id: Uuid,
+    /// The resulting status.
+    pub status: String,
+}
+
+/// Manual-decision submission acknowledgement (OAPEC-9 typed body).
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ManualDecisionSubmitted {
+    /// The decision id.
+    pub id: Uuid,
+    /// The resulting task status.
+    pub status: String,
+    /// The submitting principal.
+    pub submitted_by: String,
+    /// The decision payload.
+    pub decision: serde_json::Value,
+    /// The originating task id.
+    pub task_id: Uuid,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ManualDecisionResponse {
     pub id: Uuid,
     pub instruction_id: Option<Uuid>,
@@ -2247,7 +2285,7 @@ fn row_to_manual_decision(row: &sqlx::postgres::PgRow) -> ManualDecisionResponse
     get,
     path = "/v1/manual-decisions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<ManualDecisionResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -2284,7 +2322,7 @@ pub async fn list_manual_decisions(
     get,
     path = "/v1/manual-decisions/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = ManualDecisionResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -2328,7 +2366,7 @@ pub struct SubmitManualDecisionRequest {
     post,
     path = "/v1/manual-decisions/{id}/submit",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = ManualDecisionSubmitted),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -2402,7 +2440,7 @@ pub struct ProxyBackRequest {
     pub step_config: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ProxyBackResponse {
     pub status: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2416,7 +2454,7 @@ pub struct ProxyBackResponse {
     post,
     path = "/v1/internal/steps/execute",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = ProxyBackResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -3358,7 +3396,7 @@ pub async fn list_audit_events(
     get,
     path = "/v1/metrics",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = String),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -3649,7 +3687,7 @@ pub async fn get_integration(
     patch,
     path = "/v1/integrations/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Updated integration", body = IntegrationResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -3716,7 +3754,7 @@ pub async fn update_integration(
     delete,
     path = "/v1/integrations/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Integration deactivated", body = ResourceIdAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -3729,7 +3767,7 @@ pub async fn delete_integration(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<ResourceIdAck>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
         &state.policy,
@@ -3767,7 +3805,10 @@ pub async fn delete_integration(
     )
     .await;
 
-    Ok(Json(serde_json::json!({ "id": id, "status": "inactive" })))
+    Ok(Json(ResourceIdAck {
+        id,
+        status: "inactive".into(),
+    }))
 }
 
 // ── Cores API (Story ) ────────────────────────────────────────────
@@ -3947,7 +3988,7 @@ pub async fn get_core(
     patch,
     path = "/v1/cores/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Updated core", body = CoreResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -4011,7 +4052,7 @@ pub async fn update_core(
     delete,
     path = "/v1/cores/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Core deactivated", body = ResourceIdAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -4024,7 +4065,7 @@ pub async fn delete_core(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<ResourceIdAck>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
         &state.policy,
@@ -4061,7 +4102,10 @@ pub async fn delete_core(
     )
     .await;
 
-    Ok(Json(serde_json::json!({ "id": id, "status": "inactive" })))
+    Ok(Json(ResourceIdAck {
+        id,
+        status: "inactive".into(),
+    }))
 }
 
 // ── Core Versions API (Story ) ────────────────────────────────────
@@ -4077,7 +4121,7 @@ pub struct CreateCoreVersionRequest {
     post,
     path = "/v1/cores/{id}/versions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = CoreVersionResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -4191,7 +4235,7 @@ pub struct CreateCardholderRequest {
     post,
     path = "/v1/cardholders",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<CardholderResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -4255,7 +4299,7 @@ pub async fn create_cardholder(
     get,
     path = "/v1/cardholders",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Cardholder list", body = Vec<CardholderResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -4304,7 +4348,7 @@ pub async fn list_cardholders(
     get,
     path = "/v1/cardholders/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = CardholderResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -4409,7 +4453,7 @@ pub struct CreateEncryptedSessionRequest {
     pub session_type: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct EncryptedSessionResponse {
     pub session_id: Uuid,
     pub card_id: Uuid,
@@ -4424,7 +4468,7 @@ pub struct VerifyPinRequest {
     pub pin_hash: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct PinVerifyResponse {
     pub card_id: Uuid,
     pub verified: bool,
@@ -4437,7 +4481,7 @@ pub struct ChangePinRequest {
     pub new_pin_hash: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct PinChangeResponse {
     pub card_id: Uuid,
     pub changed: bool,
@@ -4605,7 +4649,7 @@ pub async fn get_card(
     patch,
     path = "/v1/cards/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Updated card", body = CardResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -4797,7 +4841,7 @@ fn row_to_card_product(row: &sqlx::postgres::PgRow) -> CardProductResponse {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct CardProductResponse {
     pub id: Uuid,
     pub name: String,
@@ -4820,7 +4864,7 @@ pub struct CreateCardProductRequest {
     post,
     path = "/v1/card-products",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<CardProductResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -4881,7 +4925,7 @@ pub async fn create_card_product(
     get,
     path = "/v1/card-products",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Card product list", body = Vec<CardProductResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -4917,7 +4961,7 @@ pub async fn list_card_products(
     get,
     path = "/v1/card-products/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = CardProductResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -4966,7 +5010,7 @@ fn row_to_account_range(row: &sqlx::postgres::PgRow) -> AccountRangeResponse {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct AccountRangeResponse {
     pub id: Uuid,
     pub card_product_id: Uuid,
@@ -4991,7 +5035,7 @@ fn default_pan_length() -> i32 {
     post,
     path = "/v1/account-ranges",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = AccountRangeResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -5035,7 +5079,7 @@ pub async fn create_account_range(
     get,
     path = "/v1/account-ranges",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Account range list", body = Vec<AccountRangeResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -5073,7 +5117,7 @@ pub async fn list_account_ranges(
     get,
     path = "/v1/health",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Liveness/build identity", body = LiveHealth),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -5342,7 +5386,7 @@ pub async fn get_mandate(
     patch,
     path = "/v1/mandates/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Updated mandate", body = MandateResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -5403,7 +5447,7 @@ pub async fn update_mandate(
 
 // ── Membership Directories CRUD (Story ) ──────────────────────────
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct MembershipDirectoryResponse {
     pub id: Uuid,
     pub name: String,
@@ -5442,7 +5486,7 @@ fn row_to_membership_directory(row: &sqlx::postgres::PgRow) -> MembershipDirecto
     post,
     path = "/v1/membership-directories",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<MembershipDirectoryResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -5492,7 +5536,7 @@ pub async fn create_membership_directory(
     get,
     path = "/v1/membership-directories",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Directory list", body = Vec<MembershipDirectoryResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -5532,7 +5576,7 @@ pub async fn list_membership_directories(
     get,
     path = "/v1/membership-directories/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = MembershipDirectoryResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -5601,7 +5645,7 @@ pub(crate) async fn require_internal_caller(
     get,
     path = "/v1/internal/instructions/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = InstructionResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -5643,7 +5687,7 @@ pub struct UpdateInstructionInternalRequest {
     patch,
     path = "/v1/internal/instructions/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Updated instruction", body = InstructionResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -5698,7 +5742,7 @@ pub async fn update_instruction_internal(
     get,
     path = "/v1/internal/payments/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = PaymentResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -5728,7 +5772,7 @@ pub async fn get_payment_internal(
     get,
     path = "/v1/internal/payment-instruments/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = PaymentInstrumentResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -5759,7 +5803,7 @@ pub async fn get_payment_instrument_internal(
     get,
     path = "/v1/internal/account-links/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = AccountLinkResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -5790,7 +5834,7 @@ pub async fn get_account_link_internal(
     get,
     path = "/v1/internal/parameters/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = ParameterResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -5818,7 +5862,7 @@ pub async fn get_parameter_internal(
     get,
     path = "/v1/internal/rules/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = RuleResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -5849,7 +5893,7 @@ pub async fn get_rule_internal(
     get,
     path = "/v1/internal/integrations/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = IntegrationResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -5877,7 +5921,7 @@ pub async fn get_integration_internal(
     get,
     path = "/v1/internal/mandates/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = MandateResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -5905,7 +5949,7 @@ pub async fn get_mandate_internal(
     get,
     path = "/v1/internal/manual-decisions/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = ManualDecisionResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -5935,7 +5979,7 @@ pub async fn get_manual_decision_internal(
     get,
     path = "/v1/internal/calendars/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = CalendarResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -5963,7 +6007,7 @@ pub async fn get_calendar_internal(
     get,
     path = "/v1/internal/cards/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = CardResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -5991,7 +6035,7 @@ pub async fn get_card_internal(
     get,
     path = "/v1/internal/cardholders/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = CardholderResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -6017,13 +6061,13 @@ pub async fn get_cardholder_internal(
 }
 // ── Story - Migrate Payments Instruction Logics to WASM via func-client ─
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct MigrateWasmResponse {
     pub logic_id: Uuid,
     pub modules: Vec<MigrationModule>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct MigrationModule {
     pub step_name: String,
     pub hook: String,
@@ -6036,7 +6080,7 @@ pub struct MigrationModule {
     post,
     path = "/v1/logics/{id}/migrate-wasm",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = MigrateWasmResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -6185,7 +6229,7 @@ pub struct ScheduleTriggerRequest {
     pub correlation_id: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ScheduleTriggerResponse {
     pub schedule_id: Uuid,
     pub instruction_id: Uuid,
@@ -6195,7 +6239,7 @@ pub struct ScheduleTriggerResponse {
     post,
     path = "/v1/internal/schedules/trigger",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = ScheduleTriggerResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),

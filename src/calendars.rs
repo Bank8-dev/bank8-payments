@@ -15,6 +15,7 @@
 //! - HTTP handlers for calendars and business day definitions
 //! - `TipsSweeperConfig` and `run_tips_sweeper` (Story )
 
+use utoipa::ToSchema;
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
@@ -314,7 +315,7 @@ pub async fn run_tips_sweeper(
 
 // ── HTTP handlers ───────────────────────────────────────────────────────
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct CalendarResponse {
     pub id: Uuid,
     pub name: String,
@@ -338,7 +339,7 @@ pub struct CreateCalendarRequest {
     pub timezone: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct BusinessDayDefinitionResponse {
     pub id: Uuid,
     pub name: String,
@@ -400,7 +401,7 @@ fn err_db(e: sqlx::Error) -> (StatusCode, String) {
     post,
     path = "/v1/calendars",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Created calendar", body = CalendarResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -450,7 +451,7 @@ pub async fn create_calendar(
     get,
     path = "/v1/calendars",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Calendar list", body = Vec<CalendarResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -486,7 +487,7 @@ pub async fn list_calendars(
     post,
     path = "/v1/business-day-definitions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<BusinessDayDefinitionResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),
@@ -533,7 +534,7 @@ pub async fn create_business_day_definition(
     get,
     path = "/v1/business-day-definitions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Business day definition list", body = Vec<BusinessDayDefinitionResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the payments scope gate"),
     ),

@@ -59,7 +59,7 @@ pub struct PublishRuleVersionRequest {
     pub expected_parameters: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct RuleSetResponse {
     pub id: Uuid,
     pub name: String,
