@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! Worker consume loop, process_instruction, ack/nack.
-//! Story — async instruction processing. — the worker
+//! Story - async instruction processing. - the worker
 //! re-drives the Flow workflow instead of unconditionally completing.
 //! Consumes `bank8:payments:instruction:*` events from the Bus stream family
 //! `payments`, looks up the corresponding instruction row, and re-drives
@@ -53,7 +53,7 @@ impl WorkerLoopConfig {
 /// auth DESIGN §4.3f): mint-or-load the Acme-issued pair and wrap it in
 /// a reqwest client. The receiving service's TLS layer authenticates the
 /// handshake and the enroll-published registry map authorizes the
-/// scopes — no bearer token exists on this path.
+/// scopes - no bearer token exists on this path.
 ///
 /// # Errors
 /// Returns the certificate-ensure or transport-build failure (the
@@ -74,13 +74,13 @@ async fn build_workload_http(auth_issuer: &str, workload: &str) -> anyhow::Resul
         .map_err(|e| anyhow::anyhow!("workload '{workload}' transport: {e}"))
 }
 
-/// Spawn the embedded re-drive worker (design §2 — the merged-in
+/// Spawn the embedded re-drive worker (design §2 - the merged-in
 /// payments-worker loop). Called once from `server::build_state`; the SSE
 /// consume task runs until process shutdown and shares the service's
-/// capped pool — the standalone binary's second pool is gone.
+/// capped pool - the standalone binary's second pool is gone.
 pub async fn spawn(pool: sqlx::PgPool, config: &crate::config::PaymentsConfig) {
     // Cert-presenting Bus client (CERTFREE-4V): the `payments-worker`
-    // workload CERTIFICATE is the identity — no DCR, no token (auth DESIGN
+    // workload CERTIFICATE is the identity - no DCR, no token (auth DESIGN
     // §4.3f); the mint retries while the fleet boots.
     let bus = loop {
         match sentin8::bus::client::BusClient::for_workload(
@@ -99,10 +99,10 @@ pub async fn spawn(pool: sqlx::PgPool, config: &crate::config::PaymentsConfig) {
     };
     // Cert-presenting Flow client for the re-drive (CERTFREE-4V): the
     // `payments-worker-flow` workload certificate re-drives workflows via
-    // `resume`/`retry` — the TLS handshake IS the identity; the registry
+    // `resume`/`retry` - the TLS handshake IS the identity; the registry
     // map authorizes the flow scopes (registration.rs::M2M_GRANTS). A
     // mint failure falls back to the documented dev-plain client (Flow
-    // rejects it loudly at the authorization gate — fail-closed, no
+    // rejects it loudly at the authorization gate - fail-closed, no
     // token fallback exists).
     let flow = match build_workload_http(&config.sentin8_auth_issuer, "payments-worker-flow").await
     {
@@ -111,7 +111,7 @@ pub async fn spawn(pool: sqlx::PgPool, config: &crate::config::PaymentsConfig) {
             sentin8::middleware::http_client::Sentin8HttpClient::from_client(http),
         ),
         Err(e) => {
-            tracing::warn!(error = %e, "payments-worker: Flow transport unavailable — Flow re-drive degraded (no fallback identity exists)");
+            tracing::warn!(error = %e, "payments-worker: Flow transport unavailable - Flow re-drive degraded (no fallback identity exists)");
             sentin8_flow_sdk::client::FlowClient::new_dev_plain(config.sentin8_flow_url.clone())
         }
     };
@@ -122,10 +122,10 @@ pub async fn spawn(pool: sqlx::PgPool, config: &crate::config::PaymentsConfig) {
         flow,
     });
 
-    // SSE consumer task — single Server-Sent Events connection to Bus
+    // SSE consumer task - single Server-Sent Events connection to Bus
     // (no HTTP polling). One connection per stream family is enough;
     // Bus pushes messages as they arrive. Runs until process shutdown
-    // (the shell owns graceful drain — no per-task lifecycle here).
+    // (the shell owns graceful drain - no per-task lifecycle here).
     tokio::spawn(async move {
         sse_consume_loop(state).await;
     });
@@ -140,7 +140,7 @@ struct WorkerState {
     flow: sentin8_flow_sdk::client::FlowClient,
 }
 
-/// SSE consumer loop — connect to Bus via Server-Sent Events, receive
+/// SSE consumer loop - connect to Bus via Server-Sent Events, receive
 /// pushed messages, process each instruction, and ACK via the HTTP ack
 /// endpoint. No HTTP polling. Reconnects on disconnect with a 2s backoff.
 async fn sse_consume_loop(state: Arc<WorkerState>) {
@@ -206,7 +206,7 @@ async fn sse_consume_loop(state: Arc<WorkerState>) {
 
                 let message_id = msg["message_id"].as_str().unwrap_or("").to_string();
                 let payload = &msg["payload"];
-                // The envelope carries the producer's tenant env — the RLS
+                // The envelope carries the producer's tenant env - the RLS
                 // context for this event's instruction writes (design §5).
                 let env_id = msg["env_id"].as_str().unwrap_or("").to_string();
 
@@ -245,7 +245,7 @@ async fn sse_consume_loop(state: Arc<WorkerState>) {
     }
 }
 
-/// Process one instruction event (— real re-drive semantics).
+/// Process one instruction event (- real re-drive semantics).
 /// The event payload carries `instruction_id`. The worker:
 /// 1. Skips terminal instructions (idempotent redelivery).
 /// 2. Marks the instruction `processing` (guarded against terminal states).
@@ -254,7 +254,7 @@ async fn sse_consume_loop(state: Arc<WorkerState>) {
 /// - `failed` → `retry_workflow` (engine re-runs from current_step)
 /// 4. A pending/running Flow workflow is already executing in the engine
 ///
-/// (spawned at workflow creation) — nothing to do.
+/// (spawned at workflow creation) - nothing to do.
 /// 5. An instruction with **no** Flow workflow cannot progress by itself;
 ///
 /// it is marked `failed` with a reason instead of being silently
@@ -271,9 +271,9 @@ async fn process_instruction(
     // Tenant context is per-event, transaction-local: the Bus message
     // carries the producer's env, and the FORCE-RLS policies on
     // instructions require an initialized context equal to the
-    // row's env — set it on the same transaction as the domain reads and
+    // row's env - set it on the same transaction as the domain reads and
     // guarded updates (RLS rule: context + query share one connection).
-    // A zero-row load after this fails loudly below — never silently
+    // A zero-row load after this fails loudly below - never silently
     // skipped (a context-less read would return zero rows once per-service
     // DSNs activate, and a silent skip would look like idempotent
     // redelivery while actually losing the re-drive).
@@ -311,7 +311,7 @@ async fn process_instruction(
         return Ok(());
     }
 
-    // Mark as processing (guarded — never flips a terminal state).
+    // Mark as processing (guarded - never flips a terminal state).
     sqlx::query(
         r#"UPDATE instructions SET state = 'processing', updated_at = now()
             WHERE id = $1 AND state NOT IN ('completed', 'failed', 'cancelled')"#,
@@ -325,7 +325,7 @@ async fn process_instruction(
         .map_err(|e| format!("commit processing: {e}"))?;
 
     // Find the Flow workflow for the payments domain by its correlation
-    // (instruction id — set at workflow creation). The correlation filter
+    // (instruction id - set at workflow creation). The correlation filter
     // rides Flow's `idx_flow_workflows_correlation` partial index; the
     // unfiltered list is `ORDER BY created_at DESC LIMIT 100`, which loses
     // targets once a tenant accumulates more workflows than one page.
@@ -365,7 +365,7 @@ async fn process_instruction(
         }
         None => {
             // No Flow workflow exists (e.g. an instruction created without
-            // inline logic). It cannot execute without one — fail it
+            // inline logic). It cannot execute without one - fail it
             // explicitly instead of marking it completed.
             let reason =
                 "no flow workflow found for instruction; worker cannot re-drive without a workflow";
@@ -396,7 +396,7 @@ async fn process_instruction(
 
     Ok(())
 }
-/// Nack with retry — after max retries, the Bus DLQ handles poison messages.
+/// Nack with retry - after max retries, the Bus DLQ handles poison messages.
 async fn nack_with_retry(
     state: &WorkerState,
     message_id: &str,
@@ -438,7 +438,7 @@ fn instruction_id_from_payload(payload: &serde_json::Value) -> Option<Uuid> {
         .and_then(|s| Uuid::parse_str(s).ok())
 }
 
-/// Terminal instruction states — events for these are acked without side
+/// Terminal instruction states - events for these are acked without side
 /// effects (idempotent redelivery). The worker's UPDATE guard uses the same
 /// set so the SQL and this predicate cannot drift.
 fn is_terminal_instruction_state(state: &str) -> bool {
@@ -490,7 +490,7 @@ mod tests {
 
     #[test]
     fn instruction_id_wrong_json_type_returns_none() {
-        // Numeric id (not a string) must not panic — returns None.
+        // Numeric id (not a string) must not panic - returns None.
         let payload = serde_json::json!({"instruction_id": 42});
         assert_eq!(instruction_id_from_payload(&payload), None);
     }
@@ -518,7 +518,7 @@ mod tests {
 
     #[test]
     fn sse_data_without_space_not_matched() {
-        // The protocol form is `data: <payload>` (with one space) — the
+        // The protocol form is `data: <payload>` (with one space) - the
         // no-space variant is deliberately not matched (same behavior as the
         // pre-refactor strip_prefix).
         assert_eq!(parse_sse_data_line("data:{\"x\":1}"), None);

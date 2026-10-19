@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Instruction matching & payment grouping — Story.
+//! Instruction matching & payment grouping - Story.
 //! Instructions sharing the same `correlation_id` are matched into a Payment.
 //! The first instruction creates the Payment; subsequent instructions with
 //! the same `correlation_id` join it.
@@ -17,7 +17,7 @@ use uuid::Uuid;
 /// with that correlation. If found, link the instruction to it. If not,
 /// create a new payment and link the instruction.
 /// If the instruction has no `correlation_id`, the instruction's own ID is
-/// used as the correlation (no matching — a singleton payment).
+/// used as the correlation (no matching - a singleton payment).
 /// Returns the payment UUID.
 pub async fn match_or_create_payment(
     pool: &PgPool,
@@ -47,7 +47,7 @@ pub async fn match_or_create_payment(
 
     let payment_id = match existing {
         Some(id) => {
-            // Join existing payment — link this instruction.
+            // Join existing payment - link this instruction.
             sqlx::query(
                 r#"UPDATE instructions
                       SET payment_id = $2, updated_at = now()

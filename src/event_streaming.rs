@@ -3,21 +3,21 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Bus event streaming — domain events emitted when Payments resources change.
+//! Bus event streaming - domain events emitted when Payments resources change.
 //! .135, (publisher identity token),
 //! (outbox-first emission).
 //! See `services/payments/DESIGN.md` and
 //! `sentin8/design/sentin8-sentin8-bus-technical-design.md`.
 //! Provides:
-//! - `EventPayload` — the canonical Payments event payload
-//! - `ResourceType` — all Payments resources that emit events
-//! - `emit_event_tx` — insert an event into the LOCAL `payments.outbox`
+//! - `EventPayload` - the canonical Payments event payload
+//! - `ResourceType` - all Payments resources that emit events
+//! - `emit_event_tx` - insert an event into the LOCAL `payments.outbox`
 //! table **on the same transaction/connection as the domain change**
 //! (outbox-first, atomic) carrying the publisher identity token
-//! - `emit_event` — same insert via the pool helper (system-context events
-//! only — e.g. internal proxy-back with no auth context)
-//! - `consumer_group_name` — derive a Bus consumer group name from tenant + group
-//! - `validate_sentin8_bus_jwt` — stub JWT validation for Bus OAuth 2.0 consumers
+//! - `emit_event` - same insert via the pool helper (system-context events
+//! only - e.g. internal proxy-back with no auth context)
+//! - `consumer_group_name` - derive a Bus consumer group name from tenant + group
+//! - `validate_sentin8_bus_jwt` - stub JWT validation for Bus OAuth 2.0 consumers
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -119,7 +119,7 @@ impl ResourceType {
 
 /// The canonical Payments event payload, produced to Bus by the
 /// shell's outbox relay (drained from the local `payments.outbox`
-/// table — DBX §6.7).
+/// table - DBX §6.7).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventPayload {
     pub event_id: Uuid,
@@ -146,7 +146,7 @@ pub const STREAM_FAMILY: &str = "payments";
 /// Publisher identity carried on an inbox row.
 #[derive(Debug, Clone, Default)]
 pub struct PublisherIdentity {
-    /// The caller's bearer token (compact serialization) — the JWT that
+    /// The caller's bearer token (compact serialization) - the JWT that
     /// authenticated the request which triggered the event.
     pub id_token: Option<String>,
     /// The `sub` claim extracted from that token.
@@ -196,7 +196,7 @@ pub fn build_payload(
 /// Insert the outbox row on an **existing** transaction/connection.
 /// This is the outbox-first path (DBX §6.7): the caller passes the same
 /// transaction that performs the domain change, so the event is committed
-/// atomically with it — a crash between commit and produce cannot lose the
+/// atomically with it - a crash between commit and produce cannot lose the
 /// event. The shell's post-commit relay pushes the row to Bus
 /// `POST /v1/produce` (idempotency_key = row id). The tenant context must
 /// already be set on this connection.
@@ -235,7 +235,7 @@ where
 /// connection. Only for system-scoped operations with no in-flight
 /// transaction (e.g. internal proxy-back with no auth context); handlers
 /// performing a domain change MUST use `emit_event_tx` instead.
-/// `env_id` — tenant context. Use `Uuid::nil ` for system context.
+/// `env_id` - tenant context. Use `Uuid::nil ` for system context.
 pub async fn emit_event(
     pool: &sqlx::PgPool,
     env_id: Uuid,
@@ -435,7 +435,7 @@ mod tests {
     fn stream_family_matches_bus_role_derivation() {
         // `sentin8_bus_current_stream_family ` maps the `bank8_payments_service`
         // PostgreSQL role to `payments` (strip the vertical prefix). The
-        // producer constant and the worker default must match — a mismatch
+        // producer constant and the worker default must match - a mismatch
         // fails the inbox RLS INSERT policy / starves the worker.
         assert_eq!(STREAM_FAMILY, "payments");
     }

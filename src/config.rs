@@ -9,13 +9,13 @@ use std::env;
 
 use sentin8::auth::client::{Client as AuthClient, ClientOptions};
 
-/// Feature gates for Payments (Story , — full set of 15).
+/// Feature gates for Payments (Story , - full set of 15).
 /// Each gate is loaded from an env var (`BANK8_PAYMENTS_FEATURE_*`) and defaults
 /// to enabled (`true`) unless explicitly set to `0`/`false`/`off`. A disabled
 /// master gate (`payments`) disables the entire service; handlers return 503.
 #[derive(Debug, Clone)]
 pub struct FeatureGates {
-    /// Master gate — when false, the entire Payments service is disabled.
+    /// Master gate - when false, the entire Payments service is disabled.
     pub payments: bool,
     /// Sync instruction path (POST /v1/instructions without async flag).
     pub instructions_sync: bool,
@@ -120,7 +120,7 @@ pub enum FeatureGate {
     Sandbox,
 }
 
-/// Manual `Debug` — `FuncClient` (and the token fields) carry transport
+/// Manual `Debug` - `FuncClient` (and the token fields) carry transport
 /// internals that must never log.
 #[derive(Clone)]
 pub struct PaymentsConfig {
@@ -132,15 +132,15 @@ pub struct PaymentsConfig {
     pub sentin8_flow_url: String,
     pub sentin8_flow_token: String,
     pub sentin8_func_url: String,
-    /// Certificate-presenting Func client (CERTFREE-4F — the `payments`
+    /// Certificate-presenting Func client (CERTFREE-4F - the `payments`
     /// workload certificate presents in the TLS handshake). Built at
     /// boot; `None` degrades the Func lanes loudly.
     pub func_client: Option<sentin8_func_sdk::client::FuncClient>,
     /// Static token for Flow's CallbackConfig (Flow's per-execution
-    /// proxy-back contract — the token Flow presents BACK to this
+    /// proxy-back contract - the token Flow presents BACK to this
     /// service's internal API; NOT the Func client's own auth).
     pub sentin8_func_token: String,
-    /// Sentin8:Cron base URL — recurring-payment schedule registration
+    /// Sentin8:Cron base URL - recurring-payment schedule registration
     /// (design §10) and the default-schedules seed at boot.
     pub sentin8_cron_url: String,
     /// Dev-only override token for Cron; production sources the token from
@@ -148,23 +148,23 @@ pub struct PaymentsConfig {
     pub sentin8_cron_token: String,
     pub ledger_url: String,
     /// Certificate-presenting transport for the payments→ledger posting
-    /// proxy (workload `bank8-payments-ledger`; CERTFREE-8V — no static
+    /// proxy (workload `bank8-payments-ledger`; CERTFREE-8V - no static
     /// token).
     pub ledger_http: Option<reqwest::Client>,
     pub stream_family: String,
-    /// Story — Stat config for Payments telemetry.
+    /// Story - Stat config for Payments telemetry.
     pub sentin8_stat_url: String,
     pub sentin8_stat_property_id: uuid::Uuid,
-    /// Story — feature gates.
+    /// Story - feature gates.
     pub features: FeatureGates,
     /// Certificate-presenting transport for the `payments-worker-flow`
-    /// workload (CERTFREE-4V — no M2M token exists): request-time Flow
+    /// workload (CERTFREE-4V - no M2M token exists): request-time Flow
     /// calls (instruction logic delegation, repair, file debatch) ride
-    /// it — Flow's TLS layer authenticates the handshake and the
+    /// it - Flow's TLS layer authenticates the handshake and the
     /// registry map authorizes the flow scopes. `None` until boot mints
     /// it (callers degrade to the documented dev-plain client).
     pub flow_http: Option<reqwest::Client>,
-    /// Shared Auth client — constructed once so the discovery and JWKS
+    /// Shared Auth client - constructed once so the discovery and JWKS
     /// caches are reused across every request (5-minute TTL each).
     /// Cloning is cheap (the caches live behind an `Arc`).
     pub sentin8_auth_client: AuthClient,

@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Templates — reusable instruction templates with versioning.
+//! Templates - reusable instruction templates with versioning.
 //! Story.
 //! See `services/payments/DESIGN.md`.
 //! A template is a reusable instruction definition with variables, a base
@@ -166,7 +166,7 @@ fn err_db(e: sqlx::Error) -> (StatusCode, String) {
     tag = "payments",
 )]
 
-/// `POST /v1/templates` — create a template.
+/// `POST /v1/templates` - create a template.
 pub async fn create_template(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -210,7 +210,7 @@ pub async fn create_template(
     tag = "payments",
 )]
 
-/// `GET /v1/templates` — list templates.
+/// `GET /v1/templates` - list templates.
 pub async fn list_templates(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -246,7 +246,7 @@ pub async fn list_templates(
     tag = "payments",
 )]
 
-/// `GET /v1/templates/{id}` — get a template.
+/// `GET /v1/templates/{id}` - get a template.
 pub async fn get_template(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -283,7 +283,7 @@ pub async fn get_template(
     tag = "payments",
 )]
 
-/// `POST /v1/templates/{id}/versions` — create a new template version.
+/// `POST /v1/templates/{id}/versions` - create a new template version.
 pub async fn create_template_version(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -341,7 +341,7 @@ pub async fn create_template_version(
     tag = "payments",
 )]
 
-/// `POST /v1/templates/{id}/publish` — publish the latest draft version of
+/// `POST /v1/templates/{id}/publish` - publish the latest draft version of
 /// a template. Marks the latest draft version as `published` and sets it as
 /// the template's `active_version_id`.
 pub async fn publish_template(

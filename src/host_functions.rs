@@ -7,7 +7,7 @@
 //! `payments_host_functions ` returns the map of host-function names to
 //! path templates that Payments passes in the Flow/Func execute request's
 //! `callbackConfig.host_functions`. Func resolves the templates
-//! dynamically when a WASM module invokes a host function — there is no
+//! dynamically when a WASM module invokes a host function - there is no
 //! pre-registration in Func.
 //! The path templates use `{args.0}` placeholders that Func substitutes
 //! with the first argument passed by the WASM module. For example,
@@ -82,7 +82,7 @@ pub fn payments_host_functions() -> HashMap<String, String> {
 /// positional arguments. Returns `None` if a required argument is missing.
 /// This helper is used by the Func client when it needs to resolve a host
 /// function call back to a concrete Payments internal URL. The Payments server
-/// itself does not need to resolve templates — it owns the endpoints.
+/// itself does not need to resolve templates - it owns the endpoints.
 pub fn resolve_host_function_path(template: &str, args: &[&str]) -> Option<String> {
     let mut out = template.to_string();
     for (i, arg) in args.iter().enumerate() {

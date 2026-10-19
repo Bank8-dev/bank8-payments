@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Manual decisions — queue, validation, reason codes, and task system.
+//! Manual decisions - queue, validation, reason codes, and task system.
 //! See `services/payments/DESIGN.md` §4.5 (Manual Decisions).
 //! Provides:
 //! - `ManualDecisionStatus` lifecycle enum
@@ -469,7 +469,7 @@ pub async fn create_task(
     Ok(id)
 }
 
-/// Claim a task — set the assignee and move to `in_progress`.
+/// Claim a task - set the assignee and move to `in_progress`.
 pub async fn claim_task(
     pool: &sqlx::PgPool,
     task_id: uuid::Uuid,
@@ -490,7 +490,7 @@ pub async fn claim_task(
     Ok(())
 }
 
-/// Approve a task — advance the current stage; when the final stage is
+/// Approve a task - advance the current stage; when the final stage is
 /// reached, mark the task `completed`.
 pub async fn approve_task(
     pool: &sqlx::PgPool,
@@ -548,7 +548,7 @@ pub async fn approve_task(
     Ok(())
 }
 
-// ── Story — Task approval stages ──────────────────────────────
+// ── Story - Task approval stages ──────────────────────────────
 
 /// A single approval stage in a multi-stage approval workflow.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -604,7 +604,7 @@ pub fn advance_approval_stage(config: &mut ApprovalStagesConfig) -> Result<bool,
     Ok(config.current_stage >= total)
 }
 
-/// Reject a task — set status to `rejected` and record the reviewer.
+/// Reject a task - set status to `rejected` and record the reviewer.
 pub async fn reject_task(
     pool: &sqlx::PgPool,
     task_id: uuid::Uuid,
@@ -870,7 +870,7 @@ mod tests {
         assert_eq!(v["task_type"], "manual_decision_submission");
     }
 
-    // ── Story — approval stages tests ──────────────────────────
+    // ── Story - approval stages tests ──────────────────────────
 
     #[test]
     fn approval_stages_validate_requires_at_least_one_stage() {

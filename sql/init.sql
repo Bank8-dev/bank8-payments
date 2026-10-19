@@ -3,13 +3,13 @@
 -- SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 -- SPDX-License-Identifier: Apache-2.0
 
--- Bank8:Payments — the service's own schema `payments` (schema-per-service):
+-- Bank8:Payments - the service's own schema `payments` (schema-per-service):
 -- payments_* domain tables + payments.outbox / payments.audit_journal
 -- producer tables, all FORCE-RLS env-scoped.
 --
 -- The parameters status/version columns + active-name partial unique index
 -- and the card sessions + PIN columns + 3DS challenge token are defined
--- directly in the CREATE TABLE statements below (canonical schema —
+-- directly in the CREATE TABLE statements below (canonical schema -
 -- no migration code, re-run `vertical init` to recreate).
 
 -- RLS policy helper for payments tables
@@ -199,7 +199,7 @@ CREATE TABLE IF NOT EXISTS payments.cardholders (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     env_id  UUID NOT NULL,
     -- Customer party: a plain UUID pointing at the Bank8:Ledger customer
-    -- (resolved via Ledger's public API — never an FK or a table grant;
+    -- (resolved via Ledger's public API - never an FK or a table grant;
     -- cross-service identity is by value, payments DESIGN.md §1).
     customer_id     UUID NOT NULL,
     first_name      TEXT,
@@ -210,11 +210,11 @@ CREATE TABLE IF NOT EXISTS payments.cardholders (
 
 -- Idempotent migration for upgraded databases: TEXT → UUID FK.
 -- 1. Drop the old payments.enable_rls policies (they reference the old column
--- Holder-scoped RLS (§4.3c; Option A revision) — ALL human callers see only
+-- Holder-scoped RLS (§4.3c; Option A revision) - ALL human callers see only
 -- their own cardholders. `holder:view-all` is M2M-ONLY: the branch is gated
 -- on token_tp = 'm2m' (staff access goes through CIBA delegation, §4.3f).
 -- The customer binding is by value (customer_id, resolved via Ledger's
--- public API at write time) — the holder subquery reads the caller's
+-- public API at write time) - the holder subquery reads the caller's
 -- customer id from the tenant context (set_tenant_context stamps it from
 -- the verified token claims); no cross-schema read.
 ALTER TABLE payments.cardholders ENABLE ROW LEVEL SECURITY;
@@ -685,7 +685,7 @@ CREATE TABLE IF NOT EXISTS payments.logic_versions (
 SELECT payments.enable_rls('payments.logic_versions');
 
 -- ──────────────────────────────────────────────────────────────────────────
--- Story 11.2.22 — Card operations: encrypted sessions, PIN, card tokens, 3DS.
+-- Story 11.2.22 - Card operations: encrypted sessions, PIN, card tokens, 3DS.
 -- Encrypted card sessions for sensitive card operations (PIN verify/change,
 -- 3DS challenge delivery).
 CREATE TABLE IF NOT EXISTS payments.card_sessions (
@@ -704,7 +704,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_card_sessions_card ON payments.card_sess
 CREATE INDEX IF NOT EXISTS idx_payments_card_sessions_token ON payments.card_sessions (session_token);
 SELECT payments.enable_rls('payments.card_sessions');
 -- ──────────────────────────────────────────────────────────────────────────
--- PAY-API epic (2026-09-06) — business API completion tables.
+-- PAY-API epic (2026-09-06) - business API completion tables.
 -- PA-4: Payees (payment recipients, reusable).
 CREATE TABLE IF NOT EXISTS payments.payees (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -756,7 +756,7 @@ CREATE TABLE IF NOT EXISTS payments.instruction_file_specification_versions (
 );
 SELECT payments.enable_rls('payments.instruction_file_specification_versions');
 
--- PA-14: Scheduled payments (v1beta) — standing orders / direct debits /
+-- PA-14: Scheduled payments (v1beta) - standing orders / direct debits /
 -- future-dated transfers. Recurrence follows RFC 5545 RRULE (UTC-only;
 -- Sentin8:Cron is the scheduler).
 CREATE TABLE IF NOT EXISTS payments.scheduled_payments (
@@ -847,18 +847,18 @@ SELECT payments.enable_rls('payments.on_us_routes');
 
 -- PA-9: Card Profile (chip behaviour / scheme approval: Mastercard CPV/CNS,
 -- Visa DPS). Column on cards + card products.
--- NOTE: new platform — columns are added to the CREATE TABLE above in the
+-- NOTE: new platform - columns are added to the CREATE TABLE above in the
 -- canonical schema; re-run `make infra-up` / vertical init to recreate.
 
 -- ── Local outbox (DBX, architecture-principles §6.7) ─────────────────────
 -- Producer path: payments rows are appended to the outbox in the SAME
 -- transaction as the domain change; the shell's post-commit relay pushes
 -- them to Bus POST /v1/produce (idempotency_key = row id).
--- Generated from sentin8-outbox::outbox_table_sql("payments") — the outbox
+-- Generated from sentin8-outbox::outbox_table_sql("payments") - the outbox
 -- lives in the service's OWN leaf schema (`payments`), matching the relay's
 -- notify channel (`payments_outbox_changed`) and the search_path-derived
 -- resolution; the payments_* domain tables live in the SAME schema
--- `payments` (schema-per-service — the leaf schema is the service's
+-- `payments` (schema-per-service - the leaf schema is the service's
 -- primary schema).
 CREATE TABLE IF NOT EXISTS payments.outbox (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -931,7 +931,7 @@ CREATE POLICY audit_journal_dml ON payments.audit_journal
     USING (sentin8_context_initialized() AND env_id = sentin8_current_env_id())
     WITH CHECK (sentin8_context_initialized() AND env_id = sentin8_current_env_id());
 
--- ── Per-service role grants + search_path (F1 — §4.3e) ──────────────────
+-- ── Per-service role grants + search_path (F1 - §4.3e) ──────────────────
 -- The payments service and its worker connect via the bank8_payments_service
 -- role (created + granted by `sentin8-cli vertical init/enroll` from this
 -- service's --print-registration --section=pg_roles). RLS only ENFORCES when

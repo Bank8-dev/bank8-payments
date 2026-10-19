@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Integrations — versioning, auth, healthchecks, retry, idempotency.
+//! Integrations - versioning, auth, healthchecks, retry, idempotency.
 //! See `services/payments/DESIGN.md` §4.6 (Integrations).
 //! An *integration* is a named configuration for connecting Payments to an
 //! external system (a scheme gateway, a core banking API, an OAuth-secured
@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use uuid::Uuid;
 
-// ── Story — Integration versioning ──────────────────────────────
+// ── Story - Integration versioning ──────────────────────────────
 
 /// Lifecycle status of an integration version.
 /// Mirrors the `status` CHECK constraint on `integration_versions`:
@@ -138,7 +138,7 @@ pub async fn publish_integration_version(
     Ok(())
 }
 
-// ── Story — Integration authentication ──────────────────────────
+// ── Story - Integration authentication ──────────────────────────
 
 /// Authentication method used by an integration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -218,7 +218,7 @@ pub fn resolve_auth_header(auth_config: &AuthConfig) -> Result<String, String> {
     }
 }
 
-// ── Story — Integration healthchecks ────────────────────────────
+// ── Story - Integration healthchecks ────────────────────────────
 
 /// Configuration for probing an integration's health.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -266,7 +266,7 @@ pub async fn perform_healthcheck(
     Ok(resp.status().is_success())
 }
 
-// ── Story — Integration retry policies ──────────────────────────
+// ── Story - Integration retry policies ──────────────────────────
 
 /// Exponential-backoff retry policy for an integration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -319,7 +319,7 @@ pub fn calculate_delay(policy: &RetryPolicy, attempt: u32) -> u64 {
     capped as u64
 }
 
-// ── Story — Integration idempotency ─────────────────────────────
+// ── Story - Integration idempotency ─────────────────────────────
 
 /// Fixed namespace UUID for Payments integration idempotency keys.
 pub const BANK8_PAYMENTS_INTEGRATION_NAMESPACE: Uuid = Uuid::from_bytes([
@@ -375,7 +375,7 @@ fn canonical_json(value: &serde_json::Value) -> String {
     render(value)
 }
 
-// ── Story — Integration connectivity ──────────────────────────────
+// ── Story - Integration connectivity ──────────────────────────────
 
 /// How Payments reaches an integration endpoint.
 /// `PrivateLink` corresponds to AWS PrivateLink (or equivalent private
@@ -383,7 +383,7 @@ fn canonical_json(value: &serde_json::Value) -> String {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ConnectivityMode {
-    /// AWS PrivateLink / VPC endpoint — traffic stays on private network.
+    /// AWS PrivateLink / VPC endpoint - traffic stays on private network.
     PrivateLink,
     /// Public internet over TLS.
     PublicInternet,
@@ -455,7 +455,7 @@ pub fn validate_connectivity(config: &ConnectivityConfig) -> Result<(), String> 
 mod tests {
     use super::*;
 
-    // — versioning
+    // - versioning
     #[test]
     fn integration_version_status_round_trip() {
         for s in ["pending", "ready", "errored", "user_action_required"] {
@@ -465,7 +465,7 @@ mod tests {
         assert!(IntegrationVersionStatus::from_str("nope").is_err());
     }
 
-    // — auth
+    // - auth
     #[test]
     fn auth_method_round_trip() {
         for s in [
@@ -524,7 +524,7 @@ mod tests {
         assert!(resolve_auth_header(&cfg).is_err());
     }
 
-    // — healthcheck defaults
+    // - healthcheck defaults
     #[test]
     fn healthcheck_config_default() {
         let hc = HealthcheckConfig::default();
@@ -542,7 +542,7 @@ mod tests {
         assert_eq!(hc.timeout_seconds, 10);
     }
 
-    // — retry policy
+    // - retry policy
     #[test]
     fn retry_policy_default() {
         let p = RetryPolicy::default();
@@ -578,7 +578,7 @@ mod tests {
         assert_eq!(calculate_delay(&p, 0), p.initial_delay_seconds);
     }
 
-    // — idempotency
+    // - idempotency
     #[test]
     fn idempotency_key_is_deterministic() {
         let id = Uuid::new_v4();
@@ -623,7 +623,7 @@ mod tests {
         assert!(Uuid::parse_str(&key).is_ok());
     }
 
-    // — connectivity
+    // - connectivity
     #[test]
     fn connectivity_mode_round_trip() {
         for s in ["private_link", "public_internet"] {

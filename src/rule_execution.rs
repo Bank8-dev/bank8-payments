@@ -3,23 +3,23 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Func rule function execution — Story.
+//! Func rule function execution - Story.
 //! Payments calls Func Server to execute rule functions compiled to WASM.
 //! Supported function names:
-//! - `rule` — returns restrictions / instruction edits
-//! - `account_link_selection` — returns true/false for account link selection
+//! - `rule` - returns restrictions / instruction edits
+//! - `account_link_selection` - returns true/false for account link selection
 //! See `services/payments/DESIGN.md` §4.8 (Rule Functions).
 
 use sentin8_func_sdk::client::{CallbackConfig, ExecuteRequest, FuncClient};
 
 /// Execute a rule function on Func Server over the certificate-presenting
-/// client (CERTFREE-4F — the `payments` workload certificate presents in
+/// client (CERTFREE-4F - the `payments` workload certificate presents in
 /// the TLS handshake; no bearer token exists on the path).
-/// `client` — the boot-built Func client.
-/// `wasm_module_id` — the WASM module ID (UUID or version label) to execute.
-/// `function_name` — the rule function to invoke (`rule` or
+/// `client` - the boot-built Func client.
+/// `wasm_module_id` - the WASM module ID (UUID or version label) to execute.
+/// `function_name` - the rule function to invoke (`rule` or
 /// `account_link_selection`).
-/// `input` — the JSON context passed to the rule function (typically the
+/// `input` - the JSON context passed to the rule function (typically the
 /// instruction, matched instrument, and resolved parameters).
 /// Returns the JSON result produced by the WASM rule function.
 pub async fn execute_rule_func(
@@ -28,7 +28,7 @@ pub async fn execute_rule_func(
     function_name: &str,
     input: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    // Validate function name — only `rule` and `account_link_selection` are
+    // Validate function name - only `rule` and `account_link_selection` are
     // supported by the Payments rule execution contract.
     match function_name {
         "rule" | "account_link_selection" => {}
@@ -65,7 +65,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    /// A local client stub — the validation these tests exercise happens
+    /// A local client stub - the validation these tests exercise happens
     /// before any HTTP call, so the transport never runs.
     fn stub() -> FuncClient {
         FuncClient::new("http://invalid.localhost:0", "")

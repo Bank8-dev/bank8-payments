@@ -101,7 +101,7 @@ pub struct PostingInstruction {
     pub instruction_type: String,
     pub debit_account: Uuid,
     pub credit_account: Uuid,
-    /// Amount as a decimal string — never rounded through a float (design §8.4).
+    /// Amount as a decimal string - never rounded through a float (design §8.4).
     pub amount: String,
     #[serde(default = "default_denom")]
     pub denomination: String,
@@ -116,8 +116,8 @@ fn default_denom() -> String {
 }
 
 /// Build a ledger posting instruction for the given posting type.
-/// * `source` — the account the value comes from (debtor / payer side).
-/// * `destination` — the account the value goes to (creditor / payee side).
+/// * `source` - the account the value comes from (debtor / payer side).
+/// * `destination` - the account the value goes to (creditor / payee side).
 /// * For authorisation holds the "debit" side is the ledger's PENDING_OUT
 ///
 /// bucket, which the ledger models via the instruction type.
@@ -129,7 +129,7 @@ pub fn build_instruction(
     denomination: &str,
     description: Option<&str>,
 ) -> PostingInstruction {
-    // Validate the amount parses as a decimal — never round through f64.
+    // Validate the amount parses as a decimal - never round through f64.
     let _ = amount
         .parse::<rust_decimal::Decimal>()
         .expect("posting amount must be a decimal string");
@@ -144,7 +144,7 @@ pub fn build_instruction(
     }
 }
 
-/// Batch id for the ledger posting call — deterministic, derived from the
+/// Batch id for the ledger posting call - deterministic, derived from the
 /// instruction id so retries dedupe on the ledger side.
 pub fn batch_id_for(instruction_id: Uuid, posting_type: PostingType) -> String {
     format!("payments-{instruction_id}-{}", posting_type.as_str())

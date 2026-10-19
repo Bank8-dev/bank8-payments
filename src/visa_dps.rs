@@ -88,7 +88,7 @@ pub fn process_visa_dps(request: &VisaDpsRequest) -> VisaDpsResponse {
     }
 }
 
-// ── Story — Card/account synchronisation ──────────────────────
+// ── Story - Card/account synchronisation ──────────────────────
 
 /// Direction of a Visa DPS card/account sync.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,18 +116,18 @@ impl VisaDpsSyncDirection {
 }
 
 /// Push card data from Payments to Visa DPS.
-/// Stub — would call DPS `PUT /cards/{card_id}` with the card record.
+/// Stub - would call DPS `PUT /cards/{card_id}` with the card record.
 pub async fn sync_card_to_dps(_pool: &sqlx::PgPool, _card_id: uuid::Uuid) -> Result<(), String> {
     Ok(())
 }
 
 /// Pull card data from Visa DPS into Payments.
-/// Stub — would call DPS `GET /cards/{card_id}` and update the local record.
+/// Stub - would call DPS `GET /cards/{card_id}` and update the local record.
 pub async fn sync_card_from_dps(_pool: &sqlx::PgPool, _card_id: uuid::Uuid) -> Result<(), String> {
     Ok(())
 }
 
-// ── Story — AP Balance Files ───────────────────────────────────
+// ── Story - AP Balance Files ───────────────────────────────────
 
 /// One row in an AP balance file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -148,7 +148,7 @@ pub struct ApBalanceFile {
 }
 
 /// Upload an AP balance file.
-/// Stub — would persist the file to storage and record it in the DB. Returns
+/// Stub - would persist the file to storage and record it in the DB. Returns
 /// a new file id (uses the one on the file if non-nil, otherwise generates).
 pub async fn upload_ap_balance_file(
     _pool: &sqlx::PgPool,

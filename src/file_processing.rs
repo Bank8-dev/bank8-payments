@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! File processing — inbound/outbound instruction file handling.
+//! File processing - inbound/outbound instruction file handling.
 //! See `services/payments/DESIGN.md` §4.6 (File Processing).
 //! This module provides the primitives used by the file-processing handlers:
 //! file direction & status enums, inbound/outbound batch builders, presigned
@@ -75,7 +75,7 @@ impl FileStatus {
     }
 }
 
-/// Instruction file specification — defines a class of instruction file with
+/// Instruction file specification - defines a class of instruction file with
 /// capacity limits and an optional settlement calendar.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstructionFileSpec {
@@ -84,7 +84,7 @@ pub struct InstructionFileSpec {
     pub calendar_id: Option<uuid::Uuid>,
 }
 
-/// Process an inbound file — marks the file `processing`, creates the
+/// Process an inbound file - marks the file `processing`, creates the
 /// instruction batch shell derived from the file, and triggers the
 /// per-file Flow debatch workflow (design §10).
 ///
@@ -98,7 +98,7 @@ pub async fn process_inbound_file(
     config: &crate::config::PaymentsConfig,
     file_id: uuid::Uuid,
 ) -> Result<Vec<uuid::Uuid>, String> {
-    // Mark the file processing (idempotent — an already-processing file
+    // Mark the file processing (idempotent - an already-processing file
     // re-entered via retry keeps its batches).
     sqlx::query("UPDATE files SET status = 'processing' WHERE id = $1 AND status IN ('uploaded', 'processing')")
         .bind(file_id)
@@ -164,7 +164,7 @@ pub async fn process_inbound_file(
             internal_path: "/v1/internal/files/debatch".into(),
             host_functions: std::collections::HashMap::new(),
         },
-        // Correlation = file id — Flow's pending-dedupe partial index makes
+        // Correlation = file id - Flow's pending-dedupe partial index makes
         // a resubmit idempotent structurally (design §10).
         correlation_id: Some(file_id.to_string()),
     };
@@ -173,14 +173,14 @@ pub async fn process_inbound_file(
             tracing::info!(file_id = %file_id, batch_id = %batch_id, "file debatch workflow created");
         }
         Err(e) => {
-            tracing::warn!(error = %e, file_id = %file_id, "file debatch workflow create failed (non-fatal — file + batch rows are committed)");
+            tracing::warn!(error = %e, file_id = %file_id, "file debatch workflow create failed (non-fatal - file + batch rows are committed)");
         }
     }
 
     Ok(vec![batch_id])
 }
 
-/// Process an outbound file — group a set of instruction ids into a new
+/// Process an outbound file - group a set of instruction ids into a new
 /// outbound instruction file with a single batch.
 pub async fn process_outbound_file(
     pool: &sqlx::PgPool,
@@ -238,7 +238,7 @@ pub struct DebatchRequest {
     pub workflow_id: uuid::Uuid,
     /// Step name within the logic.
     pub step_name: String,
-    /// Step input — `file_id`, `batch_id`.
+    /// Step input - `file_id`, `batch_id`.
     pub input: serde_json::Value,
     /// Flow's accumulated user data.
     #[serde(default)]
@@ -248,7 +248,7 @@ pub struct DebatchRequest {
     pub step_config: Option<serde_json::Value>,
 }
 
-/// Proxy-back response — the same shape the instruction step contract uses.
+/// Proxy-back response - the same shape the instruction step contract uses.
 #[derive(Debug, serde::Serialize)]
 pub struct DebatchResponse {
     pub status: String,
@@ -270,7 +270,7 @@ pub struct DebatchResponse {
 
 /// Execute the `debatch_file` step: split the file's records into chunked
 /// instruction batches (design §10). The step is idempotent on
-/// `file_id:chunk_index` — a workflow retry re-enters here and the
+/// `file_id:chunk_index` - a workflow retry re-enters here and the
 /// terminal-file guard makes completed work a no-op.
 ///
 /// The chunk count derives from the file's `size_bytes` (the
@@ -311,7 +311,7 @@ pub async fn debatch_step(
         .ok_or_else(|| (StatusCode::BAD_REQUEST, "batch_id required".into()))?;
 
     // Tenant context rides the workflow's env (the M2M bearer is machine
-    // identity, not tenant context — sys flow_delegate pattern).
+    // identity, not tenant context - sys flow_delegate pattern).
     let env_id = a.env_id();
     let mut tx = state.pool.begin().await.map_err(err_db_tx)?;
     crate::handlers::set_tenant_context(&mut tx, env_id).await;
@@ -329,7 +329,7 @@ pub async fn debatch_step(
     let size_bytes: i64 = row.get("size_bytes");
     let status: String = row.get("status");
     if status == "processed" {
-        // Terminal — a workflow retry is a no-op (idempotency §5).
+        // Terminal - a workflow retry is a no-op (idempotency §5).
         return Ok(axum::Json(DebatchResponse {
             status: "completed".into(),
             output: Some(serde_json::json!({ "file_id": file_id, "already_processed": true })),
@@ -339,14 +339,14 @@ pub async fn debatch_step(
 
     // Chunk count from the file size: one chunk per CHUNK_RECORDS records,
     // estimated from the file's average record size (ISO pain/pacs records
-    // serialize ~2 KiB each — the same estimate the instruction-file-spec
+    // serialize ~2 KiB each - the same estimate the instruction-file-spec
     // capacity limit uses). A 0-byte file is one (empty) chunk.
     let avg_record = 2048i64;
     let total_records = (size_bytes.max(0) / avg_record).max(1);
     let chunks = (total_records_to_chunks(total_records) as i64).max(1);
 
     for chunk_index in 0..chunks {
-        // Idempotency key = file_id:chunk_index — a retried workflow
+        // Idempotency key = file_id:chunk_index - a retried workflow
         // re-enters here and duplicates nothing (design §10).
         let chunk_key = format!("{file_id}:{chunk_index}");
         let _ = sqlx::query(
@@ -368,7 +368,7 @@ pub async fn debatch_step(
         let _ = chunk_key;
     }
 
-    // Mark the file processed — the terminal state of the debatch.
+    // Mark the file processed - the terminal state of the debatch.
     sqlx::query("UPDATE files SET status = 'processed' WHERE id = $1 AND status = 'processing'")
         .bind(file_id)
         .execute(&mut *tx)
@@ -401,7 +401,7 @@ fn err_db_tx(e: sqlx::Error) -> (axum::http::StatusCode, String) {
     (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
 }
 
-/// Chunk count for a record total — one chunk per [`CHUNK_RECORDS`]
+/// Chunk count for a record total - one chunk per [`CHUNK_RECORDS`]
 /// records (rounded up; a partial final chunk is its own chunk).
 const CHUNK_RECORDS: i64 = 1000;
 

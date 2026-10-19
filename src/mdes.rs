@@ -7,7 +7,7 @@
 //! See `services/payments/DESIGN.md` §4.6 (Integrations).
 //! This module models the four-step MDES token lifecycle (card availability,
 //! eligibility, authentication, tokenisation) and the T140 clearing cycle
-//! summary report. The step processor is currently a stub — real integration
+//! summary report. The step processor is currently a stub - real integration
 //! will call the Mastercard MDES API via `reqwest`.
 
 use serde::{Deserialize, Serialize};
@@ -65,7 +65,7 @@ pub struct MdesResponse {
 }
 
 /// Process one MDES step.
-/// Stub implementation — always returns `success` and, for the final
+/// Stub implementation - always returns `success` and, for the final
 /// (`Tokenisation`) step, generates a deterministic token reference derived
 /// from the card id and requestor id.
 pub fn process_mdes_step(request: &MdesRequest) -> MdesResponse {
@@ -91,7 +91,7 @@ fn generate_token_reference(card_id: uuid::Uuid, requestor_id: &str) -> String {
     uuid::Uuid::new_v5(&namespace, payload.as_bytes()).to_string()
 }
 
-// ── Story — T140 Clearing Cycle Summary ─────────────────────────
+// ── Story - T140 Clearing Cycle Summary ─────────────────────────
 
 /// T140 clearing cycle summary report.
 #[derive(Debug, Clone, Serialize, Deserialize)]

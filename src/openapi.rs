@@ -339,6 +339,6 @@ use crate::rules;
     security(),
     tags(
         (name = "policy", description = "Shield policy administration (shared surface)"),
-        (name = "payments", description = "Bank8:Payments admin API — instructions, payments, logics, rules, integrations, cores, cards, mandates, audit"),
+        (name = "payments", description = "Bank8:Payments admin API - instructions, payments, logics, rules, integrations, cores, cards, mandates, audit"),
     ),
 )]pub struct PaymentsOpenApi;

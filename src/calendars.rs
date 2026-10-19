@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Calendars and scheduling — business day definitions, cutoff and
+//! Calendars and scheduling - business day definitions, cutoff and
 //! processing periods, recurring schedules, and the TIPS sweeper service.
 //! See `services/payments/DESIGN.md`.
 //! Provides:
@@ -11,7 +11,7 @@
 //! - `BusinessDayDefinition`
 //! - `CalendarConfig`
 //! - `is_business_day` / `calculate_cutoff_period` / `calculate_processing_period`
-//! - `register_recurring_schedule` (stub — registers with Cron)
+//! - `register_recurring_schedule` (stub - registers with Cron)
 //! - HTTP handlers for calendars and business day definitions
 //! - `TipsSweeperConfig` and `run_tips_sweeper` (Story )
 
@@ -102,7 +102,7 @@ pub fn is_business_day(definition: &BusinessDayDefinition, date: NaiveDate) -> b
 /// 1-day window ending on `date`: the period starts at the previous business
 /// day (inclusive) and ends on `date` (inclusive).
 /// The `configuration` JSON may contain:
-/// - `window_days` (i32, default 1) — number of business days in the window.
+/// - `window_days` (i32, default 1) - number of business days in the window.
 pub fn calculate_cutoff_period(
     config: &CalendarConfig,
     date: NaiveDate,
@@ -142,7 +142,7 @@ pub fn calculate_cutoff_period(
 /// processed. By convention this implementation uses a 1-business-day window
 /// starting on the first business day on or after `date`.
 /// The `configuration` JSON may contain:
-/// - `window_days` (i32, default 1) — number of business days in the window.
+/// - `window_days` (i32, default 1) - number of business days in the window.
 pub fn calculate_processing_period(
     config: &CalendarConfig,
     date: NaiveDate,
@@ -220,7 +220,7 @@ pub async fn register_recurring_schedule(
         "internal_path": "/v1/internal/schedules/trigger",
         "auth_token": cron_token,
     });
-    // Domain `payments`, schedule_type = the recurring instruction id —
+    // Domain `payments`, schedule_type = the recurring instruction id -
     // Cron dedupes re-registrations on the (domain, schedule_type) pair.
     let req = sentin8_cron_sdk::client::CreateScheduleRequest::new(
         "payments",
@@ -288,7 +288,7 @@ impl Default for TipsSweeperConfig {
     }
 }
 
-/// Run the TIPS sweeper — poll for pending TIPS payments and check their
+/// Run the TIPS sweeper - poll for pending TIPS payments and check their
 /// status. This is a stub; in production it would loop on a timer and call
 /// the TIPS scheme adapter to query payment status.
 /// Story.
@@ -408,7 +408,7 @@ fn err_db(e: sqlx::Error) -> (StatusCode, String) {
     tag = "payments",
 )]
 
-/// `POST /v1/calendars` — create a calendar.
+/// `POST /v1/calendars` - create a calendar.
 pub async fn create_calendar(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -458,7 +458,7 @@ pub async fn create_calendar(
     tag = "payments",
 )]
 
-/// `GET /v1/calendars` — list calendars.
+/// `GET /v1/calendars` - list calendars.
 pub async fn list_calendars(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -494,7 +494,7 @@ pub async fn list_calendars(
     tag = "payments",
 )]
 
-/// `POST /v1/business-day-definitions` — create a business day definition.
+/// `POST /v1/business-day-definitions` - create a business day definition.
 pub async fn create_business_day_definition(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -541,7 +541,7 @@ pub async fn create_business_day_definition(
     tag = "payments",
 )]
 
-/// `GET /v1/business-day-definitions` — list business day definitions.
+/// `GET /v1/business-day-definitions` - list business day definitions.
 pub async fn list_business_day_definitions(
     State(state): State<AppState>,
     headers: HeaderMap,

@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Membership directories — TIPS, FedACH, Fedwire directory parsing and
+//! Membership directories - TIPS, FedACH, Fedwire directory parsing and
 //! reachability checks.
 //! See `services/payments/DESIGN.md`.
 //! Provides:
@@ -11,8 +11,8 @@
 //! - `DirectoryStatus` (Pending, Ready, Errored)
 //! - `DirectoryEntry` (BIC, name, country)
 //! - `parse_tips_xml` / `parse_fedach_json` / `parse_fedwire_json`
-//! - `process_directory_upload` — parse, store entries, update status
-//! - `check_bic_reachability` — check if a BIC is present in a directory
+//! - `process_directory_upload` - parse, store entries, update status
+//! - `check_bic_reachability` - check if a BIC is present in a directory
 
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
@@ -100,7 +100,7 @@ pub fn parse_tips_xml(content: &str) -> Result<Vec<DirectoryEntry>, String> {
         if trimmed.is_empty() {
             continue;
         }
-        // Skip XML-ish tags (simplified — real TIPS uses XML; for tests we
+        // Skip XML-ish tags (simplified - real TIPS uses XML; for tests we
         // accept either raw fixed-width lines or `<row>bic|name|country</row>`).
         let record = if trimmed.starts_with('<') {
             // Strip surrounding tags.
@@ -235,7 +235,7 @@ pub fn parse_fedwire_json(content: &str) -> Result<Vec<DirectoryEntry>, String> 
     Ok(entries)
 }
 
-/// Process a directory upload — parse the content, store the entries in the
+/// Process a directory upload - parse the content, store the entries in the
 /// `membership_directories.entries` JSONB column, and update the
 /// directory status to `ready`. On parse failure the status is set to
 /// `errored`.

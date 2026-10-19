@@ -1,8 +1,8 @@
-# Bank8:Payments — README
+# Bank8:Payments - README
 
 Payment orchestration: instructions, scheme flows (B8/SEPA/TIPS/SWIFT,
 ISO 20022), cards (issuing + lifecycle + 3-D Secure), mandates, rule
-engine, files, and the manual-decision task loop — delegating step
+engine, files, and the manual-decision task loop - delegating step
 execution to Sentin8:Flow and money movement to Bank8:Ledger.
 
 ## Summary
@@ -12,7 +12,7 @@ vertical database. It turns payment instructions into Flow workflows,
 executes scheme-specific flows (ISO 20022 message families), manages
 card lifecycle and mandates, and keeps the rule/parameter configuration
 library that drives routing and eligibility. It never posts balances
-itself — every money movement calls Bank8:Ledger's API.
+itself - every money movement calls Bank8:Ledger's API.
 
 ## Motivation
 
@@ -54,33 +54,33 @@ graph TD
 
 ## Key Traits and Data Structures
 
-- `AppState` — config, capped pool, Shield engine (shell-booted), the
+- `AppState` - config, capped pool, Shield engine (shell-booted), the
   shared admin surface; handlers gate via `policy::require`.
-- `event_streaming` — the DBX producer path: `emit_event_tx`
+- `event_streaming` - the DBX producer path: `emit_event_tx`
   (in-transaction) and `emit_event` (pool helper), with
   `PublisherIdentity` carrying the caller's token/subject onto the
   outbox row.
-- `state_machine` — the instruction lifecycle: legal transitions only,
+- `state_machine` - the instruction lifecycle: legal transitions only,
   auto-synced payment status per transition.
-- `b8_flows` / `sepa_flows` / `tips_flows` / `swift_agi` — per-scheme
+- `b8_flows` / `sepa_flows` / `tips_flows` / `swift_agi` - per-scheme
   flow implementations over the typed ISO 20022 payload catalogue
   (`bank8-payments-contracts`).
-- `cards` — card issuing/lifecycle with a deterministic placeholder
+- `cards` - card issuing/lifecycle with a deterministic placeholder
   crypto layer, 3-D Secure records, and scheme simulator adapters
   (`visa_dps`, `mdes`).
 
 ## Rationale, Trade-offs, and Alternatives
 
-- **Flow owns execution, Payments owns domain steps** — the workflow
+- **Flow owns execution, Payments owns domain steps** - the workflow
   engine, retries, and wait states are the platform's; this service
   implements the step functions behind `POST /v1/internal/steps/execute`
   (proxy-back). No embedded saga engine.
-- **Money movement only via the Ledger API** — payments never
+- **Money movement only via the Ledger API** - payments never
   shadow-write ledger balances; the posting is a step that calls the
   ledger's public API like any client.
-- **Typed ISO 20022 catalogue** — the shared contracts enum keeps
+- **Typed ISO 20022 catalogue** - the shared contracts enum keeps
   message-code handling compile-total instead of stringly-typed.
-- **Sandbox simulator adapters ship with the service** — scheme
+- **Sandbox simulator adapters ship with the service** - scheme
   gateways (Visa DPS, MDES, SWIFT) are integration-config-driven; the
   simulators exercise the same code paths in dev without external
   dependencies.
@@ -89,7 +89,7 @@ graph TD
 
 - Instruction state transitions are machine-guarded; terminal states
   are immutable (same predicate the worker uses).
-- Events ride `payments.outbox` in the domain transaction — a crash
+- Events ride `payments.outbox` in the domain transaction - a crash
   between commit and produce loses nothing.
 - Rules/parameters/logics are versioned entities with publish flows;
   drafts never execute.

@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! B8 scheme flows — Credit Transfer, Direct Debit, and On-Us A2A.
+//! B8 scheme flows - Credit Transfer, Direct Debit, and On-Us A2A.
 //! See `services/payments/DESIGN.md`.
 //! B8 is the Sentin8-native payment scheme. It supports:
 //! - Credit Transfer (pain.001 → pacs.008) with UETR correlation

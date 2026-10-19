@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Sentin8 Payments — payment orchestration, delegates to Flow.
+//! Sentin8 Payments - payment orchestration, delegates to Flow.
 //! See `services/payments/DESIGN.md`.
 //! Boot runs on the platform `sentin8-shell` crate (design
 //! `sentin8/design/sentin8-sentin8-shell-technical-design.md`): registration

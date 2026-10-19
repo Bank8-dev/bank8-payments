@@ -10,7 +10,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Bank8-dev/bank8-payments"
 rust-version = "1.85"
-description = "Sentin8 Bank8:Payments — payment orchestration, delegates to Sentin8:Flow."
+description = "Sentin8 Bank8:Payments - payment orchestration, delegates to Sentin8:Flow."
 
 [[bin]]
 name = "bank8-payments"

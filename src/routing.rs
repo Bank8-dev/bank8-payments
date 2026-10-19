@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Routing — payment instruments and account links CRUD — ,.
+//! Routing - payment instruments and account links CRUD - ,.
 //! See `services/payments/DESIGN.md` §4.7.
 
 use serde::{Deserialize, Serialize};

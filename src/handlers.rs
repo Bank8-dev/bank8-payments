@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Payments HTTP handlers — instructions, payments, logics, proxy-back.
+//! Payments HTTP handlers - instructions, payments, logics, proxy-back.
 //! .59 (P0 subset).
 
 use std::sync::Arc;
@@ -27,10 +27,10 @@ pub struct AppState {
     pub config: Arc<PaymentsConfig>,
     pub pool: sqlx::PgPool,
     /// Shield policy engine : step 5 is the ONLY gate
-    /// handlers verify the token (steps 1–4) then evaluate a
+    /// handlers verify the token (steps 1-4) then evaluate a
     /// `bank8:payments:<resource>:<action>` target; no JWT scope check remains.
     pub policy: Arc<crate::policy::Engine>,
-    /// Shared Sentin8:Policy admin surface (§3.6) — same engine
+    /// Shared Sentin8:Policy admin surface (§3.6) - same engine
     /// instance the request path evaluates.
     pub admin: sentin8::shield::admin::SharedAdminState,
 }
@@ -51,7 +51,7 @@ pub(crate) fn bearer_token_of(headers: &HeaderMap) -> Option<String> {
         .map(str::to_string)
 }
 
-/// Extended tenant context — passes admin flags +
+/// Extended tenant context - passes admin flags +
 /// Auth user id for holder-scoped RLS on `cardholders`.
 pub(crate) async fn set_tenant_context_ext(
     conn: &mut sqlx::PgConnection,
@@ -75,7 +75,7 @@ pub(crate) async fn set_tenant_context_ext(
 /// Returns `None` for tokens carrying `holder:view-all` (staff/M2M). Used to
 /// force `customer_id` in cardholder queries (service-layer
 /// defence-in-depth for holder-scoped RLS, §4.3c). The read crosses
-/// service schemas — the single declared grant in this service's
+/// service schemas - the single declared grant in this service's
 /// registration (`payments.cardholders` holder binding reads
 /// `ledger.customers` by id, SELECT-only).
 async fn resolve_caller_customer_id(
@@ -87,7 +87,7 @@ async fn resolve_caller_customer_id(
     }
     let user_id = auth.claims.sentin8_auth_user_uuid()?;
     // Cross-service read, schema-qualified: the declared cross_schema_grant
-    // gives bank8_payments_service SELECT on ledger.customers (SCHEMA-1 —
+    // gives bank8_payments_service SELECT on ledger.customers (SCHEMA-1 -
     // schema-per-service, unprefixed table names). Never unqualified: with
     // search_path `{leaf}, public` an unqualified customers would not resolve.
     sqlx::query_scalar("SELECT id FROM ledger.customers WHERE sentin8_auth_user_id = $1 LIMIT 1")
@@ -157,7 +157,7 @@ pub struct CreateLogicRequest {
 
 // ── Instruction API ──────────────────────────────────────────────────────
 
-/// `POST /v1/instructions` — create and initiate an instruction.
+/// `POST /v1/instructions` - create and initiate an instruction.
 /// Delegates workflow execution to Flow.
 #[utoipa::path(
     post,
@@ -225,7 +225,7 @@ pub async fn create_instruction(
     let instruction_id: Uuid = row.get("id");
 
     // Inbox-first: the event rides the same transaction as the
-    // INSERT — a crash after commit cannot lose it. Publisher identity
+    // INSERT - a crash after commit cannot lose it. Publisher identity
     // carries the caller's bearer token + subject for subscriber-side
     // delegation.
     let _ = event_streaming::emit_event_tx(
@@ -245,7 +245,7 @@ pub async fn create_instruction(
 
     tx.commit().await.map_err(err_db)?;
 
-    // Story — match or create payment for this instruction.
+    // Story - match or create payment for this instruction.
     let _payment_id = crate::payment_matching::match_or_create_payment(
         &state.pool,
         a.env_id(),
@@ -256,7 +256,7 @@ pub async fn create_instruction(
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    // Story — interruption mode for urgent instructions.
+    // Story - interruption mode for urgent instructions.
     if crate::interruption::should_interrupt(&req.input) {
         let _ =
             crate::interruption::interrupt_pending(&state.pool, _payment_id, instruction_id).await;
@@ -300,7 +300,7 @@ pub async fn create_instruction(
     Ok(Json(row_to_instruction(&row)))
 }
 
-/// `GET /v1/instructions` — list instructions.
+/// `GET /v1/instructions` - list instructions.
 #[utoipa::path(
     get,
     path = "/v1/instructions",
@@ -344,7 +344,7 @@ pub struct ListInstructionsQuery {
     pub state: Option<String>,
 }
 
-/// `GET /v1/instructions/{id}` — instruction detail.
+/// `GET /v1/instructions/{id}` - instruction detail.
 #[utoipa::path(
     get,
     path = "/v1/instructions/{id}",
@@ -380,7 +380,7 @@ pub async fn get_instruction(
     Ok(Json(row_to_instruction(&row)))
 }
 
-/// `POST /v1/instructions/{id}/retry` — failed → pending (Story ).
+/// `POST /v1/instructions/{id}/retry` - failed → pending (Story ).
 #[utoipa::path(
     post,
     path = "/v1/instructions/{id}/retry",
@@ -440,7 +440,7 @@ pub async fn retry_instruction(
     Ok(Json(row_to_instruction(&row)))
 }
 
-/// `POST /v1/instructions/{id}/cancel` — any state → cancelled (Story ).
+/// `POST /v1/instructions/{id}/cancel` - any state → cancelled (Story ).
 #[utoipa::path(
     post,
     path = "/v1/instructions/{id}/cancel",
@@ -504,7 +504,7 @@ pub async fn cancel_instruction(
 
 // ── Payment API ──────────────────────────────────────────────────────────
 
-/// `GET /v1/payments` — list payments.
+/// `GET /v1/payments` - list payments.
 #[utoipa::path(
     get,
     path = "/v1/payments",
@@ -539,7 +539,7 @@ pub async fn list_payments(
     Ok(Json(rows.iter().map(row_to_payment).collect()))
 }
 
-/// `GET /v1/payments/{id}` — payment detail.
+/// `GET /v1/payments/{id}` - payment detail.
 #[utoipa::path(
     get,
     path = "/v1/payments/{id}",
@@ -580,7 +580,7 @@ pub async fn get_payment(
 
 // ── Logic API ────────────────────────────────────────────────────────────
 
-/// `POST /v1/logics` — create a logic.
+/// `POST /v1/logics` - create a logic.
 #[utoipa::path(
     post,
     path = "/v1/logics",
@@ -638,7 +638,7 @@ pub async fn create_logic(
     Ok(Json(row_to_logic(&row)))
 }
 
-/// `GET /v1/logics` — list logics.
+/// `GET /v1/logics` - list logics.
 #[utoipa::path(
     get,
     path = "/v1/logics",
@@ -682,7 +682,7 @@ pub async fn list_logics(
     tag = "payments",
 )]
 
-/// `POST /v1/payment-instruments` — create a payment instrument.
+/// `POST /v1/payment-instruments` - create a payment instrument.
 pub async fn create_payment_instrument(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -699,7 +699,7 @@ pub async fn create_payment_instrument(
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
-    // Story — enforce uniqueness of active instruments.
+    // Story - enforce uniqueness of active instruments.
     let existing: Option<Uuid> = sqlx::query_scalar(
         r#"SELECT id FROM payment_instruments
             WHERE env_id = $1
@@ -767,7 +767,7 @@ pub async fn create_payment_instrument(
     tag = "payments",
 )]
 
-/// `GET /v1/payment-instruments` — list payment instruments.
+/// `GET /v1/payment-instruments` - list payment instruments.
 pub async fn list_payment_instruments(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -809,7 +809,7 @@ pub async fn list_payment_instruments(
     tag = "payments",
 )]
 
-/// `GET /v1/payment-instruments/{id}` — get a payment instrument.
+/// `GET /v1/payment-instruments/{id}` - get a payment instrument.
 pub async fn get_payment_instrument(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -848,7 +848,7 @@ pub async fn get_payment_instrument(
     tag = "payments",
 )]
 
-/// `PATCH /v1/payment-instruments/{id}` — update a payment instrument.
+/// `PATCH /v1/payment-instruments/{id}` - update a payment instrument.
 pub async fn update_payment_instrument(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -917,7 +917,7 @@ pub async fn update_payment_instrument(
     tag = "payments",
 )]
 
-/// `DELETE /v1/payment-instruments/{id}` — deactivate a payment instrument.
+/// `DELETE /v1/payment-instruments/{id}` - deactivate a payment instrument.
 pub async fn delete_payment_instrument(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -973,7 +973,7 @@ pub async fn delete_payment_instrument(
     tag = "payments",
 )]
 
-/// `POST /v1/account-links` — create an account link.
+/// `POST /v1/account-links` - create an account link.
 pub async fn create_account_link(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -990,7 +990,7 @@ pub async fn create_account_link(
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
-    // Story — if is_default, unset other defaults for the same account.
+    // Story - if is_default, unset other defaults for the same account.
     if req.is_default {
         sqlx::query(
             r#"UPDATE account_links SET is_default = false, updated_at = now()
@@ -1051,7 +1051,7 @@ pub async fn create_account_link(
     tag = "payments",
 )]
 
-/// `GET /v1/account-links` — list account links.
+/// `GET /v1/account-links` - list account links.
 pub async fn list_account_links(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1093,7 +1093,7 @@ pub async fn list_account_links(
     tag = "payments",
 )]
 
-/// `GET /v1/account-links/{id}` — get an account link.
+/// `GET /v1/account-links/{id}` - get an account link.
 pub async fn get_account_link(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1132,7 +1132,7 @@ pub async fn get_account_link(
     tag = "account-links",
 )]
 
-/// `DELETE /v1/account-links/{id}` — deactivate an account link.
+/// `DELETE /v1/account-links/{id}` - deactivate an account link.
 pub async fn delete_account_link(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1177,7 +1177,7 @@ pub async fn delete_account_link(
 
 // ── Rules Engine  ─────────────────────────
 
-/// `POST /v1/rules` — create a rule.
+/// `POST /v1/rules` - create a rule.
 #[utoipa::path(
     post,
     path = "/v1/rules",
@@ -1241,7 +1241,7 @@ pub async fn create_rule(
     Ok(Json(crate::rules::row_to_rule(&row)))
 }
 
-/// `GET /v1/rules` — list rules.
+/// `GET /v1/rules` - list rules.
 #[utoipa::path(
     get,
     path = "/v1/rules",
@@ -1277,7 +1277,7 @@ pub async fn list_rules(
     Ok(Json(rows.iter().map(crate::rules::row_to_rule).collect()))
 }
 
-/// `POST /v1/rules/{id}/publish` — publish a new rule version (Story ).
+/// `POST /v1/rules/{id}/publish` - publish a new rule version (Story ).
 #[utoipa::path(
     post,
     path = "/v1/rules/{id}/publish",
@@ -1379,7 +1379,7 @@ pub async fn publish_rule_version(
     tag = "payments",
 )]
 
-/// `POST /v1/rule-sets` — create a rule set (Story ).
+/// `POST /v1/rule-sets` - create a rule set (Story ).
 pub async fn create_rule_set(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1462,7 +1462,7 @@ pub async fn create_rule_set(
     tag = "payments",
 )]
 
-/// `GET /v1/rule-sets` — list rule sets.
+/// `GET /v1/rule-sets` - list rule sets.
 pub async fn list_rule_sets(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1557,7 +1557,7 @@ const PARAM_COLUMNS: &str =
     tag = "payments",
 )]
 
-/// `POST /v1/parameters` — create a parameter.
+/// `POST /v1/parameters` - create a parameter.
 pub async fn create_parameter(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1639,7 +1639,7 @@ pub async fn create_parameter(
     tag = "payments",
 )]
 
-/// `GET /v1/parameters` — list parameters.
+/// `GET /v1/parameters` - list parameters.
 pub async fn list_parameters(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1675,7 +1675,7 @@ pub async fn list_parameters(
     tag = "payments",
 )]
 
-/// `GET /v1/parameters/{id}` — get a parameter.
+/// `GET /v1/parameters/{id}` - get a parameter.
 pub async fn get_parameter(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1713,7 +1713,7 @@ pub async fn get_parameter(
     tag = "payments",
 )]
 
-/// `PATCH /v1/parameters/{id}` — update a parameter.
+/// `PATCH /v1/parameters/{id}` - update a parameter.
 pub async fn update_parameter(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1801,7 +1801,7 @@ pub async fn update_parameter(
     tag = "payments",
 )]
 
-/// `DELETE /v1/parameters/{id}` — soft delete a parameter.
+/// `DELETE /v1/parameters/{id}` - soft delete a parameter.
 /// Sets `status = 'deleted'` so the row is retained for audit but excluded
 /// from `resolve_parameter` and `list_parameters`.
 pub async fn delete_parameter(
@@ -1894,7 +1894,7 @@ fn row_to_file(row: &sqlx::postgres::PgRow) -> FileResponse {
     tag = "payments",
 )]
 
-/// `POST /v1/files` — register an uploaded file.
+/// `POST /v1/files` - register an uploaded file.
 pub async fn upload_file(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1934,7 +1934,7 @@ pub async fn upload_file(
     tag = "payments",
 )]
 
-/// `GET /v1/files` — list uploaded files.
+/// `GET /v1/files` - list uploaded files.
 pub async fn list_files(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1971,7 +1971,7 @@ pub async fn list_files(
     tag = "payments",
 )]
 
-/// `GET /v1/files/{id}` — file detail.
+/// `GET /v1/files/{id}` - file detail.
 pub async fn get_file(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -2038,7 +2038,7 @@ pub struct CreateInstructionFileRequest {
     tag = "payments",
 )]
 
-/// `POST /v1/instruction-files` — create an instruction file.
+/// `POST /v1/instruction-files` - create an instruction file.
 pub async fn create_instruction_file(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -2084,7 +2084,7 @@ pub async fn create_instruction_file(
     tag = "payments",
 )]
 
-/// `GET /v1/instruction-files` — list instruction files.
+/// `GET /v1/instruction-files` - list instruction files.
 pub async fn list_instruction_files(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -2154,7 +2154,7 @@ fn default_capacity_limit() -> i32 {
     tag = "payments",
 )]
 
-/// `POST /v1/instruction-file-specifications` — create a specification.
+/// `POST /v1/instruction-file-specifications` - create a specification.
 pub async fn create_specification(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -2193,7 +2193,7 @@ pub async fn create_specification(
     tag = "payments",
 )]
 
-/// `GET /v1/instruction-file-specifications` — list specifications.
+/// `GET /v1/instruction-file-specifications` - list specifications.
 pub async fn list_specifications(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -2255,7 +2255,7 @@ fn row_to_manual_decision(row: &sqlx::postgres::PgRow) -> ManualDecisionResponse
     tag = "payments",
 )]
 
-/// `GET /v1/manual-decisions` — list manual decisions.
+/// `GET /v1/manual-decisions` - list manual decisions.
 pub async fn list_manual_decisions(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -2292,7 +2292,7 @@ pub async fn list_manual_decisions(
     tag = "payments",
 )]
 
-/// `GET /v1/manual-decisions/{id}` — manual decision detail.
+/// `GET /v1/manual-decisions/{id}` - manual decision detail.
 pub async fn get_manual_decision(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -2336,7 +2336,7 @@ pub struct SubmitManualDecisionRequest {
     tag = "payments",
 )]
 
-/// `POST /v1/manual-decisions/{id}/submit` — submit a manual decision.
+/// `POST /v1/manual-decisions/{id}/submit` - submit a manual decision.
 /// Records the submitter, the decision payload, and marks the decision as
 /// `submitting`. The downstream task system picks up the row from there.
 pub async fn submit_manual_decision(
@@ -2423,7 +2423,7 @@ pub struct ProxyBackResponse {
     tag = "payments-internal",
 )]
 
-/// `POST /v1/internal/steps/execute` — Flow proxy-back for Payments domain steps.
+/// `POST /v1/internal/steps/execute` - Flow proxy-back for Payments domain steps.
 pub async fn execute_step(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -2440,7 +2440,7 @@ pub async fn execute_step(
     .await?;
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
-    // Use system context for proxy-back — the workflow ID carries the org/env.
+    // Use system context for proxy-back - the workflow ID carries the org/env.
     // In production, extract org_id/env_id from the Flow workflow record.
     match req.step_kind.as_str() {
         "MatchPaymentInstrumentStep" => {
@@ -3130,7 +3130,7 @@ pub struct RepairRequest {
     pub input: Option<serde_json::Value>,
 }
 
-/// `POST /v1/instructions/{id}/repair` — rewind the instruction to a step and
+/// `POST /v1/instructions/{id}/repair` - rewind the instruction to a step and
 /// re-process via Flow (Story ).
 #[utoipa::path(
     post,
@@ -3208,7 +3208,7 @@ pub async fn repair_instruction(
     .await
     .map_err(err_db)?;
 
-    // Re-process via Flow — look up the associated workflow by correlation_id
+    // Re-process via Flow - look up the associated workflow by correlation_id
     // and call the Flow repair endpoint. Best-effort: if the workflow is not
     // found or Flow is unavailable, the instruction is left in `pending` for
     // the worker or a retry to pick up.
@@ -3290,7 +3290,7 @@ pub struct ListAuditQuery {
     pub page_token: Option<String>,
 }
 
-/// `GET /v1/audit` — query audit events (Story ).
+/// `GET /v1/audit` - query audit events (Story ).
 /// Returns a paginated list of audit events with filters by action,
 /// target resource type, and date range. Requires `payments:admin` scope.
 #[utoipa::path(
@@ -3366,7 +3366,7 @@ pub async fn list_audit_events(
     tag = "payments",
 )]
 
-/// `GET /v1/metrics` — Prometheus/OpenMetrics text format (Story ).
+/// `GET /v1/metrics` - Prometheus/OpenMetrics text format (Story ).
 /// Exports instruction counts, payment counts, and processing latency.
 /// Requires `bank8:payments:metrics:read` scope.
 pub async fn metrics(
@@ -3512,7 +3512,7 @@ fn row_to_integration(row: &sqlx::postgres::PgRow) -> IntegrationResponse {
     }
 }
 
-/// `POST /v1/integrations` — create an integration (Story ).
+/// `POST /v1/integrations` - create an integration (Story ).
 #[utoipa::path(
     post,
     path = "/v1/integrations",
@@ -3574,7 +3574,7 @@ pub async fn create_integration(
     Ok(Json(row_to_integration(&row)))
 }
 
-/// `GET /v1/integrations` — list integrations (Story ).
+/// `GET /v1/integrations` - list integrations (Story ).
 #[utoipa::path(
     get,
     path = "/v1/integrations",
@@ -3609,7 +3609,7 @@ pub async fn list_integrations(
     Ok(Json(rows.iter().map(row_to_integration).collect()))
 }
 
-/// `GET /v1/integrations/{id}` — get an integration (Story ).
+/// `GET /v1/integrations/{id}` - get an integration (Story ).
 #[utoipa::path(
     get,
     path = "/v1/integrations/{id}",
@@ -3657,7 +3657,7 @@ pub async fn get_integration(
     tag = "payments",
 )]
 
-/// `PATCH /v1/integrations/{id}` — update an integration (Story ).
+/// `PATCH /v1/integrations/{id}` - update an integration (Story ).
 pub async fn update_integration(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -3724,7 +3724,7 @@ pub async fn update_integration(
     tag = "payments",
 )]
 
-/// `DELETE /v1/integrations/{id}` — soft delete an integration (Story ).
+/// `DELETE /v1/integrations/{id}` - soft delete an integration (Story ).
 pub async fn delete_integration(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -3812,7 +3812,7 @@ fn row_to_core(row: &sqlx::postgres::PgRow) -> CoreResponse {
     }
 }
 
-/// `POST /v1/cores` — create a core (Story ).
+/// `POST /v1/cores` - create a core (Story ).
 #[utoipa::path(
     post,
     path = "/v1/cores",
@@ -3872,7 +3872,7 @@ pub async fn create_core(
     Ok(Json(row_to_core(&row)))
 }
 
-/// `GET /v1/cores` — list cores (Story ).
+/// `GET /v1/cores` - list cores (Story ).
 #[utoipa::path(
     get,
     path = "/v1/cores",
@@ -3907,7 +3907,7 @@ pub async fn list_cores(
     Ok(Json(rows.iter().map(row_to_core).collect()))
 }
 
-/// `GET /v1/cores/{id}` — get a core (Story ).
+/// `GET /v1/cores/{id}` - get a core (Story ).
 #[utoipa::path(
     get,
     path = "/v1/cores/{id}",
@@ -3955,7 +3955,7 @@ pub async fn get_core(
     tag = "payments",
 )]
 
-/// `PATCH /v1/cores/{id}` — update a core (Story ).
+/// `PATCH /v1/cores/{id}` - update a core (Story ).
 pub async fn update_core(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -4019,7 +4019,7 @@ pub async fn update_core(
     tag = "payments",
 )]
 
-/// `DELETE /v1/cores/{id}` — soft delete a core (Story ).
+/// `DELETE /v1/cores/{id}` - soft delete a core (Story ).
 pub async fn delete_core(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -4085,7 +4085,7 @@ pub struct CreateCoreVersionRequest {
     tag = "payments",
 )]
 
-/// `POST /v1/cores/{id}/versions` — create a core version (Story ).
+/// `POST /v1/cores/{id}/versions` - create a core version (Story ).
 pub async fn create_core_version(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -4180,7 +4180,7 @@ pub struct CardholderResponse {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateCardholderRequest {
-    /// Ledger customer id (by value — Ledger's public API validated it).
+    /// Ledger customer id (by value - Ledger's public API validated it).
     pub customer_id: Uuid,
     #[serde(default)]
     pub first_name: Option<String>,
@@ -4199,9 +4199,9 @@ pub struct CreateCardholderRequest {
     tag = "payments",
 )]
 
-/// `POST /v1/cardholders` — create a cardholder.
+/// `POST /v1/cardholders` - create a cardholder.
 /// .7: `customer_id` is a Ledger customer id (by value; existence is the
-/// caller's contract — Ledger owns customer validation via its public API;
+/// caller's contract - Ledger owns customer validation via its public API;
 /// no cross-schema FK).
 pub async fn create_cardholder(
     State(state): State<AppState>,
@@ -4263,7 +4263,7 @@ pub async fn create_cardholder(
     tag = "payments",
 )]
 
-/// `GET /v1/cardholders` — list cardholders.
+/// `GET /v1/cardholders` - list cardholders.
 /// .7: holder callers see only their own cardholders
 /// (forced here; RLS is the backstop). Staff/sys/M2M see all active
 /// cardholders in the env.
@@ -4312,7 +4312,7 @@ pub async fn list_cardholders(
     tag = "payments",
 )]
 
-/// `GET /v1/cardholders/{id}` — get a cardholder.
+/// `GET /v1/cardholders/{id}` - get a cardholder.
 /// .7: holder callers can only fetch their own cardholders.
 pub async fn get_cardholder(
     State(state): State<AppState>,
@@ -4401,7 +4401,7 @@ pub struct UpdateCardRequest {
     pub expiry_date: Option<String>,
 }
 
-// ── Card operations — encrypted sessions, PIN (Story ) ──────────
+// ── Card operations - encrypted sessions, PIN (Story ) ──────────
 
 #[derive(Debug, Deserialize)]
 pub struct CreateEncryptedSessionRequest {
@@ -4443,7 +4443,7 @@ pub struct PinChangeResponse {
     pub changed: bool,
 }
 
-/// `POST /v1/cards` — create a card.
+/// `POST /v1/cards` - create a card.
 /// Gated by `FeatureGate::Cards`. The PAN is obfuscated with the
 /// placeholder `CardEncryption` before being stored in `encrypted_pan`.
 #[utoipa::path(
@@ -4530,7 +4530,7 @@ pub async fn create_card(
     Ok(Json(row_to_card(&row)))
 }
 
-/// `GET /v1/cards` — list cards.
+/// `GET /v1/cards` - list cards.
 #[utoipa::path(
     get,
     path = "/v1/cards",
@@ -4565,7 +4565,7 @@ pub async fn list_cards(
     Ok(Json(rows.iter().map(row_to_card).collect()))
 }
 
-/// `GET /v1/cards/{id}` — get a card.
+/// `GET /v1/cards/{id}` - get a card.
 #[utoipa::path(
     get,
     path = "/v1/cards/{id}",
@@ -4613,7 +4613,7 @@ pub async fn get_card(
     tag = "payments",
 )]
 
-/// `PATCH /v1/cards/{id}` — update a card (status / expiry).
+/// `PATCH /v1/cards/{id}` - update a card (status / expiry).
 /// When `status` is provided it is validated against the card state machine
 /// (`cards::validate_card_transition`) before being applied.
 pub async fn update_card(
@@ -4682,7 +4682,7 @@ pub async fn update_card(
     Ok(Json(row_to_card(&row)))
 }
 
-/// `POST /v1/cards/{id}/encrypted-session` — create an encrypted card
+/// `POST /v1/cards/{id}/encrypted-session` - create an encrypted card
 /// session for sensitive operations (PIN verify/change, 3DS challenge).
 /// Story.
 pub async fn create_encrypted_session(
@@ -4720,7 +4720,7 @@ pub async fn create_encrypted_session(
     }))
 }
 
-/// `POST /v1/cards/{id}/pin/verify` — verify a card PIN.
+/// `POST /v1/cards/{id}/pin/verify` - verify a card PIN.
 /// Story . The PIN is already hashed by the caller; Payments compares
 /// it against the stored `pin_hash` and increments `pin_attempts` on
 /// mismatch, suspending the card after 3 failures.
@@ -4752,7 +4752,7 @@ pub async fn verify_pin(
     }))
 }
 
-/// `POST /v1/cards/{id}/pin/change` — change a card PIN.
+/// `POST /v1/cards/{id}/pin/change` - change a card PIN.
 /// Story . Verifies `old_pin_hash` against the stored hash; on
 /// success replaces it with `new_pin_hash` and resets `pin_attempts`.
 pub async fn change_pin(
@@ -4828,7 +4828,7 @@ pub struct CreateCardProductRequest {
     tag = "payments",
 )]
 
-/// `POST /v1/card-products` — create a card product.
+/// `POST /v1/card-products` - create a card product.
 pub async fn create_card_product(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -4889,7 +4889,7 @@ pub async fn create_card_product(
     tag = "payments",
 )]
 
-/// `GET /v1/card-products` — list card products.
+/// `GET /v1/card-products` - list card products.
 pub async fn list_card_products(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -4925,7 +4925,7 @@ pub async fn list_card_products(
     tag = "payments",
 )]
 
-/// `GET /v1/card-products/{id}` — get a card product.
+/// `GET /v1/card-products/{id}` - get a card product.
 pub async fn get_card_product(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -4999,7 +4999,7 @@ fn default_pan_length() -> i32 {
     tag = "payments",
 )]
 
-/// `POST /v1/account-ranges` — create an account range.
+/// `POST /v1/account-ranges` - create an account range.
 pub async fn create_account_range(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5043,7 +5043,7 @@ pub async fn create_account_range(
     tag = "payments",
 )]
 
-/// `GET /v1/account-ranges` — list account ranges.
+/// `GET /v1/account-ranges` - list account ranges.
 pub async fn list_account_ranges(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5202,7 +5202,7 @@ fn row_to_mandate(row: &sqlx::postgres::PgRow) -> MandateResponse {
     }
 }
 
-/// `POST /v1/mandates` — create a mandate.
+/// `POST /v1/mandates` - create a mandate.
 #[utoipa::path(
     post,
     path = "/v1/mandates",
@@ -5228,7 +5228,7 @@ pub async fn create_mandate(
         sentin8::shield::EvalTarget::new("bank8:payments:mandates:write"),
     )
     .await?;
-    // Parse the amount limit once — 400 on invalid input before any DB work.
+    // Parse the amount limit once - 400 on invalid input before any DB work.
     let amount_limit: Option<rust_decimal::Decimal> = match req.amount_limit.as_deref() {
         None => None,
         Some(s) if s.trim().is_empty() => None,
@@ -5267,7 +5267,7 @@ pub async fn create_mandate(
     Ok(Json(row_to_mandate(&row)))
 }
 
-/// `GET /v1/mandates` — list mandates.
+/// `GET /v1/mandates` - list mandates.
 #[utoipa::path(
     get,
     path = "/v1/mandates",
@@ -5301,7 +5301,7 @@ pub async fn list_mandates(
     Ok(Json(rows.iter().map(row_to_mandate).collect()))
 }
 
-/// `GET /v1/mandates/{id}` — get a mandate.
+/// `GET /v1/mandates/{id}` - get a mandate.
 #[utoipa::path(
     get,
     path = "/v1/mandates/{id}",
@@ -5350,7 +5350,7 @@ pub async fn get_mandate(
     tag = "payments",
 )]
 
-/// `PATCH /v1/mandates/{id}` — update a mandate.
+/// `PATCH /v1/mandates/{id}` - update a mandate.
 pub async fn update_mandate(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5366,7 +5366,7 @@ pub async fn update_mandate(
         sentin8::shield::EvalTarget::new("bank8:payments:mandates:write"),
     )
     .await?;
-    // Parse the amount limit once — 400 on invalid input before any DB work.
+    // Parse the amount limit once - 400 on invalid input before any DB work.
     let amount_limit: Option<rust_decimal::Decimal> = match req.amount_limit.as_deref() {
         None => None,
         Some(s) if s.trim().is_empty() => None,
@@ -5450,7 +5450,7 @@ fn row_to_membership_directory(row: &sqlx::postgres::PgRow) -> MembershipDirecto
     tag = "payments",
 )]
 
-/// `POST /v1/membership-directories` — create a membership directory.
+/// `POST /v1/membership-directories` - create a membership directory.
 pub async fn create_membership_directory(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5500,7 +5500,7 @@ pub async fn create_membership_directory(
     tag = "payments",
 )]
 
-/// `GET /v1/membership-directories` — list membership directories.
+/// `GET /v1/membership-directories` - list membership directories.
 pub async fn list_membership_directories(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5540,7 +5540,7 @@ pub async fn list_membership_directories(
     tag = "payments",
 )]
 
-/// `GET /v1/membership-directories/{id}` — get a membership directory.
+/// `GET /v1/membership-directories/{id}` - get a membership directory.
 pub async fn get_membership_directory(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5574,7 +5574,7 @@ pub async fn get_membership_directory(
 // functions) on behalf of WASM modules. Every endpoint verifies the
 // caller's bearer token (the Flow/Func M2M identity or a platform admin)
 // and sets the tenant context from the M2M token's `env_id` claim before
-// querying — the same convention as Bank8:Ledger's `func-host` endpoint.
+// querying - the same convention as Bank8:Ledger's `func-host` endpoint.
 // RLS provides the backstop; unauthenticated callers are rejected with 401
 // before any DB access.
 
@@ -5608,7 +5608,7 @@ pub(crate) async fn require_internal_caller(
     tag = "payments-internal",
 )]
 
-/// `GET /v1/internal/instructions/{id}` — internal instruction lookup.
+/// `GET /v1/internal/instructions/{id}` - internal instruction lookup.
 pub async fn get_instruction_internal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5628,7 +5628,7 @@ pub async fn get_instruction_internal(
     Ok(Json(row_to_instruction(&row)))
 }
 
-/// `PATCH /v1/internal/instructions/{id}` — internal instruction update.
+/// `PATCH /v1/internal/instructions/{id}` - internal instruction update.
 /// Updates the instruction's `output` and/or `state` from a Func WASM
 /// module. The body is a JSON object with optional `output` and `state`
 /// fields; only the provided fields are updated.
@@ -5705,7 +5705,7 @@ pub async fn update_instruction_internal(
     tag = "payments-internal",
 )]
 
-/// `GET /v1/internal/payments/{id}` — internal payment lookup.
+/// `GET /v1/internal/payments/{id}` - internal payment lookup.
 pub async fn get_payment_internal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5735,7 +5735,7 @@ pub async fn get_payment_internal(
     tag = "payments-internal",
 )]
 
-/// `GET /v1/internal/payment-instruments/{id}` — internal lookup.
+/// `GET /v1/internal/payment-instruments/{id}` - internal lookup.
 pub async fn get_payment_instrument_internal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5766,7 +5766,7 @@ pub async fn get_payment_instrument_internal(
     tag = "payments-internal",
 )]
 
-/// `GET /v1/internal/account-links/{id}` — internal lookup.
+/// `GET /v1/internal/account-links/{id}` - internal lookup.
 pub async fn get_account_link_internal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5797,7 +5797,7 @@ pub async fn get_account_link_internal(
     tag = "payments-internal",
 )]
 
-/// `GET /v1/internal/parameters/{id}` — internal lookup.
+/// `GET /v1/internal/parameters/{id}` - internal lookup.
 pub async fn get_parameter_internal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5825,7 +5825,7 @@ pub async fn get_parameter_internal(
     tag = "payments-internal",
 )]
 
-/// `GET /v1/internal/rules/{id}` — internal lookup.
+/// `GET /v1/internal/rules/{id}` - internal lookup.
 pub async fn get_rule_internal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5856,7 +5856,7 @@ pub async fn get_rule_internal(
     tag = "payments-internal",
 )]
 
-/// `GET /v1/internal/integrations/{id}` — internal lookup.
+/// `GET /v1/internal/integrations/{id}` - internal lookup.
 pub async fn get_integration_internal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5884,7 +5884,7 @@ pub async fn get_integration_internal(
     tag = "payments-internal",
 )]
 
-/// `GET /v1/internal/mandates/{id}` — internal lookup.
+/// `GET /v1/internal/mandates/{id}` - internal lookup.
 pub async fn get_mandate_internal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5912,7 +5912,7 @@ pub async fn get_mandate_internal(
     tag = "payments-internal",
 )]
 
-/// `GET /v1/internal/manual-decisions/{id}` — internal lookup.
+/// `GET /v1/internal/manual-decisions/{id}` - internal lookup.
 pub async fn get_manual_decision_internal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5942,7 +5942,7 @@ pub async fn get_manual_decision_internal(
     tag = "payments-internal",
 )]
 
-/// `GET /v1/internal/calendars/{id}` — internal lookup.
+/// `GET /v1/internal/calendars/{id}` - internal lookup.
 pub async fn get_calendar_internal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5970,7 +5970,7 @@ pub async fn get_calendar_internal(
     tag = "payments-internal",
 )]
 
-/// `GET /v1/internal/cards/{id}` — internal lookup.
+/// `GET /v1/internal/cards/{id}` - internal lookup.
 pub async fn get_card_internal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -5998,7 +5998,7 @@ pub async fn get_card_internal(
     tag = "payments-internal",
 )]
 
-/// `GET /v1/internal/cardholders/{id}` — internal lookup.
+/// `GET /v1/internal/cardholders/{id}` - internal lookup.
 pub async fn get_cardholder_internal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -6015,7 +6015,7 @@ pub async fn get_cardholder_internal(
         .map_err(err_db)?;
     Ok(Json(row_to_cardholder(&row)))
 }
-// ── Story — Migrate Payments Instruction Logics to WASM via func-client ─
+// ── Story - Migrate Payments Instruction Logics to WASM via func-client ─
 
 #[derive(Debug, Serialize)]
 pub struct MigrateWasmResponse {
@@ -6044,7 +6044,7 @@ pub struct MigrationModule {
     tag = "payments",
 )]
 
-/// `POST /v1/logics/{id}/migrate-wasm` — migrate an instruction logic's inline
+/// `POST /v1/logics/{id}/migrate-wasm` - migrate an instruction logic's inline
 /// hooks to Func WASM modules (Story ).
 /// Loads the logic, walks its steps, and for every `BasicStep` whose
 /// `config.hook` is set and `config.wasmModuleId` is absent, creates a
@@ -6126,7 +6126,7 @@ pub async fn migrate_logic_to_wasm(
             domain: "payments".into(),
             product_id: format!("{}-{}", step_name, hook),
             version_label: "1.0.0".into(),
-            wasm_binary: String::new(), // placeholder — real binary uploaded out-of-band
+            wasm_binary: String::new(), // placeholder - real binary uploaded out-of-band
             wasm_language: "assemblyscript".into(),
             wasm_hash: None,
             hooks: vec![hook.clone()],
@@ -6164,9 +6164,9 @@ pub async fn migrate_logic_to_wasm(
     }))
 }
 
-// ── Story — Payments internal endpoint for cron proxy-back ────────
+// ── Story - Payments internal endpoint for cron proxy-back ────────
 
-/// `POST /v1/internal/schedules/trigger` — Cron proxy-back for recurring
+/// `POST /v1/internal/schedules/trigger` - Cron proxy-back for recurring
 /// payments and mandates (Story ).
 /// Cron calls this endpoint when a registered Payments schedule fires. The
 /// request carries the schedule id and the original instruction metadata;
@@ -6208,9 +6208,9 @@ pub async fn trigger_schedule_internal(
     Json(req): Json<ScheduleTriggerRequest>,
 ) -> Result<Json<ScheduleTriggerResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    // Step 5 — Shield decides. The Cron M2M identity evaluates against the
+    // Step 5 - Shield decides. The Cron M2M identity evaluates against the
     // payments sets; the instruction-creating proxy-back is an
-    // `instructions:write` action (uniform naming — never a bare `cron:write`).
+    // `instructions:write` action (uniform naming - never a bare `cron:write`).
     crate::policy::require(
         &state.policy,
         &a,
@@ -6257,7 +6257,7 @@ pub(crate) fn err_db(e: sqlx::Error) -> (StatusCode, String) {
 mod tests {
     use super::*;
 
-    /// Install the Graviola PQ crypto provider once — reqwest panics with
+    /// Install the Graviola PQ crypto provider once - reqwest panics with
     /// "No provider set" when a client is built without one.
     fn install_provider() {
         use std::sync::Once;

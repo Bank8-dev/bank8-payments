@@ -3,8 +3,8 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Parameters system — , , ,.
-//! Parameter types , levels (— Global vs Payment Instrument
+//! Parameters system - , , ,.
+//! Parameter types , levels (- Global vs Payment Instrument
 //! override), timeseries values , and expected parameter validation
 //! See `services/payments/DESIGN.md` §4.9 (Parameters System).
 
@@ -89,7 +89,7 @@ impl ParameterType {
             },
             Self::DateTime => match value {
                 serde_json::Value::String(s) => {
-                    // RFC 3339 / ISO 8601 — try parse.
+                    // RFC 3339 / ISO 8601 - try parse.
                     chrono::DateTime::parse_from_rfc3339(s)
                         .map(|_| ())
                         .map_err(|e| format!("invalid datetime value '{s}': {e}"))

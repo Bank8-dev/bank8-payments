@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Bank8:Payments Admin UI handlers — RFW (Remote Flutter Widget) definitions.
+//! Bank8:Payments Admin UI handlers - RFW (Remote Flutter Widget) definitions.
 //! Each handler returns an `AdminUiPage` that Sentin8:Dash fetches via
 //! `GET /v1/admin/ui/{page}` and renders at runtime.
 
@@ -29,7 +29,7 @@ use crate::handlers::AppState;
     tag = "admin-ui",
 )]
 
-/// GET /v1/admin/ui/{page} — return RFW definition for the requested admin page.
+/// GET /v1/admin/ui/{page} - return RFW definition for the requested admin page.
 pub async fn get_admin_ui(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -60,7 +60,7 @@ pub async fn get_admin_ui(
         "decisions" => decisions_page(),
         "simulator" => simulator_page(),
         "settings" => settings_page(),
-        // ── Policy Studio (design §3.7, story 28.14) — shared page
+        // ── Policy Studio (design §3.7, story 28.14) - shared page
         // constructors; the guard guarantees `Some` (§3.7 dispatch).
         p if sentin8::rfw::policy_page("bank8:payments", p).is_some() => {
             sentin8::rfw::policy_page("bank8:payments", p)

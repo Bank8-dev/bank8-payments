@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Load test harness for Payments — Story.
+//! Load test harness for Payments - Story.
 //! Provides a stub load-test runner that simulates instruction-processing
 //! throughput and concurrent payments. The real implementation would drive
 //! the HTTP API or the Flow engine directly; this stub returns simulated

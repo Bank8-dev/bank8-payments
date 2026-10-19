@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! TIPS instant payment flows — inbound, outbound, recalls, timeouts, and
+//! TIPS instant payment flows - inbound, outbound, recalls, timeouts, and
 //! status requests.
 //! See `services/payments/DESIGN.md`.
 //! All functions accept the ISO 20022 message as a `serde_json::Value` (the

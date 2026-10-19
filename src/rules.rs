@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Rules engine — CRUD, publish, versioning, RuleSets — , -69.
+//! Rules engine - CRUD, publish, versioning, RuleSets - , -69.
 //! See `services/payments/DESIGN.md` §4.8.
 //! Rule Types:
 //! - Basic: Returns restrictions (block/allow) and can edit instruction fields

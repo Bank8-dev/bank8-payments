@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Dashboards — versioned configuration with widgets, aggregations, and a
+//! Dashboards - versioned configuration with widgets, aggregations, and a
 //! simplified search query language.
 //! See `services/payments/DESIGN.md`.
 //! A dashboard is a versioned collection of widgets. Each widget has a type
@@ -240,8 +240,8 @@ impl Default for SearchQuery {
 
 /// Parse a simplified search query language.
 /// Supported syntax:
-/// - `field=value` — equality
-/// - `field!=value` — inequality
+/// - `field=value` - equality
+/// - `field!=value` - inequality
 /// - `field>value`, `field<value`, `field>=value`, `field<=value`
 /// - `field LIKE value`
 /// - `field IS NULL`, `field IS NOT NULL`
@@ -561,7 +561,7 @@ fn err_db(e: sqlx::Error) -> (StatusCode, String) {
     tag = "payments",
 )]
 
-/// `POST /v1/dashboards` — create a dashboard.
+/// `POST /v1/dashboards` - create a dashboard.
 pub async fn create_dashboard(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -604,7 +604,7 @@ pub async fn create_dashboard(
     tag = "payments",
 )]
 
-/// `GET /v1/dashboards` — list dashboards.
+/// `GET /v1/dashboards` - list dashboards.
 pub async fn list_dashboards(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -640,7 +640,7 @@ pub async fn list_dashboards(
     tag = "payments",
 )]
 
-/// `GET /v1/dashboards/{id}` — get a dashboard.
+/// `GET /v1/dashboards/{id}` - get a dashboard.
 pub async fn get_dashboard(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -677,7 +677,7 @@ pub async fn get_dashboard(
     tag = "payments",
 )]
 
-/// `POST /v1/dashboards/{id}/versions` — create a new dashboard version.
+/// `POST /v1/dashboards/{id}/versions` - create a new dashboard version.
 pub async fn create_dashboard_version(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -735,7 +735,7 @@ pub async fn create_dashboard_version(
     tag = "payments",
 )]
 
-/// `POST /v1/dashboards/{id}/publish` — publish the latest draft version.
+/// `POST /v1/dashboards/{id}/publish` - publish the latest draft version.
 pub async fn publish_dashboard(
     State(state): State<AppState>,
     headers: HeaderMap,

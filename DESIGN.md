@@ -1,9 +1,9 @@
-# Bank8:Payments — Detailed Design Document
+# Bank8:Payments - Detailed Design Document
 
 ## 1. Scope & Context
 
 Bank8:Payments owns: the payments domain schema `payments`
-(schema-per-service — 55 domain tables + the `payments.outbox` /
+(schema-per-service - 55 domain tables + the `payments.outbox` /
 `payments.audit_journal` producer tables in the same schema), the
 instruction/payment REST API (90 utoipa-declared endpoints across ~45
 families), the scheme flow implementations (B8, SEPA, TIPS, SWIFT AGI
@@ -14,14 +14,14 @@ logics, integrations, cores, templates, dashboards, config packs,
 membership directories), file processing (ISO file specs, batches),
 manual decisions/tasks, sandbox simulators, and the
 `bank8:payments:*` event family (25 resource types). The **async
-re-drive loop is embedded** (`worker` module — an in-process Bus SSE
+re-drive loop is embedded** (`worker` module - an in-process Bus SSE
 consumer that turns `bank8:payments:instruction:*` events into Flow
 workflow resume/retry; the former standalone `payments-worker` binary,
 merged following the platform's stat-worker precedent).
 
 It does NOT own: workflow execution (Sentin8:Flow), scheduling
 (Sentin8:Cron), tenant hooks (Sentin8:Func), or balances/postings
-(Bank8:Ledger — called via its public API).
+(Bank8:Ledger - called via its public API).
 
 ```mermaid
 graph TD
@@ -62,7 +62,7 @@ graph TD
 Shell-owned boot (pool, Shield engine, outbox relay on
 `payments_outbox_changed`, journal pusher via `payments-audit`) plus
 **one service-spawned task**: the embedded re-drive worker (`worker::spawn`
-— a Bus SSE consumer on the `payments` family that turns
+- a Bus SSE consumer on the `payments` family that turns
 `bank8:payments:instruction:*` events into Flow resume/retry calls).
 
 ```mermaid
@@ -107,7 +107,7 @@ graph TD
     SSE --> BUSC
 ```
 
-**Request lifecycle — instruction creation (async execution family)**:
+**Request lifecycle - instruction creation (async execution family)**:
 
 ```mermaid
 sequenceDiagram
@@ -128,7 +128,7 @@ sequenceDiagram
         P->>DB: instruction → processing · COMMIT
         P-->>C: accepted
     else Flow unavailable
-        P-->>C: 5xx — nothing committed
+        P-->>C: 5xx - nothing committed
     end
     Note over C,L: Flow drives steps, posting steps call Ledger public API
     F->>P: POST /v1/internal/steps/execute (M2M)
@@ -164,7 +164,7 @@ same schema. Complete inventory by family:
 | Directories | `membership_directories`, `membership_directory_versions` |
 | Time | `business_day_definitions`, `calendars`, `scheduled_payments` |
 | Workflow | `manual_decisions`, `tasks` |
-| Files | `files` (ISO archives, confirmations — payload in Storage) |
+| Files | `files` (ISO archives, confirmations - payload in Storage) |
 | Audit | `audit_events` (OCSF-shaped) |
 | Producer | `payments.outbox`, `payments.audit_journal` (same schema, FORCE-RLS) |
 
@@ -252,7 +252,7 @@ Internal (M2M proxy-back, the Flow contract):
 
 | Endpoint | Caller | Contract |
 |---|---|---|
-| `POST /v1/internal/steps/execute` | Sentin8:Flow | domain step functions (MatchPaymentInstrument, Sentin8CorePostings, scheme calls, …) — step-5-gated, env from workflow |
+| `POST /v1/internal/steps/execute` | Sentin8:Flow | domain step functions (MatchPaymentInstrument, Sentin8CorePostings, scheme calls, …) - step-5-gated, env from workflow |
 | `GET/PATCH /v1/internal/instructions/{id}` | Flow / embedded worker | guarded state reads/updates |
 | `GET /v1/internal/{payments,payment-instruments,account-links,parameters,rules,integrations}/{id}` | Flow steps | data access for step execution |
 | `POST /v1/internal/authorisations/expire` | Cron/scheme callbacks | authorisation expiry sweep |
@@ -262,13 +262,13 @@ relations/attributes shared pages + payments data plane).
 
 **Event families** (family `payments`, DBX producer path): the
 `ResourceType` catalogue drives `bank8:payments:{resource}:{operation}`
-events for all 25 resource types — `instruction`, `payment`,
+events for all 25 resource types - `instruction`, `payment`,
 `instruction_logic`, `payment_instrument`, `account_link`, `card`,
 `cardholder`, `card_order`, `three_ds_record`, `core`, `core_version`,
 `file`, `instruction_file`, `integration`, `integration_version`,
 `manual_decision`, `membership_directory`, `parameter`, `rule`,
 `rule_set`, `rule_version`, `rule_set_version`, `template`,
-`template_version`, `dashboard` — each with `created`/`updated`
+`template_version`, `dashboard` - each with `created`/`updated`
 operations plus the specific flows (`instruction:retried`, `:cancelled`,
 `:repaired`, `instruction_logic:wasmmigrated`, `cards:encrypted`).
 
@@ -302,14 +302,14 @@ sequenceDiagram
   `payments.audit_journal` pushed to Sys by the shell pusher
   (`payments-audit` workload).
 - **Feature gates**: availability (503) vs authorization (403) are
-  separate — feature flags gate availability, Shield gates access.
+  separate - feature flags gate availability, Shield gates access.
 - **Drain/TLS**: platform-standard (health gauge + in-process PQ-TLS).
 
 ## 6. Failure Modes & Recovery
 
 ```mermaid
 flowchart TD
-    I["POST /v1/instructions"] -->|"Flow create fails"| AB["no commit — 5xx<br/>client retries (idempotent)"]
+    I["POST /v1/instructions"] -->|"Flow create fails"| AB["no commit - 5xx<br/>client retries (idempotent)"]
     I -->|"commit ok"| ST["instruction pending/processing"]
     ST -->|"worker event lost (Bus outage)"| ROW["outbox row unrelayed"]
     ROW --> RELAY["relay retry ≤10 → produce"]
@@ -332,7 +332,7 @@ flowchart TD
 - **Background tasks**: shell owns the relay + journal pusher; the
   service spawns the embedded re-drive worker (one SSE consume loop on
   the `payments` family).
-- Capped pool (≤3) shared by the API and the embedded worker — the
+- Capped pool (≤3) shared by the API and the embedded worker - the
   worker adds no second pool (the merge removed the standalone binary's
   pool; the platform stat merge is the precedent).
 - Hot paths: instruction state updates (single-row, indexed on id +
@@ -352,7 +352,7 @@ flowchart TD
   deterministic placeholder layer (production HSM integration is a
   deployment concern, not code).
 - The API and the embedded worker share the terminal-state predicate via
-  the same guarded-SQL contract (one crate now — the two can't drift).
+  the same guarded-SQL contract (one crate now - the two can't drift).
 - No `unsafe` code.
 - Rejected defaults: shadow-writing ledger balances; per-handler scope
   checks (step 5 is the only gate); unauthenticated internal endpoints.
@@ -361,11 +361,11 @@ flowchart TD
 
 ```mermaid
 graph TD
-    U["Unit — pure logic<br/>state machine, ISO payload parsing,<br/>rule engine, routing extraction,<br/>config defaults, SDK contracts"] --> I["Integration<br/>posting-type model, event naming,<br/>feature gates, policy suites<br/>(engine semantics + mirror parity)"]
-    I --> E["E2E — e2e-ts via BFF proxy<br/>instruction lifecycle incl.<br/>worker re-drive"]
+    U["Unit - pure logic<br/>state machine, ISO payload parsing,<br/>rule engine, routing extraction,<br/>config defaults, SDK contracts"] --> I["Integration<br/>posting-type model, event naming,<br/>feature gates, policy suites<br/>(engine semantics + mirror parity)"]
+    I --> E["E2E - e2e-ts via BFF proxy<br/>instruction lifecycle incl.<br/>worker re-drive"]
 ```
 
-- **Unit** (425 tests): the money/path logic is pure-function tested —
+- **Unit** (425 tests): the money/path logic is pure-function tested -
   state machine transitions, ISO 20022 payload handling, rule
   evaluation, routing extraction.
 - **Integration**: posting-type model, event-stream naming + publisher
@@ -376,19 +376,19 @@ graph TD
 ## 10. Open Questions
 
 - **Production scheme certification (Visa DPS, MDES, SWIFT) is external by
-  design** — closed as a code question. The adapter seams (versioned
+  design** - closed as a code question. The adapter seams (versioned
   `integrations` published per scheme, simulator parity) are the
   certification inputs; the vertical's remaining deliverable is a
   certification runbook (register an integration version, point it at a
   scheme test bed, collect evidence) so tenants can drive it.
-- ~~File processing~~ — **implemented** (design §10): `submit` marks the
+- ~~File processing~~ - **implemented** (design §10): `submit` marks the
   file `processing`, creates the batch shell, and triggers the per-file
   Flow debatch workflow (`logic_id: file-debatch`, `correlation_id =
   file_id`) whose step proxies back into
   `POST /v1/internal/files/debatch` to chunk the batch and mark the file
   `processed`; the step is idempotent on the terminal-file guard, so a
   workflow retry is a no-op.
-- ~~`v1beta/scheduled-payments`~~ — **Cron wiring implemented** (design
+- ~~`v1beta/scheduled-payments`~~ - **Cron wiring implemented** (design
   §10): `register_recurring_schedule` registers a real Cron schedule
   (`domain: payments`, `schedule_type: recurring-{instruction_id}`) whose
   fire proxies back into `POST /v1/internal/schedules/trigger` with the

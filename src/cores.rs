@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Cores & Core Versions — core banking system mappings.
+//! Cores & Core Versions - core banking system mappings.
 //! See `services/payments/DESIGN.md` §4.6 (Cores).
 //! A *core* is a named core banking system (e.g. "Temenos T24"). Each core
 //! owns one or more *versions*; the active version points at the
@@ -17,7 +17,7 @@ use sqlx::Row;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-// ── Story — CoreVersions ────────────────────────────────────────
+// ── Story - CoreVersions ────────────────────────────────────────
 
 /// API response for a core version.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -102,7 +102,7 @@ pub async fn get_active_core_version(
     }))
 }
 
-// ── Story — Core migration patterns ────────────────────────────
+// ── Story - Core migration patterns ────────────────────────────
 
 /// Strategy for migrating traffic from a source core to a target core.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

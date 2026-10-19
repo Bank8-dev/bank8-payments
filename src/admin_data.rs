@@ -25,7 +25,7 @@ async fn require_admin_reader(
     state: &AppState,
     headers: &HeaderMap,
 ) -> Result<crate::auth::AuthContext, (StatusCode, String)> {
-    // Step 5 — Shield decides (principles §5.2, policy design §4.3). The
+    // Step 5 - Shield decides (principles §5.2, policy design §4.3). The
     // admin data reads evaluate the read action; the scope-mirror set
     // permits it per-scope, and the read scopes above all mirror as
     // permits for `bank8:payments:payments:read`-style read actions.
@@ -50,7 +50,7 @@ async fn require_admin_reader(
     tag = "payments-admin",
 )]
 
-/// `GET /v1/admin/overview` — counts for the overview dashboard.
+/// `GET /v1/admin/overview` - counts for the overview dashboard.
 pub async fn overview(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -82,7 +82,7 @@ pub async fn overview(
     tag = "payments-admin",
 )]
 
-/// `GET /v1/admin/instructions` — recent instructions (admin view).
+/// `GET /v1/admin/instructions` - recent instructions (admin view).
 pub async fn list_instructions_admin(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -121,7 +121,7 @@ pub async fn list_instructions_admin(
     tag = "payments-admin",
 )]
 
-/// `GET /v1/admin/payments` — recent payments (admin view).
+/// `GET /v1/admin/payments` - recent payments (admin view).
 pub async fn list_payments_admin(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -153,7 +153,7 @@ pub async fn list_payments_admin(
 }
 
 /// Generic bounded-list helper for the remaining admin resources.
-// Annotated variant (OAPEC §2): every served route is spec'd — the macro
+// Annotated variant (OAPEC §2): every served route is spec'd - the macro
 // emits the utoipa::path attribute with the route's real path/resource.
 macro_rules! admin_list_ann {
     ($fn_name:ident, $table:expr, $cols:expr, $path:expr, $resource:expr) => {
@@ -229,7 +229,7 @@ admin_list_ann!(
     tag = "payments-admin",
 )]
 
-/// `GET /v1/admin/settings` — service settings view.
+/// `GET /v1/admin/settings` - service settings view.
 pub async fn get_settings_admin(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -266,7 +266,7 @@ pub async fn get_settings_admin(
     tag = "payments-admin",
 )]
 
-/// `GET /v1/admin/simulator` — simulator availability (sandbox gate).
+/// `GET /v1/admin/simulator` - simulator availability (sandbox gate).
 pub async fn get_simulator_admin(
     State(state): State<AppState>,
     headers: HeaderMap,

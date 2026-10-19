@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Idempotency via UUIDv5 — Story.
+//! Idempotency via UUIDv5 - Story.
 //! Scheme gateway messages use UUIDv5-based idempotency keys derived from
 //! a deterministic namespace + the message content. This ensures that
 //! re-delivered messages produce the same idempotency key and are deduplicated.
@@ -13,7 +13,7 @@
 use uuid::Uuid;
 
 /// The canonical namespace UUID for Payments scheme gateway messages.
-/// Generated once and fixed — this ensures reproducibility across restarts.
+/// Generated once and fixed - this ensures reproducibility across restarts.
 pub const BANK8_PAYMENTS_SCHEME_NAMESPACE: Uuid = Uuid::from_bytes([
     0x8a, 0x4b, 0x2c, 0x1e, 0xf7, 0x93, 0x4e, 0xa1, 0x9b, 0x6d, 0xc0, 0x4f, 0x3a, 0x82, 0x5e, 0x11,
 ]);

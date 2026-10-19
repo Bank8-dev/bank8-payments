@@ -15,7 +15,7 @@ use base64::Engine;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-// ── Story — OIDC Authorization Code Flow + PKCE ─────────────
+// ── Story - OIDC Authorization Code Flow + PKCE ─────────────
 
 /// Configuration for the Payments App OIDC integration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -157,7 +157,7 @@ fn urlencoding(s: &str) -> String {
         .collect()
 }
 
-// ── Story — User provisioning (JIT from IdP) ────────────────
+// ── Story - User provisioning (JIT from IdP) ────────────────
 
 /// Status of a Payments App user.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -237,7 +237,7 @@ pub fn provision_user_from_idp(claims: &serde_json::Value) -> Result<AppUser, St
     })
 }
 
-// ── Story — ABAC access management ──────────────────────────
+// ── Story - ABAC access management ──────────────────────────
 
 /// Effect of an ABAC policy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -340,7 +340,7 @@ fn abac_value_matches(expected: &serde_json::Value, actual: &serde_json::Value) 
     expected == actual
 }
 
-// ── Story — Sentin8 tokens (M2M Client Credentials) ───────────
+// ── Story - Sentin8 tokens (M2M Client Credentials) ───────────
 
 /// A request to issue a Sentin8 M2M token.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -388,7 +388,7 @@ pub fn issue_sentin8_token(request: &Sentin8TokenRequest) -> Result<Sentin8Token
     });
     let payload_b64 =
         base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(payload.to_string().as_bytes());
-    // Signature is empty (alg=none) — stub only, never use in production.
+    // Signature is empty (alg=none) - stub only, never use in production.
     let access_token = format!("{header_b64}.{payload_b64}.");
     Ok(Sentin8TokenResponse {
         access_token,
@@ -413,7 +413,7 @@ mod tests {
         }
     }
 
-    // ── Story — OIDC flow ──────────────────────────────────────
+    // ── Story - OIDC flow ──────────────────────────────────────
 
     #[test]
     fn initiate_oidc_flow_returns_authorization_url() {
@@ -508,7 +508,7 @@ mod tests {
         assert_eq!(v["scopes"].as_array().unwrap().len(), 1);
     }
 
-    // ── Story — user provisioning ─────────────────────────────
+    // ── Story - user provisioning ─────────────────────────────
 
     #[test]
     fn user_status_round_trip() {
@@ -582,7 +582,7 @@ mod tests {
         assert_eq!(v["status"], "ACTIVE");
     }
 
-    // ── Story — ABAC ──────────────────────────────────────────
+    // ── Story - ABAC ──────────────────────────────────────────
 
     #[test]
     fn abac_effect_round_trip() {
@@ -750,7 +750,7 @@ mod tests {
         assert_eq!(v["effect"], "ALLOW");
     }
 
-    // ── Story — Sentin8 tokens ──────────────────────────────────
+    // ── Story - Sentin8 tokens ──────────────────────────────────
 
     #[test]
     fn issue_sentin8_token_returns_bearer() {

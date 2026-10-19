@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Missing designed endpoints (design §5.2/§5.4–§5.7).
+//! Missing designed endpoints (design §5.2/§5.4-§5.7).
 //! These handlers route logic that already existed in `cards.rs`,
 //! `manual_decisions.rs`, `file_processing.rs` and `dashboards.rs` but was
 //! never wired to an HTTP route:
@@ -50,7 +50,7 @@ fn map_card_err(e: String) -> (StatusCode, String) {
     tag = "payments",
 )]
 
-/// `POST /v1/cards/{id}/activate` — pending_creation/inactive → active.
+/// `POST /v1/cards/{id}/activate` - pending_creation/inactive → active.
 pub async fn activate_card(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -84,7 +84,7 @@ pub async fn activate_card(
     tag = "payments",
 )]
 
-/// `POST /v1/cards/{id}/freeze` — active → suspended.
+/// `POST /v1/cards/{id}/freeze` - active → suspended.
 pub async fn freeze_card(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -118,7 +118,7 @@ pub async fn freeze_card(
     tag = "payments",
 )]
 
-/// `POST /v1/cards/{id}/unfreeze` — suspended → active.
+/// `POST /v1/cards/{id}/unfreeze` - suspended → active.
 pub async fn unfreeze_card(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -158,7 +158,7 @@ pub struct ReplaceCardRequest {
     tag = "payments",
 )]
 
-/// `POST /v1/cards/{id}/replace` — create a replacement card, disable the old.
+/// `POST /v1/cards/{id}/replace` - create a replacement card, disable the old.
 pub async fn replace_card(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -198,7 +198,7 @@ pub async fn replace_card(
 
 // ── Card tokens (§5.4) ──────────────────────────────────────────────────
 
-/// `GET /v1/card-tokens` — list card tokens for a card.
+/// `GET /v1/card-tokens` - list card tokens for a card.
 #[derive(Debug, Deserialize)]
 pub struct ListCardTokensQuery {
     pub card_id: Uuid,
@@ -239,7 +239,7 @@ pub async fn list_card_tokens(
 
 // ── 3DS records (§5.4) ──────────────────────────────────────────────────
 
-/// `GET /v1/3ds-records` — look up 3DS records by transaction id.
+/// `GET /v1/3ds-records` - look up 3DS records by transaction id.
 #[derive(Debug, Deserialize)]
 pub struct Get3dsQuery {
     pub transaction_id: String,
@@ -321,7 +321,7 @@ pub async fn get_3ds_records(
     tag = "payments",
 )]
 
-/// `POST /v1/files/{id}/submit` — submit an uploaded file for debatch +
+/// `POST /v1/files/{id}/submit` - submit an uploaded file for debatch +
 /// processing (inbound flow).
 pub async fn submit_file(
     State(state): State<AppState>,
@@ -342,7 +342,7 @@ pub async fn submit_file(
     // Debatch is a per-file Flow workflow (design §10): the file
     // row moves to `processing`, the workflow's debatch step chunks the
     // Storage object and creates instruction batches, and the final step
-    // marks the file `processed` — each step idempotent on
+    // marks the file `processed` - each step idempotent on
     // `file_id:chunk_index`, retried per chunk via the worker re-drive.
     let batch_ids = crate::file_processing::process_inbound_file(&state.pool, &state.config, id)
         .await
@@ -389,7 +389,7 @@ pub struct InstructionBatchResponse {
     tag = "payments",
 )]
 
-/// `GET /v1/instruction-batches` — list instruction batches.
+/// `GET /v1/instruction-batches` - list instruction batches.
 pub async fn list_instruction_batches(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -440,7 +440,7 @@ pub async fn list_instruction_batches(
     tag = "payments",
 )]
 
-/// `GET /v1/logics/{id}` — logic detail.
+/// `GET /v1/logics/{id}` - logic detail.
 pub async fn get_logic(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -499,7 +499,7 @@ fn row_to_task(row: &sqlx::postgres::PgRow) -> TaskResponse {
 const TASK_COLUMNS: &str =
     "id, task_type, status, assignee_id, reviewer_id, approval_stages, current_stage, deadline, created_at";
 
-/// `GET /v1/tasks` — list tasks.
+/// `GET /v1/tasks` - list tasks.
 #[derive(Debug, Deserialize)]
 pub struct ListTasksQuery {
     #[serde(default)]
@@ -555,7 +555,7 @@ pub async fn list_tasks(
     tag = "payments",
 )]
 
-/// `GET /v1/tasks/{id}` — task detail.
+/// `GET /v1/tasks/{id}` - task detail.
 pub async fn get_task(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -597,7 +597,7 @@ pub struct ClaimTaskRequest {
     tag = "payments",
 )]
 
-/// `POST /v1/tasks/{id}/claim` — claim a task.
+/// `POST /v1/tasks/{id}/claim` - claim a task.
 pub async fn claim_task(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -643,7 +643,7 @@ pub struct ReviewTaskRequest {
     tag = "payments",
 )]
 
-/// `POST /v1/tasks/{id}/approve` — approve a task (advances approval stages).
+/// `POST /v1/tasks/{id}/approve` - approve a task (advances approval stages).
 pub async fn approve_task(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -684,7 +684,7 @@ pub async fn approve_task(
     tag = "payments",
 )]
 
-/// `POST /v1/tasks/{id}/reject` — reject a task.
+/// `POST /v1/tasks/{id}/reject` - reject a task.
 pub async fn reject_task(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -716,7 +716,7 @@ pub async fn reject_task(
 
 // ── Aggregations (§5.7) ─────────────────────────────────────────────────
 
-/// `GET /v1/aggregations` — query aggregations over instructions and payments.
+/// `GET /v1/aggregations` - query aggregations over instructions and payments.
 #[derive(Debug, Deserialize)]
 pub struct AggregationQuery {
     /// `instructions` or `payments`.
@@ -768,7 +768,7 @@ pub async fn query_aggregations(
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     set_tenant_context(&mut conn, a.env_id()).await;
 
-    // Whitelist identifiers — the aggregation target is interpolated into
+    // Whitelist identifiers - the aggregation target is interpolated into
     // SQL, so only known-safe values are accepted.
     let (table, field_col) = match q.resource.as_str() {
         "instructions" => ("instructions", "state"),

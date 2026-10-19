@@ -5,25 +5,25 @@
 
 //! Business API completion handlers (design §5 rewrite).
 //! Stories in this module:
-//! - Async callback — `POST /v1/integrations:callback/{token}`
-//! - Instruction ops — `:initiate`, `:process`, `:bulkRetry`, PUT update
-//! - Payees — CRUD + `:search`
-//! - Versioned configuration — rule/rule-set/integration versions +
+//! - Async callback - `POST /v1/integrations:callback/{token}`
+//! - Instruction ops - `:initiate`, `:process`, `:bulkRetry`, PUT update
+//! - Payees - CRUD + `:search`
+//! - Versioned configuration - rule/rule-set/integration versions +
 //! `:retry`, `parameter-values` (incl. unset), membership-directory
 //! versions + records search, file-spec versions + `:validate`
-//! - App surfaces — `/v1/app/{templates,dashboards}` + versions +
+//! - App surfaces - `/v1/app/{templates,dashboards}` + versions +
 //! `:validate` + template presets
-//! - Cards issuance ops — `:issue`, `:getDetails`, `:getPIN`,
+//! - Cards issuance ops - `:issue`, `:getDetails`, `:getPIN`,
 //! `:updatePIN`, `:resetPINAttempts`, `:resetLVT`, `:replace`,
 //! `sessions:initiate` (business route shape)
-//! - Card orders — list/create + order batches
+//! - Card orders - list/create + order batches
 //! - Cardholder cascade + card-token lifecycle + 3DS PUT + profile_id
-//! - Authorisation expiry — Cron proxy-back internal endpoint
-//! - Decline recommendations — reason-code → response-code mapping
+//! - Authorisation expiry - Cron proxy-back internal endpoint
+//! - Decline recommendations - reason-code → response-code mapping
 //! - Card product plans + `:addAccountRanges`/`:removeAccountRanges`
-//! - Sandbox API — simulators + `:resume` + `:fastForward` + cleartext
+//! - Sandbox API - simulators + `:resume` + `:fastForward` + cleartext
 //! - Scheduled payments (v1beta)
-//! - State model — processing_status + payment status breadth +
+//! - State model - processing_status + payment status breadth +
 //! FEE_COLLECTION type + amount context keys
 //! - Users + allowed-endpoints + roles read view
 //! - Search field registry validation
@@ -132,7 +132,7 @@ pub const SEARCH_OPS: &[&str] = &[
 ];
 
 /// Per-resource searchable fields + valid comparisons. The registry drives
-/// validation in `:search` endpoints — unknown fields/ops return 400 before
+/// validation in `:search` endpoints - unknown fields/ops return 400 before
 /// reaching the engine.
 pub fn search_registry(resource: &str) -> Option<&'static [&'static str]> {
     match resource {
@@ -188,7 +188,7 @@ pub(crate) fn validate_search(resource: &str, filters: &JsonValue) -> Result<(),
                 fields.join(", ")
             ));
         }
-        // {"field": {"op": ..., "value": ...}} — validate the operator.
+        // {"field": {"op": ..., "value": ...}} - validate the operator.
         if let Some(op) = spec.get("op").and_then(|v| v.as_str()) {
             if !SEARCH_OPS.contains(&op) {
                 return Err(format!(
@@ -203,7 +203,7 @@ pub(crate) fn validate_search(resource: &str, filters: &JsonValue) -> Result<(),
 
 // ── : async integration callback ─────────────────────────────────────
 
-/// `POST /v1/integrations:callback/{token}` — the HTTPAsyncStep contract
+/// `POST /v1/integrations:callback/{token}` - the HTTPAsyncStep contract
 /// (§4.4): an integration calls back with the response payload after an
 /// arbitrary delay; the waiting instruction resumes its workflow.
 #[utoipa::path(
@@ -292,7 +292,7 @@ pub async fn integration_callback(
 
 // ── : instruction ops ────────────────────────────────────────────────
 
-/// `initiate_instruction` — helper (not served; the initiation surface is `POST /v1/instructions`).
+/// `initiate_instruction` - helper (not served; the initiation surface is `POST /v1/instructions`).
 pub async fn initiate_instruction(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -301,7 +301,7 @@ pub async fn initiate_instruction(
     crate::handlers::create_instruction(State(state), headers, Json(req)).await
 }
 
-/// `POST /v1/instructions:process` — process an instruction against its
+/// `POST /v1/instructions:process` - process an instruction against its
 /// logic (moves it to processing; the worker continues the workflow).
 #[utoipa::path(
     post,
@@ -376,8 +376,8 @@ pub struct UpdateInstructionRequest {
     pub output: Option<JsonValue>,
 }
 
-/// `PUT /v1/instructions/{id}` — update an instruction (status updates
-/// including cancel — the business convention; no `/cancel` subpath).
+/// `PUT /v1/instructions/{id}` - update an instruction (status updates
+/// including cancel - the business convention; no `/cancel` subpath).
 #[utoipa::path(
     put,
     path = "/v1/instructions/{id}",
@@ -490,7 +490,7 @@ pub struct BulkRetryRequest {
     pub instruction_ids: Vec<Uuid>,
 }
 
-/// `POST /v1/instructions:bulkRetry` — bulk retry errored instructions
+/// `POST /v1/instructions:bulkRetry` - bulk retry errored instructions
 /// (Sentin8 Jobs pattern).
 #[utoipa::path(
     post,
@@ -604,7 +604,7 @@ fn row_to_payee(row: &sqlx::postgres::PgRow) -> PayeeResponse {
     }
 }
 
-/// `POST /v1/payees` — create a payee (external payment target).
+/// `POST /v1/payees` - create a payee (external payment target).
 #[utoipa::path(
     post,
     path = "/v1/payees",
@@ -670,7 +670,7 @@ pub struct SearchPayeesQuery {
     pub status: Option<String>,
 }
 
-/// `GET /v1/payees` — list/search payees.
+/// `GET /v1/payees` - list/search payees.
 #[utoipa::path(
     get,
     path = "/v1/payees",
@@ -713,7 +713,7 @@ pub async fn list_payees(
     Ok(Json(rows.iter().map(row_to_payee).collect()))
 }
 
-/// `GET /v1/payees/{id}` — payee detail.
+/// `GET /v1/payees/{id}` - payee detail.
 #[utoipa::path(
     get,
     path = "/v1/payees/{id}",
@@ -764,7 +764,7 @@ pub struct UpdatePayeeRequest {
     pub metadata: Option<JsonValue>,
 }
 
-/// `PUT /v1/payees/{id}` — update payee.
+/// `PUT /v1/payees/{id}` - update payee.
 #[utoipa::path(
     put,
     path = "/v1/payees/{id}",
@@ -829,7 +829,7 @@ pub async fn update_payee(
     Ok(Json(row_to_payee(&row)))
 }
 
-/// `POST /v1/payees:search` — registry-validated payee search.
+/// `POST /v1/payees:search` - registry-validated payee search.
 #[utoipa::path(
     post,
     path = "/v1/payees/search",
@@ -963,7 +963,7 @@ async fn retry_version(
     ))
 }
 
-/// `POST /v1/rule-versions` — create a rule version.
+/// `POST /v1/rule-versions` - create a rule version.
 #[utoipa::path(
     post,
     path = "/v1/rule-versions",
@@ -1016,7 +1016,7 @@ pub async fn create_rule_version(
     Ok(Json(v))
 }
 
-/// `GET /v1/rule-versions` — list rule versions (with `:batchGet` semantics).
+/// `GET /v1/rule-versions` - list rule versions (with `:batchGet` semantics).
 #[utoipa::path(
     get,
     path = "/v1/rule-versions",
@@ -1097,7 +1097,7 @@ pub struct ListVersionsQuery {
     pub dashboard_id: Option<Uuid>,
 }
 
-/// `POST /v1/rule-set-versions` — create a rule set version.
+/// `POST /v1/rule-set-versions` - create a rule set version.
 #[utoipa::path(
     post,
     path = "/v1/rule-set-versions",
@@ -1157,7 +1157,7 @@ pub struct CreateRuleSetVersionRequest {
     pub status: String,
 }
 
-/// `GET /v1/rule-set-versions` — list rule set versions.
+/// `GET /v1/rule-set-versions` - list rule set versions.
 #[utoipa::path(
     get,
     path = "/v1/rule-set-versions",
@@ -1197,7 +1197,7 @@ pub async fn list_rule_set_versions(
     Ok(Json(rows.iter().map(row_to_version).collect()))
 }
 
-/// `GET /v1/parameter-values` — list parameter values.
+/// `GET /v1/parameter-values` - list parameter values.
 #[utoipa::path(
     get,
     path = "/v1/parameter-values",
@@ -1256,7 +1256,7 @@ pub struct CreateParameterValueRequest {
     pub value: JsonValue,
 }
 
-/// `POST /v1/parameter-values` — create a parameter value.
+/// `POST /v1/parameter-values` - create a parameter value.
 #[utoipa::path(
     post,
     path = "/v1/parameter-values",
@@ -1323,8 +1323,8 @@ pub struct PutParameterValueRequest {
     pub value: Option<JsonValue>,
 }
 
-/// `PUT /v1/parameter-values/{id}` — update or **unset** a parameter value
-/// (: unsetting supported — a null value removes the override).
+/// `PUT /v1/parameter-values/{id}` - update or **unset** a parameter value
+/// (: unsetting supported - a null value removes the override).
 #[utoipa::path(
     put,
     path = "/v1/parameter-values/{id}",
@@ -1402,7 +1402,7 @@ pub async fn put_parameter_value(
     Ok(Json(serde_json::json!({ "id": id, "unset": unset })))
 }
 
-/// `GET /v1/integration-versions` — list integration versions.
+/// `GET /v1/integration-versions` - list integration versions.
 #[utoipa::path(
     get,
     path = "/v1/integration-versions",
@@ -1449,7 +1449,7 @@ pub struct CreateIntegrationVersionRequest {
     pub status: String,
 }
 
-/// `POST /v1/integration-versions` — create an integration version.
+/// `POST /v1/integration-versions` - create an integration version.
 #[utoipa::path(
     post,
     path = "/v1/integration-versions",
@@ -1502,7 +1502,7 @@ pub async fn create_integration_version(
     Ok(Json(v))
 }
 
-/// `POST /v1/integration-versions/{id}:retry` — retry a failed integration
+/// `POST /v1/integration-versions/{id}:retry` - retry a failed integration
 /// version (business convention; ).
 #[utoipa::path(
     post,
@@ -1541,7 +1541,7 @@ pub async fn retry_integration_version(
     .await
 }
 
-/// `POST /v1/core-versions` — create a core version.
+/// `POST /v1/core-versions` - create a core version.
 #[utoipa::path(
     post,
     path = "/v1/cores/{id}/versions",
@@ -1601,7 +1601,7 @@ pub struct CreateCoreVersionRequest {
     pub status: String,
 }
 
-/// `GET /v1/core-versions` — list core versions.
+/// `GET /v1/core-versions` - list core versions.
 #[utoipa::path(
     get,
     path = "/v1/core-versions",
@@ -1641,7 +1641,7 @@ pub async fn list_core_versions(
     Ok(Json(rows.iter().map(row_to_version).collect()))
 }
 
-/// `GET /v1/membership-directory-versions` — list directory versions.
+/// `GET /v1/membership-directory-versions` - list directory versions.
 #[utoipa::path(
     get,
     path = "/v1/membership-directory-versions",
@@ -1688,7 +1688,7 @@ pub struct CreateDirectoryVersionRequest {
     pub status: String,
 }
 
-/// `POST /v1/membership-directory-versions` — create a directory version.
+/// `POST /v1/membership-directory-versions` - create a directory version.
 #[utoipa::path(
     post,
     path = "/v1/membership-directory-versions",
@@ -1727,7 +1727,7 @@ pub async fn create_membership_directory_version(
     Ok(Json(v))
 }
 
-/// `POST /v1/membership-directory-records:search` — registry-validated
+/// `POST /v1/membership-directory-records:search` - registry-validated
 /// membership directory search (BIC reachability, account resolution).
 #[utoipa::path(
     post,
@@ -1795,7 +1795,7 @@ pub async fn search_membership_directory_records(
     Ok(Json(out))
 }
 
-/// `GET /v1beta/instruction-file-specification-versions` — list file
+/// `GET /v1beta/instruction-file-specification-versions` - list file
 /// specification versions (active-version semantics; ).
 pub async fn list_specification_versions(
     State(state): State<AppState>,
@@ -1836,7 +1836,7 @@ pub struct CreateSpecificationVersionRequest {
     pub status: String,
 }
 
-/// `POST /v1beta/instruction-file-specification-versions` — create a file
+/// `POST /v1beta/instruction-file-specification-versions` - create a file
 /// specification version.
 #[utoipa::path(
     post,
@@ -1876,7 +1876,7 @@ pub async fn create_specification_version(
     Ok(Json(v))
 }
 
-/// `POST /v1beta/instruction-file-specification-versions:validate` — validate
+/// `POST /v1beta/instruction-file-specification-versions:validate` - validate
 /// a specification version payload without creating it (active-version
 /// semantics; the design's `:validate` convention).
 #[utoipa::path(
@@ -1928,8 +1928,8 @@ pub async fn validate_specification_version(
     }
 }
 
-/// `POST /v1beta/instruction-files:initiate` — initiate an instruction file
-/// (submission route; — the business submission surface).
+/// `POST /v1beta/instruction-files:initiate` - initiate an instruction file
+/// (submission route; - the business submission surface).
 #[utoipa::path(
     post,
     path = "/v1/instruction-files/{id}/initiate",
@@ -1963,9 +1963,9 @@ pub struct InitiateInstructionFileRequest {
     pub file_id: Uuid,
 }
 
-// ── : app surfaces — templates/dashboards versions + presets ─────────
+// ── : app surfaces - templates/dashboards versions + presets ─────────
 
-/// `GET /v1/app/template-versions` — list template versions (app-scoped).
+/// `GET /v1/app/template-versions` - list template versions (app-scoped).
 #[utoipa::path(
     get,
     path = "/v1/app/template-versions",
@@ -2012,7 +2012,7 @@ pub struct CreateAppTemplateVersionRequest {
     pub status: String,
 }
 
-/// `POST /v1/app/template-versions` — create a template version (app-scoped).
+/// `POST /v1/app/template-versions` - create a template version (app-scoped).
 #[utoipa::path(
     post,
     path = "/v1/app/template-versions",
@@ -2051,7 +2051,7 @@ pub async fn create_app_template_version(
     Ok(Json(v))
 }
 
-/// `POST /v1/app/template-versions:validate` — validate a template version
+/// `POST /v1/app/template-versions:validate` - validate a template version
 /// payload without creating it.
 #[utoipa::path(
     post,
@@ -2099,7 +2099,7 @@ pub struct CreateTemplatePresetRequest {
     pub preset_values: JsonValue,
 }
 
-/// `POST /v1/app/template-presets` — create a reusable payment-initiation
+/// `POST /v1/app/template-presets` - create a reusable payment-initiation
 /// preset for a template.
 #[utoipa::path(
     post,
@@ -2148,7 +2148,7 @@ pub async fn create_template_preset(
     }))
 }
 
-/// `GET /v1/app/template-presets` — list presets for a template.
+/// `GET /v1/app/template-presets` - list presets for a template.
 #[utoipa::path(
     get,
     path = "/v1/app/template-presets",
@@ -2199,7 +2199,7 @@ pub async fn list_template_presets(
     ))
 }
 
-/// `DELETE /v1/app/template-presets/{id}` — delete a preset.
+/// `DELETE /v1/app/template-presets/{id}` - delete a preset.
 #[utoipa::path(
     delete,
     path = "/v1/app/template-presets/{id}",
@@ -2243,7 +2243,7 @@ pub async fn delete_template_preset(
     Ok(Json(serde_json::json!({ "id": id, "deleted": true })))
 }
 
-/// `GET /v1/app/dashboard-versions` — list dashboard versions (app-scoped).
+/// `GET /v1/app/dashboard-versions` - list dashboard versions (app-scoped).
 #[utoipa::path(
     get,
     path = "/v1/app/dashboard-versions",
@@ -2290,7 +2290,7 @@ pub struct CreateAppDashboardVersionRequest {
     pub status: String,
 }
 
-/// `POST /v1/app/dashboard-versions` — create a dashboard version.
+/// `POST /v1/app/dashboard-versions` - create a dashboard version.
 #[utoipa::path(
     post,
     path = "/v1/app/dashboard-versions",
@@ -2329,7 +2329,7 @@ pub async fn create_app_dashboard_version(
     Ok(Json(v))
 }
 
-/// `POST /v1/app/dashboard-versions:validate` — validate a dashboard version.
+/// `POST /v1/app/dashboard-versions:validate` - validate a dashboard version.
 #[utoipa::path(
     post,
     path = "/v1/app/dashboard-versions/validate",
@@ -2361,7 +2361,7 @@ pub async fn validate_app_dashboard_version(
 
 // ── : cards issuance ops (business route shape) ──────────────────────
 
-/// `POST /v1/cards/issuance:issue` — issue a card (delegates to the existing
+/// `POST /v1/cards/issuance:issue` - issue a card (delegates to the existing
 /// card-issuing handler; the business route shape).
 #[utoipa::path(
     post,
@@ -2382,7 +2382,7 @@ pub async fn issue_card(
     crate::handlers::create_card(State(state), headers, Json(req)).await
 }
 
-/// `GET /v1/cards/issuance` — issuance list (business `issuance:read`).
+/// `GET /v1/cards/issuance` - issuance list (business `issuance:read`).
 #[utoipa::path(
     get,
     path = "/v1/cards/issuance",
@@ -2400,7 +2400,7 @@ pub async fn list_issuance(
     crate::handlers::list_cards(State(state), headers).await
 }
 
-/// `POST /v1/cards/issuance/{id}:replace` — replace a card (delegates to the
+/// `POST /v1/cards/issuance/{id}:replace` - replace a card (delegates to the
 /// existing replace handler; business route shape).
 #[utoipa::path(
     post,
@@ -2430,7 +2430,7 @@ pub async fn replace_card_issuance(
     .await
 }
 
-/// `POST /v1/cards/issuance/{id}:getDetails` — fetch the encrypted card
+/// `POST /v1/cards/issuance/{id}:getDetails` - fetch the encrypted card
 /// details (ECDH P-256 session; client-side decrypt only, §4.12).
 #[utoipa::path(
     post,
@@ -2470,7 +2470,7 @@ pub async fn get_card_details(
     .await
     .map_err(err_db)?
     .ok_or((StatusCode::NOT_FOUND, format!("card {id} not found")))?;
-    // Only the encrypted envelope leaves the service — the client decrypts
+    // Only the encrypted envelope leaves the service - the client decrypts
     // with the ECDH P-256 session key (§4.12); the server never sees clear
     // values after issuance.
     Ok(Json(serde_json::json!({
@@ -2483,7 +2483,7 @@ pub async fn get_card_details(
     })))
 }
 
-/// `POST /v1/cards/issuance/{id}:getPIN` — fetch the encrypted PIN block.
+/// `POST /v1/cards/issuance/{id}:getPIN` - fetch the encrypted PIN block.
 #[utoipa::path(
     post,
     path = "/v1/cards/issuance/{id}/get-pin",
@@ -2526,7 +2526,7 @@ pub async fn get_card_pin(
     })))
 }
 
-/// `POST /v1/cards/issuance/{id}:updatePIN` — update the card PIN (hashes the
+/// `POST /v1/cards/issuance/{id}:updatePIN` - update the card PIN (hashes the
 /// new PIN server-side; never stored in clear, §4.12).
 #[utoipa::path(
     post,
@@ -2592,7 +2592,7 @@ pub struct UpdatePinRequest {
     pub new_pin_hash: String,
 }
 
-/// `POST /v1/cards/issuance/{id}:resetPINAttempts` — reset the PIN try counter.
+/// `POST /v1/cards/issuance/{id}:resetPINAttempts` - reset the PIN try counter.
 #[utoipa::path(
     post,
     path = "/v1/cards/issuance/{id}/reset-pin-attempts",
@@ -2637,7 +2637,7 @@ pub async fn reset_pin_attempts(
     ))
 }
 
-/// `POST /v1/cards/issuance/{id}:resetLVT` — reset the Limited Value Tracker
+/// `POST /v1/cards/issuance/{id}:resetLVT` - reset the Limited Value Tracker
 /// (contactless accumulator; ).
 #[utoipa::path(
     post,
@@ -2696,7 +2696,7 @@ pub async fn reset_card_lvt(
     ))
 }
 
-/// `POST /v1/cards/sessions:initiate` — initiate an encrypted card session
+/// `POST /v1/cards/sessions:initiate` - initiate an encrypted card session
 /// (client key exchange; delegates to the existing session handler).
 #[utoipa::path(
     post,
@@ -2752,7 +2752,7 @@ pub struct CreateCardOrderRequest {
     pub shipping_address: JsonValue,
 }
 
-/// `POST /v1/cards/card-orders` — create a card order (manufacturing /
+/// `POST /v1/cards/card-orders` - create a card order (manufacturing /
 /// personalisation bureau).
 #[utoipa::path(
     post,
@@ -2829,7 +2829,7 @@ pub async fn create_card_order(
     }))
 }
 
-/// `GET /v1/cards/card-orders` — list card orders (business
+/// `GET /v1/cards/card-orders` - list card orders (business
 /// `card_orders:read`; `:batchGet` semantics via id list param).
 #[utoipa::path(
     get,
@@ -2889,7 +2889,7 @@ pub struct CreateCardOrderBatchRequest {
     pub order_ids: Vec<Uuid>,
 }
 
-/// `POST /v1/cards/card-order-batches` — group card orders into a
+/// `POST /v1/cards/card-order-batches` - group card orders into a
 /// manufacturing batch.
 #[utoipa::path(
     post,
@@ -2945,7 +2945,7 @@ pub async fn create_card_order_batch(
     }))
 }
 
-/// `GET /v1/cards/card-order-batches` — list order batches.
+/// `GET /v1/cards/card-order-batches` - list order batches.
 #[utoipa::path(
     get,
     path = "/v1/cards/card-order-batches",
@@ -2992,7 +2992,7 @@ pub async fn list_card_order_batches(
 
 // ── : cardholder cascade + tokens + 3DS PUT ──────────────────────────
 
-/// `PUT /v1/cards/cardholders/{id}` — update a cardholder. **CLOSED status
+/// `PUT /v1/cards/cardholders/{id}` - update a cardholder. **CLOSED status
 /// cascades: all the cardholder's cards transition to DISABLED** (business
 /// rule; done in the same transaction).
 #[utoipa::path(
@@ -3074,7 +3074,7 @@ pub struct UpdateCardholderRequest {
     pub status: Option<String>,
 }
 
-/// `PUT /v1/cards/card-tokens/{id}` — card token lifecycle write (MDES; ).
+/// `PUT /v1/cards/card-tokens/{id}` - card token lifecycle write (MDES; ).
 #[utoipa::path(
     put,
     path = "/v1/cards/card-tokens/{id}",
@@ -3141,7 +3141,7 @@ pub struct UpdateCardTokenRequest {
     pub status: Option<String>,
 }
 
-/// `PUT /v1/cards/3ds-records/{id}` — update 3DS authentication state
+/// `PUT /v1/cards/3ds-records/{id}` - update 3DS authentication state
 /// (; also fixes the list route path to /v1/cards/3ds-records).
 #[utoipa::path(
     put,
@@ -3212,7 +3212,7 @@ pub struct Update3dsRecordRequest {
     pub risk_score: Option<rust_decimal::Decimal>,
 }
 
-/// `PUT /v1/cards/{id}/profile` — set the Card Profile (chip behaviour /
+/// `PUT /v1/cards/{id}/profile` - set the Card Profile (chip behaviour /
 /// scheme approval: Mastercard CPV/CNS, Visa DPS; ).
 #[utoipa::path(
     put,
@@ -3288,7 +3288,7 @@ pub struct ExpiryRunResult {
     pub skipped: i64,
 }
 
-/// `POST /v1/internal/authorisations/expire` — Sentin8:Cron proxy-back for
+/// `POST /v1/internal/authorisations/expire` - Sentin8:Cron proxy-back for
 /// the daily Authorisation Expiry run . Scans authorisation
 /// instructions past their scheme expiry TTL (7d default / 30d pre-auth /
 /// 14d mass-transit / 1h AFD, measured from `transmission_date_time`),
@@ -3348,7 +3348,7 @@ pub async fn internal_authorisation_expiry(
         // TTL by scheme: mass-transit 14d keeps (skip), AFD 1h (already past),
         // pre-auth 30d keeps. Default and card schemes: 7d.
         if scheme == "mass_transit" {
-            // 14-day TTL — still inside the window.
+            // 14-day TTL - still inside the window.
             continue;
         }
         sqlx::query("UPDATE payments SET status = 'expired', updated_at = now() WHERE id = $1 AND env_id = $2")
@@ -3409,7 +3409,7 @@ pub async fn internal_authorisation_expiry(
     }))
 }
 
-// ── : card products — issuing/expiry plans + account ranges ─────────
+// ── : card products - issuing/expiry plans + account ranges ─────────
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CardProductPlanResponse {
@@ -3420,7 +3420,7 @@ pub struct CardProductPlanResponse {
     pub profile_id: Option<String>,
 }
 
-/// `GET /v1/cards/products/{id}` — card product with issuing/expiry plan and
+/// `GET /v1/cards/products/{id}` - card product with issuing/expiry plan and
 /// card profile.
 #[utoipa::path(
     get,
@@ -3483,7 +3483,7 @@ pub struct UpdateCardProductPlanRequest {
     pub profile_id: Option<String>,
 }
 
-/// `PUT /v1/cards/products/{id}` — update issuing/expiry plan on a card
+/// `PUT /v1/cards/products/{id}` - update issuing/expiry plan on a card
 /// product.
 #[utoipa::path(
     put,
@@ -3571,7 +3571,7 @@ pub struct AddAccountRangesRequest {
     pub account_ranges: Vec<String>,
 }
 
-/// `POST /v1/cards/products/{id}:addAccountRanges` — attach BIN account
+/// `POST /v1/cards/products/{id}:addAccountRanges` - attach BIN account
 /// ranges to a card product.
 #[utoipa::path(
     post,
@@ -3667,7 +3667,7 @@ pub struct RemoveAccountRangesRequest {
     pub account_ranges: Vec<String>,
 }
 
-/// `POST /v1/cards/products/{id}:removeAccountRanges` — detach BIN account
+/// `POST /v1/cards/products/{id}:removeAccountRanges` - detach BIN account
 /// ranges.
 #[utoipa::path(
     post,
@@ -3726,7 +3726,7 @@ pub async fn remove_card_product_account_ranges(
     Ok(Json(serde_json::json!({ "removed": removed })))
 }
 
-/// `GET /v1/cards/products/{id}/account-ranges` — list BIN account ranges
+/// `GET /v1/cards/products/{id}/account-ranges` - list BIN account ranges
 /// attached to a card product.
 #[utoipa::path(
     get,
@@ -3832,13 +3832,13 @@ fn sandbox_card_result(req: &SandboxSimulateRequest) -> JsonValue {
         "outcome": req.outcome.clone().unwrap_or_else(|| "approved".into()),
         "auth_code": format!("{:06}", rand_u32() % 1_000_000),
         "iso8583_response_code": req.outcome.as_deref().map(|o| if o == "declined" { "05" } else { "00" }),
-        "note": "Sandbox simulation only — no scheme/issuer side effects.",
+        "note": "Sandbox simulation only - no scheme/issuer side effects.",
     })
 }
 
 fn rand_u32() -> u32 {
     // Cheap deterministic-ish entropy from the OS clock + address space;
-    // sandbox only — not used for security decisions.
+    // sandbox only - not used for security decisions.
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.subsec_nanos() as u64)
@@ -3846,7 +3846,7 @@ fn rand_u32() -> u32 {
     (nanos as u32).wrapping_mul(2654435761) ^ (nanos >> 12) as u32
 }
 
-/// `POST /v1/sandbox/cards:simulate` — simulate a card transaction.
+/// `POST /v1/sandbox/cards:simulate` - simulate a card transaction.
 #[utoipa::path(
     post,
     path = "/v1/sandbox/cards/simulate",
@@ -3891,11 +3891,11 @@ fn sandbox_credit_transfer_result(req: &SandboxSimulateRequest) -> JsonValue {
         "simulation": "credit_transfer",
         "outcome": req.outcome.clone().unwrap_or_else(|| "completed".into()),
         "scheme": "SEPA_CT",
-        "note": "Sandbox simulation only — no clearing-system side effects.",
+        "note": "Sandbox simulation only - no clearing-system side effects.",
     })
 }
 
-/// `POST /v1/sandbox/credit-transfers:simulate` — simulate an SEPA credit
+/// `POST /v1/sandbox/credit-transfers:simulate` - simulate an SEPA credit
 /// transfer.
 #[utoipa::path(
     post,
@@ -3941,11 +3941,11 @@ fn sandbox_swift_result(req: &SandboxSimulateRequest) -> JsonValue {
         "simulation": "swift_agi",
         "outcome": req.outcome.clone().unwrap_or_else(|| "acknowledged".into()),
         "mt": "pacs.008",
-        "note": "Sandbox simulation only — no SWIFT network side effects.",
+        "note": "Sandbox simulation only - no SWIFT network side effects.",
     })
 }
 
-/// `POST /v1/sandbox/swift-agi:simulate` — simulate a SWIFT AGI payment
+/// `POST /v1/sandbox/swift-agi:simulate` - simulate a SWIFT AGI payment
 #[utoipa::path(
     post,
     path = "/v1/sandbox/swift-agi/simulate",
@@ -3990,11 +3990,11 @@ fn sandbox_fedwire_result(req: &SandboxSimulateRequest) -> JsonValue {
         "simulation": "fedwire",
         "outcome": req.outcome.clone().unwrap_or_else(|| "completed".into()),
         "fedwire_tag": "DRWTRN",
-        "note": "Sandbox simulation only — no Fedwire side effects.",
+        "note": "Sandbox simulation only - no Fedwire side effects.",
     })
 }
 
-/// `POST /v1/sandbox/fedwire:simulate` — simulate a FedWire payment.
+/// `POST /v1/sandbox/fedwire:simulate` - simulate a FedWire payment.
 #[utoipa::path(
     post,
     path = "/v1/sandbox/fedwire/simulate",
@@ -4034,7 +4034,7 @@ pub async fn sandbox_simulate_fedwire(
     }))
 }
 
-/// `POST /v1/sandbox/instructions/{id}:resume` — fast-forward a stuck
+/// `POST /v1/sandbox/instructions/{id}:resume` - fast-forward a stuck
 /// instruction through its state machine.
 #[utoipa::path(
     post,
@@ -4091,7 +4091,7 @@ pub async fn sandbox_resume_instruction(
     ))
 }
 
-/// `POST /v1/sandbox/scheduled-payments/{id}:fastForward` — execute the next
+/// `POST /v1/sandbox/scheduled-payments/{id}:fastForward` - execute the next
 /// scheduled occurrence immediately (+ ).
 #[utoipa::path(
     post,
@@ -4143,7 +4143,7 @@ pub struct CreateScheduledPaymentRequest {
     pub currency: String,
     /// standing_order | direct_debit | future_dated
     pub schedule_type: String,
-    /// RFC 5545 RRULE (e.g. FREQ=MONTHLY) — Sentin8:Cron is UTC-only.
+    /// RFC 5545 RRULE (e.g. FREQ=MONTHLY) - Sentin8:Cron is UTC-only.
     #[serde(default)]
     pub recurrence_rule: Option<String>,
     #[serde(default)]
@@ -4152,7 +4152,7 @@ pub struct CreateScheduledPaymentRequest {
     pub payee_id: Option<Uuid>,
 }
 
-/// `POST /v1beta/scheduled-payments` — create a scheduled payment.
+/// `POST /v1beta/scheduled-payments` - create a scheduled payment.
 #[utoipa::path(
     post,
     path = "/v1beta/scheduled-payments",
@@ -4217,7 +4217,7 @@ pub async fn create_scheduled_payment(
     }))
 }
 
-/// `GET /v1beta/scheduled-payments` — list scheduled payments.
+/// `GET /v1beta/scheduled-payments` - list scheduled payments.
 #[utoipa::path(
     get,
     path = "/v1beta/scheduled-payments",
@@ -4266,7 +4266,7 @@ pub async fn list_scheduled_payments(
     ))
 }
 
-/// `GET /v1beta/scheduled-payments/{id}` — fetch one scheduled payment.
+/// `GET /v1beta/scheduled-payments/{id}` - fetch one scheduled payment.
 #[utoipa::path(
     get,
     path = "/v1beta/scheduled-payments/{id}",
@@ -4319,7 +4319,7 @@ pub async fn get_scheduled_payment(
     }))
 }
 
-/// `DELETE /v1beta/scheduled-payments/{id}` — cancel a scheduled payment.
+/// `DELETE /v1beta/scheduled-payments/{id}` - cancel a scheduled payment.
 #[utoipa::path(
     delete,
     path = "/v1beta/scheduled-payments/{id}",
@@ -4429,7 +4429,7 @@ async fn fast_forward_scheduled_inner(
     .map_err(err_db)?;
     let instr_id: Uuid = instr.get("id");
     // Advance next_run_at by one month (UTC-only arithmetic; Sentin8:Cron is
-    // the actual scheduler — delegates recurrence to Cron, this is the
+    // the actual scheduler - delegates recurrence to Cron, this is the
     // manual fast-forward path only).
     sqlx::query(
         "UPDATE scheduled_payments SET next_run_at = COALESCE(next_run_at, now()) + INTERVAL '1 month', updated_at = now() WHERE id = $1 AND env_id = $2",
@@ -4458,7 +4458,7 @@ async fn fast_forward_scheduled_inner(
     ))
 }
 
-/// `POST /v1beta/scheduled-payments/{id}:fastForward` — execute the next
+/// `POST /v1beta/scheduled-payments/{id}:fastForward` - execute the next
 /// occurrence immediately (; non-sandbox).
 #[utoipa::path(
     post,
@@ -4492,8 +4492,8 @@ pub struct PlatformUserResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// `GET /v1/users` — list users visible to this environment (read view;
-/// identities stay in Sentin8:Auth — this is a projection).
+/// `GET /v1/users` - list users visible to this environment (read view;
+/// identities stay in Sentin8:Auth - this is a projection).
 #[utoipa::path(
     get,
     path = "/v1/users",
@@ -4518,10 +4518,10 @@ pub async fn list_users(
     .await?;
     // VDC §VDC.5 (on-demand sanctioned identity read): the env's users are
     // listed through Auth's admin API (`GET /v1/admin/users`) via the
-    // cert-presenting `bank8-payments-sys` workload (CERTFREE-4V — no M2M
+    // cert-presenting `bank8-payments-sys` workload (CERTFREE-4V - no M2M
     // token; the `sentin8:auth:admin:read` scope rides the enroll-published
     // registry map). The former direct `sentin8.auth_users` query referenced a
-    // platform table that does not exist in the vertical's own database —
+    // platform table that does not exist in the vertical's own database -
     // every call failed with a 500.
     let cfg = sentin8::config::Sentin8Config::from_env();
     let ca_path = sentin8::auth::m2m::platform_ca_path();
@@ -4550,7 +4550,7 @@ pub async fn list_users(
     );
     let resp = http
         .get(&url)
-        // Auth's admin API is env-scoped — the target-env header carries
+        // Auth's admin API is env-scoped - the target-env header carries
         // the caller's env (same contract as the provision API).
         .header("x-sentin8-target-env-id", a.env_id().to_string())
         .send()
@@ -4605,7 +4605,7 @@ pub struct AllowedEndpointResponse {
     pub scope: String,
 }
 
-/// `GET /v1/allowed-endpoints` — scope→endpoint map for this service
+/// `GET /v1/allowed-endpoints` - scope→endpoint map for this service
 /// (helps clients pick the right token scope per endpoint; ).
 #[utoipa::path(
     get,
@@ -4698,7 +4698,7 @@ pub struct RoleViewResponse {
     pub scopes: Vec<String>,
 }
 
-/// `GET /v1/roles` — read view of the roles configured for this environment
+/// `GET /v1/roles` - read view of the roles configured for this environment
 /// (roles live in Sentin8:Auth; this is a projection for admin UIs).
 #[utoipa::path(
     get,
@@ -4772,7 +4772,7 @@ fn default_instrument_kind() -> String {
     "card".into()
 }
 
-/// `POST /v1/rules:attachToInstrument` — attach a decision rule to a payment
+/// `POST /v1/rules:attachToInstrument` - attach a decision rule to a payment
 /// instrument (; the rule still applies per-instruction at runtime).
 #[utoipa::path(
     post,
@@ -4855,7 +4855,7 @@ pub struct DetachRuleFromInstrumentRequest {
     pub instrument_id: Uuid,
 }
 
-/// `POST /v1/rules:detachFromInstrument` — detach a rule from an instrument
+/// `POST /v1/rules:detachFromInstrument` - detach a rule from an instrument
 #[utoipa::path(
     post,
     path = "/v1/rules/detach-from-instrument",
@@ -4906,7 +4906,7 @@ pub struct UpdateCoreRequest {
     pub status: Option<String>,
 }
 
-/// `PUT update_core — helper (not served directly; PATCH /v1/cores/{id} is the surface): update core (CBS) config, including the postings
+/// `PUT update_core - helper (not served directly; PATCH /v1/cores/{id} is the surface): update core (CBS) config, including the postings
 /// URL and the online/offline balance endpoint flag.
 pub async fn update_core(
     State(state): State<AppState>,
@@ -4970,7 +4970,7 @@ pub struct CoreBalanceEndpointRequest {
     pub mode: String,
 }
 
-/// `PUT /v1/cores/{id}/balance-endpoint` — switch the CBS balance endpoint
+/// `PUT /v1/cores/{id}/balance-endpoint` - switch the CBS balance endpoint
 /// between online (live query) and offline (cached) modes.
 #[utoipa::path(
     put,
@@ -5043,7 +5043,7 @@ pub async fn update_core_balance_endpoint(
 
 // ── : OpenMetrics endpoint ──────────────────────────────────────────
 
-/// `GET /v1/openmetrics/metrics` — OpenMetrics-format metrics (;
+/// `GET /v1/openmetrics/metrics` - OpenMetrics-format metrics (;
 /// delegates to the shared Prometheus handler).
 #[utoipa::path(
     get,
@@ -5071,7 +5071,7 @@ pub async fn openmetrics_metrics(
     crate::handlers::metrics(State(state), headers).await
 }
 
-/// `GET /v1/openmetrics/federate` — federation scrape endpoint.
+/// `GET /v1/openmetrics/federate` - federation scrape endpoint.
 #[utoipa::path(
     get,
     path = "/v1/openmetrics/federate",
@@ -5122,7 +5122,7 @@ pub fn normalise_processing_status(state: &str) -> &'static str {
     }
 }
 
-/// `GET /v1/payment-statuses` — the full processing-status model exposed to
+/// `GET /v1/payment-statuses` - the full processing-status model exposed to
 /// clients (; the per-type amount context keys are returned with each).
 #[utoipa::path(
     get,
@@ -5185,9 +5185,9 @@ pub struct StatusModelEntry {
     pub description: String,
 }
 
-// ── : instructions/{id} sub-actions — process / cancel / repair ─────
+// ── : instructions/{id} sub-actions - process / cancel / repair ─────
 
-/// `POST /v1/instructions/{id}:process` — process the instruction now
+/// `POST /v1/instructions/{id}:process` - process the instruction now
 /// (business route shape; wraps the state-machine step).
 #[utoipa::path(
     post,
@@ -5250,7 +5250,7 @@ pub async fn process_instruction_by_id(
     ))
 }
 
-/// `POST /v1/instructions/{id}:cancel` — cancel an instruction (business
+/// `POST /v1/instructions/{id}:cancel` - cancel an instruction (business
 /// route shape).
 #[utoipa::path(
     post,
@@ -5320,7 +5320,7 @@ pub struct RepairInstructionRequest {
     pub corrected_input: Option<JsonValue>,
 }
 
-/// `POST /v1/instructions/{id}:repair` — repair an instruction that is in
+/// `POST /v1/instructions/{id}:repair` - repair an instruction that is in
 /// `repair_needed` (; pairs with the repair endpoint from ).
 #[utoipa::path(
     post,
@@ -5411,7 +5411,7 @@ fn default_app_type() -> String {
     "payment_initiation".into()
 }
 
-/// `POST /v1/integrations/payment-initiation-apps` — register a
+/// `POST /v1/integrations/payment-initiation-apps` - register a
 /// payment-initiation app.
 #[utoipa::path(
     post,
@@ -5475,7 +5475,7 @@ pub async fn create_initiation_app(
     }))
 }
 
-/// `GET /v1/integrations/payment-initiation-apps` — list registered
+/// `GET /v1/integrations/payment-initiation-apps` - list registered
 /// initiation apps.
 #[utoipa::path(
     get,
@@ -5524,7 +5524,7 @@ pub async fn list_initiation_apps(
 
 // ── : cardholders/:cardholderId/cards + tokens/:tokenLifecycle ──────
 
-/// `GET /v1/cards/cardholders/{id}/cards` — list a cardholder's cards.
+/// `GET /v1/cards/cardholders/{id}/cards` - list a cardholder's cards.
 #[utoipa::path(
     get,
     path = "/v1/cards/cardholders/{id}/cards",
@@ -5571,7 +5571,7 @@ pub async fn list_cardholder_cards(
     })).collect()))
 }
 
-/// `GET /v1/cards/card-tokens/{id}` — fetch a card token's lifecycle state
+/// `GET /v1/cards/card-tokens/{id}` - fetch a card token's lifecycle state
 /// (; `tokens/{token_id}` business shape).
 #[utoipa::path(
     get,
@@ -5620,7 +5620,7 @@ pub async fn get_card_token(
 
 // ── /: config packs + B8 On-Us resolution (P2/P3; minimal viable)
 
-/// `GET /v1/config-packs` — list installed payment config packs (; the
+/// `GET /v1/config-packs` - list installed payment config packs (; the
 /// pack contents are versioned resources: rules/rule-sets/parameter-values).
 #[utoipa::path(
     get,
@@ -5672,7 +5672,7 @@ pub async fn list_config_packs(
     })))
 }
 
-/// `GET /v1/on-us/routing` — B8 On-Us routing table: routes
+/// `GET /v1/on-us/routing` - B8 On-Us routing table: routes
 /// instructions to another B8 member bank without leaving the platform.
 #[utoipa::path(
     get,
@@ -5720,7 +5720,7 @@ pub async fn list_on_us_routing(
 
 // ── Missing handler fixes (server.rs route wiring) ───────────────────────
 
-/// `DELETE /v1/payees/{id}` — remove a payee (soft-delete via status).
+/// `DELETE /v1/payees/{id}` - remove a payee (soft-delete via status).
 #[utoipa::path(
     delete,
     path = "/v1/payees/{id}",
@@ -5777,7 +5777,7 @@ pub async fn delete_payee(
     Ok(Json(serde_json::json!({ "id": id, "status": "removed" })))
 }
 
-/// `POST /v1/rule-versions/{id}/retry` — retry a failed rule version
+/// `POST /v1/rule-versions/{id}/retry` - retry a failed rule version
 /// publish (; delegates to the shared retry_version helper).
 #[utoipa::path(
     post,
@@ -5816,7 +5816,7 @@ pub async fn retry_rule_version(
     .await
 }
 
-/// `POST /v1/rule-set-versions/{id}/retry` — retry a failed rule set
+/// `POST /v1/rule-set-versions/{id}/retry` - retry a failed rule set
 /// version publish.
 #[utoipa::path(
     post,
@@ -5855,7 +5855,7 @@ pub async fn retry_rule_set_version(
     .await
 }
 
-/// `PUT /v1/parameter-values/{id}` — update (or unset via empty body) a
+/// `PUT /v1/parameter-values/{id}` - update (or unset via empty body) a
 /// parameter value.
 #[utoipa::path(
     put,
@@ -5879,7 +5879,7 @@ pub async fn update_parameter_value(
     put_parameter_value(State(state), headers, Path(id), Json(req)).await
 }
 
-/// `GET /v1/instruction-file-specification-versions` — spec versions
+/// `GET /v1/instruction-file-specification-versions` - spec versions
 /// (non-v1beta alias route).
 #[utoipa::path(
     get,
@@ -5899,7 +5899,7 @@ pub async fn list_instruction_file_specification_versions(
     list_specification_versions(State(state), headers, Query(q)).await
 }
 
-/// `POST /v1/instruction-file-specification-versions` — create a spec
+/// `POST /v1/instruction-file-specification-versions` - create a spec
 /// version (non-v1beta alias route).
 #[utoipa::path(
     post,
@@ -5920,7 +5920,7 @@ pub async fn create_instruction_file_specification_version(
     create_specification_version(State(state), headers, Json(req)).await
 }
 
-/// `POST /v1/records/search` — generic membership-directory record search
+/// `POST /v1/records/search` - generic membership-directory record search
 /// (registry-validated; delegates to the directory search).
 #[utoipa::path(
     post,

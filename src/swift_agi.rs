@@ -52,7 +52,7 @@ impl ReceiveDirection {
     }
 }
 
-/// A Swift AGI `ReceiveIndication` — emitted by the gateway whenever a
+/// A Swift AGI `ReceiveIndication` - emitted by the gateway whenever a
 /// message is received.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReceiveIndication {

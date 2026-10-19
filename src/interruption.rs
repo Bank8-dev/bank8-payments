@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Interruption mode for urgent instructions — Story.
+//! Interruption mode for urgent instructions - Story.
 //! Normally, matched instructions within a payment are processed sequentially.
 //! Interruption mode allows an urgent instruction to jump the queue and be
 //! processed immediately, interrupting any pending instruction.
@@ -20,11 +20,11 @@ use uuid::Uuid;
 /// Priority levels for instructions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Priority {
-    /// Normal priority — processed sequentially within the payment.
+    /// Normal priority - processed sequentially within the payment.
     Normal = 0,
-    /// High priority — interrupts the current pending instruction.
+    /// High priority - interrupts the current pending instruction.
     High = 1,
-    /// Urgent — preempts everything (e.g., recall/cancellation).
+    /// Urgent - preempts everything (e.g., recall/cancellation).
     Urgent = 2,
 }
 

@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! SEPA Credit Transfer flows — outbound, inbound, rejections, returns, and
+//! SEPA Credit Transfer flows - outbound, inbound, rejections, returns, and
 //! recalls.
 //! See `services/payments/DESIGN.md`.
 

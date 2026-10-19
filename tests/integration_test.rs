@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Integration tests for Payments — Story.
+//! Integration tests for Payments - Story.
 //! These tests exercise the *pure-logic* functions across modules without
 //! requiring a database. The Payments server is a binary crate (no lib
 //! target), so this integration test file pulls in the relevant modules via
@@ -22,7 +22,7 @@
 
 #![allow(clippy::needless_pass_by_value)]
 // The `#[path]`-included modules carry async DB helpers the tests never
-// call — the lib/bin builds exercise them; this binary only pins the
+// call - the lib/bin builds exercise them; this binary only pins the
 // pure-logic seams. Silence the resulting dead-code warnings here.
 #![allow(dead_code)]
 
@@ -409,7 +409,7 @@ async fn test_parameter_type_validation() {
         .is_ok());
     assert!(ParameterType::String.validate_value(&json!(42)).is_err());
 
-    // Decimal — string form must parse.
+    // Decimal - string form must parse.
     assert!(ParameterType::Decimal
         .validate_value(&json!("100.50"))
         .is_ok());
@@ -419,7 +419,7 @@ async fn test_parameter_type_validation() {
     // Number is accepted.
     assert!(ParameterType::Decimal.validate_value(&json!(100.5)).is_ok());
 
-    // StringList — array of strings.
+    // StringList - array of strings.
     assert!(ParameterType::StringList
         .validate_value(&json!(["a", "b", "c"]))
         .is_ok());
@@ -430,7 +430,7 @@ async fn test_parameter_type_validation() {
         .validate_value(&json!("not-an-array"))
         .is_err());
 
-    // DateTime — RFC 3339.
+    // DateTime - RFC 3339.
     assert!(ParameterType::DateTime
         .validate_value(&json!("2026-07-18T10:00:00Z"))
         .is_ok());
@@ -438,7 +438,7 @@ async fn test_parameter_type_validation() {
         .validate_value(&json!("not-a-date"))
         .is_err());
 
-    // JSON — anything goes.
+    // JSON - anything goes.
     assert!(ParameterType::JSON.validate_value(&json!(null)).is_ok());
     assert!(ParameterType::JSON.validate_value(&json!({"k": 1})).is_ok());
     assert!(ParameterType::JSON.validate_value(&json!(42)).is_ok());
@@ -534,7 +534,7 @@ async fn test_event_streaming_conventions() {
     use event_streaming::{build_payload, PublisherIdentity, ResourceType, STREAM_FAMILY};
 
     // Stream family matches the bus role derivation (`bank8_payments_service`
-    // → `payments`) — a mismatch would fail the inbox RLS INSERT policy and
+    // → `payments`) - a mismatch would fail the inbox RLS INSERT policy and
     // starve the worker.
     assert_eq!(STREAM_FAMILY, "payments");
 
@@ -557,7 +557,7 @@ async fn test_event_streaming_conventions() {
     assert_eq!(pub_some.subject.as_deref(), Some("sub"));
 }
 
-// ── 15. Feature gates — full set of 15  ─────────────────────
+// ── 15. Feature gates - full set of 15  ─────────────────────
 
 #[tokio::test]
 async fn test_feature_gate_completeness() {

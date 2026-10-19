@@ -3,14 +3,14 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Story — Seed default Payments schedules in Cron.
+//! Story - Seed default Payments schedules in Cron.
 //! Payments owns a small set of well-known recurring schedules that must be
 //! registered with Cron at startup so the scheduler can proxy back into
 //! Payments's internal trigger endpoint (`POST /v1/internal/schedules/trigger`,
 //! Story ).
 //! The schedules are declared here as a static list (`DEFAULT_SCHEDULES`) and
 //! materialised into Cron via [`seed_default_schedules`].
-//! Story — E2E tests covering the default schedule catalog.
+//! Story - E2E tests covering the default schedule catalog.
 
 use sqlx::PgPool;
 
@@ -46,13 +46,13 @@ pub fn default_schedules() -> Vec<PaymentsDefaultSchedule> {
         PaymentsDefaultSchedule {
             name: "sepa_ct_daily_cutoff",
             cron_expression: "0 0 23 * * *",
-            description: "SEPA Credit Transfer daily cutoff at 23:00 CET — finalises the SEPA CT batch for the day.",
+            description: "SEPA Credit Transfer daily cutoff at 23:00 CET - finalises the SEPA CT batch for the day.",
             endpoint: "/v1/internal/schedules/trigger",
         },
         PaymentsDefaultSchedule {
             name: "b8_credit_transfer_daily",
             cron_expression: "0 0 18 * * *",
-            description: "B8 (domestic) credit transfer daily run at 18:00 UTC — submits the domestic CT batch.",
+            description: "B8 (domestic) credit transfer daily run at 18:00 UTC - submits the domestic CT batch.",
             endpoint: "/v1/internal/schedules/trigger",
         },
         PaymentsDefaultSchedule {
@@ -74,7 +74,7 @@ pub fn default_schedules() -> Vec<PaymentsDefaultSchedule> {
 /// This is idempotent in intent: each schedule is registered with a stable
 /// `domain`/`schedule_type` pair so re-running on startup does not create
 /// duplicates beyond what Cron's own deduplication provides. Failures are
-/// logged but do not abort the seed (best-effort) — the returned `Result`
+/// logged but do not abort the seed (best-effort) - the returned `Result`
 /// only surfaces the first error for callers that need to know.
 pub async fn seed_default_schedules(
     _pool: &PgPool,
@@ -93,9 +93,9 @@ pub async fn seed_default_schedules(
 
     for sched in &schedules {
         // Cron ticker target_config contract:
-        // baseUrl — the service to proxy back into (Payments)
-        // internalPath — the path to POST to on each fire
-        // authToken — bearer token Payments accepts on the internal endpoint
+        // baseUrl - the service to proxy back into (Payments)
+        // internalPath - the path to POST to on each fire
+        // authToken - bearer token Payments accepts on the internal endpoint
         let target_config = serde_json::json!({
             "base_url" : callbacks_base_url,
             "internal_path" : sched.endpoint,
@@ -213,7 +213,7 @@ mod tests {
             .expect("authorisation_expiry_check schedule must exist");
         let fields: Vec<&str> = auth.cron_expression.split_whitespace().collect();
         assert_eq!(fields.len(), 6, "expected 6-field cron expression");
-        // "0 * * * * *" — minute wildcard, second 0 → every minute
+        // "0 * * * * *" - minute wildcard, second 0 → every minute
         assert_eq!(
             fields[0], "0",
             "authorisation expiry seconds field must be 0"
@@ -230,7 +230,7 @@ mod tests {
             .expect("stale_instruction_cleanup schedule must exist");
         let fields: Vec<&str> = stale.cron_expression.split_whitespace().collect();
         assert_eq!(fields.len(), 6, "expected 6-field cron expression");
-        // "0 0 * * * *" — sec=0, min=0, hour=* → hourly at minute 0
+        // "0 0 * * * *" - sec=0, min=0, hour=* → hourly at minute 0
         assert_eq!(fields[0], "0", "stale cleanup seconds field must be 0");
         assert_eq!(fields[1], "0", "stale cleanup minute field must be 0");
         assert_eq!(

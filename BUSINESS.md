@@ -1,4 +1,4 @@
-# Bank8:Payments — Business Requirements & Functionality
+# Bank8:Payments - Business Requirements & Functionality
 
 > Audience: product owners, business analysts, and anyone evaluating what
 > Bank8:Payments **does for the business**. For architecture read
@@ -9,21 +9,21 @@
 Bank8:Payments is the **payment orchestration layer** of the bank8
 vertical. It delivers:
 
-- **Payment execution that survives reality** — instructions become
+- **Payment execution that survives reality** - instructions become
   multi-step workflows with retries, wait states, and manual decisions;
   a payment can span minutes or days without anyone babysitting it.
-- **Scheme breadth out of the box** — B8 on-us, SEPA, TIPS, and SWIFT
+- **Scheme breadth out of the box** - B8 on-us, SEPA, TIPS, and SWIFT
   AGI scheme flows over a typed ISO 20022 message catalogue, plus card
   issuing with full card lifecycle and 3-D Secure.
-- **One rule engine for routing & eligibility** — versioned rules,
+- **One rule engine for routing & eligibility** - versioned rules,
   parameters, logics, integrations, and cores drive how each payment is
   routed and what it may do; drafts never execute, so change is safe.
-- **Straight-through processing with human escalation** — the
+- **Straight-through processing with human escalation** - the
   manual-decision task loop (claim / approve / reject) inserts human
   judgement exactly where the scheme or risk policy requires it.
-- **File-based banking** — ISO 20022 file intake, debatch, and
+- **File-based banking** - ISO 20022 file intake, debatch, and
   confirmation handling for corporate volume payment flows.
-- **A sandbox that mirrors production** — built-in simulators for cards,
+- **A sandbox that mirrors production** - built-in simulators for cards,
   credit transfers, FedNow, and SWIFT AGI let tenants develop and test
   payment journeys without external scheme dependencies.
 
@@ -66,13 +66,13 @@ vertical. It delivers:
 | Workflow step execution & retries (the engine) | Sentin8:Flow (Payments implements the step functions) |
 | Timing of scheduled/recurring work | Sentin8:Cron |
 | Tenant-authored executable hooks | Sentin8:Func |
-| Balances, postings, accounts (the money record) | Bank8:Ledger (Payments calls its public API — never writes balances itself) |
+| Balances, postings, accounts (the money record) | Bank8:Ledger (Payments calls its public API - never writes balances itself) |
 | Customer identity, sign-in, sessions | Sentin8:Auth |
 | Event transport, durability, consumer DLQ | Sentin8:Bus |
 | Analytics dashboards / KPI computation | Sentin8:Stat |
 | File/object payload storage (ISO archives) | Sentin8:Storage |
 | API proxying to client apps | Sentin8:BFF |
-| Scheme certification (Visa DPS, MDES, SWIFT test beds) | External / tenant-driven — the service ships the adapter seams and simulator parity |
+| Scheme certification (Visa DPS, MDES, SWIFT test beds) | External / tenant-driven - the service ships the adapter seams and simulator parity |
 
 ## 3. Business Capabilities
 
@@ -84,21 +84,21 @@ vertical. It delivers:
 | Execution model | Async instructions become Flow workflows (multi-step with retries); sync schemes (B8 on-us, SEPA instant) execute inline without a workflow round-trip |
 | Instruction states | `pending → processing → completed` is the happy path; `processing → failed` captures step errors; `waiting` parks an instruction for a callback or human decision; `failed → pending` is the guarded retry; **any non-terminal state may go to `cancelled`**; `completed` and `cancelled` are terminal and immutable |
 | Status tracking | Payment statuses are auto-synced on every state transition; operators always see the true state |
-| Retry / cancel / repair | Failed instructions can be retried (guarded — terminal states never change); pending/processing/waiting instructions can be cancelled; repair corrects stuck instructions |
+| Retry / cancel / repair | Failed instructions can be retried (guarded - terminal states never change); pending/processing/waiting instructions can be cancelled; repair corrects stuck instructions |
 | Bulk retry | Failed instructions are retried in bulk from the ops surface |
-| Money movement | Every financial movement is a posting step that calls Bank8:Ledger's public API — Payments never writes balances itself |
-| Fee collection | `FEE_COLLECTION` is a first-class processing status — scheme/transfer fees are collected as their own posting flow, not silently netted off the payment |
+| Money movement | Every financial movement is a posting step that calls Bank8:Ledger's public API - Payments never writes balances itself |
+| Fee collection | `FEE_COLLECTION` is a first-class processing status - scheme/transfer fees are collected as their own posting flow, not silently netted off the payment |
 
 ### 3.2 Scheme flows (ISO 20022)
 
 | Capability | Business rule |
 |---|---|
-| B8 on-us | In-house transfers between the bank's own accounts execute synchronously — credit transfers and direct debits, each with outbound/inbound legs, plus dedicated account-to-account (a2a) on-us flows |
+| B8 on-us | In-house transfers between the bank's own accounts execute synchronously - credit transfers and direct debits, each with outbound/inbound legs, plus dedicated account-to-account (a2a) on-us flows |
 | SEPA / TIPS | European instant payment flows over the typed ISO 20022 catalogue: credit-transfer outbound/inbound, outbound rejection, outbound return, inbound automatic return, and **recall** handling with per-recall-type deadlines |
 | SWIFT AGI | Cross-border SWIFT flows with the same step model |
 | Scheme adapters | Visa DPS and MDES adapters for card traffic; ISO 8583 message handling for card-present authorization flows |
 | UETR tracking | Every cross-border instruction carries a UETR (unique end-to-end transaction reference) generated at creation |
-| Message correctness | The ISO 20022 catalogue is typed end-to-end — message codes are compile-checked, not stringly-typed |
+| Message correctness | The ISO 20022 catalogue is typed end-to-end - message codes are compile-checked, not stringly-typed |
 | Decline mapping | Decline reasons map to ISO 8583 response codes (e.g. card-suspended → 57, velocity/accumulator breaches → 62, ATC range violations → 63, product constraint violations per payload type) so scheme responses are standardized |
 | Sandbox parity | The same code paths run against built-in simulators, so dev/test behaviour mirrors production |
 
@@ -108,11 +108,11 @@ vertical. It delivers:
 |---|---|
 | Issue a card | Cards are issued per card product, with BIN/account-range validation |
 | Card lifecycle | Five states: `pending_creation → inactive → active`, `active ↔ suspended` (freeze/unfreeze), `→ disabled` (terminal). Only legal transitions pass: e.g. a suspended card can reactivate or retire, but a disabled card never transitions again |
-| Idempotent transitions | Re-asserting the current state is a no-op — re-activating an active card never errors or double-audits |
+| Idempotent transitions | Re-asserting the current state is a no-op - re-activating an active card never errors or double-audits |
 | Replace | Lost/damaged cards are replaced with lifecycle continuity |
-| PIN management | Get/update PIN, verify PIN, reset PIN attempts — PIN operations are separate, audited actions |
+| PIN management | Get/update PIN, verify PIN, reset PIN attempts - PIN operations are separate, audited actions |
 | Velocity control | LVT (low-value/contactless transactions) counters + accumulators and ATM (ATC) transaction counters; reset on demand; accumulator updates are race-free guarded updates |
-| Velocity decline reasons | Contactless amount exceeded, LVT count/accumulator limits, ATC outside allowed range, duplicate ATC — each maps to the standard "Restricted" decline family |
+| Velocity decline reasons | Contactless amount exceeded, LVT count/accumulator limits, ATC outside allowed range, duplicate ATC - each maps to the standard "Restricted" decline family |
 | Card sessions | Session initiation for card interactions (challenge flows), with encrypted session types |
 | Tokens | Card tokens (device wallet tokenization) are tracked per card |
 | 3-D Secure | 3DS records track card-not-present authentication through `pending → frictionless | challenged → authenticated`, with `failed`/`declined` outcomes and challenge-method configuration |
@@ -126,8 +126,8 @@ vertical. It delivers:
 | Capability | Business rule |
 |---|---|
 | Mandates | Direct-debit mandates (ISO 20022 pain.009 structure) carry creditor identity (scheme creditor + mandate IDs) and amount limits; drawing beyond the mandate is a rule-engine decision, never silent |
-| Mandate lifecycle | `active → suspended → cancelled`, plus `expired`; only an active mandate can be drawn against — mandate lookup enforces it |
-| Mandate flow direction | Each mandate is `outbound` (we debit) or `inbound` (we are debited) — direction is explicit, never inferred |
+| Mandate lifecycle | `active → suspended → cancelled`, plus `expired`; only an active mandate can be drawn against - mandate lookup enforces it |
+| Mandate flow direction | Each mandate is `outbound` (we debit) or `inbound` (we are debited) - direction is explicit, never inferred |
 | Payees | Payee registry with search; payees are the beneficiary catalogue for retail transfers |
 | Recurring payments | Scheduled payments generate occurrences on a calendar; sandbox fast-forward advances time for testing |
 
@@ -136,20 +136,20 @@ vertical. It delivers:
 | Capability | Business rule |
 |---|---|
 | Payment instruments | The routing catalogue (cards, IBANs, aliases) resolves which instrument a payment uses |
-| Account links | Instruments link to ledger accounts via account links — routing never guesses an account |
+| Account links | Instruments link to ledger accounts via account links - routing never guesses an account |
 | On-us routing | On-us routes decide which payments stay in-house vs. leave to a scheme |
-| Rules & rule sets | Versioned rules/rule sets with publish; drafts never execute — only published versions route |
+| Rules & rule sets | Versioned rules/rule sets with publish; drafts never execute - only published versions route |
 | Instrument binding | Rules attach to/detach from specific instruments for per-instrument policy |
 | Parameters | Versioned parameters configure routing/eligibility thresholds |
 | Logics | Per-instruction execution logics, versioned, with a WASM migration path |
-| Integrations & cores | Scheme gateways and core connections are versioned, published entities — swapping a gateway is a configuration change, not a release |
+| Integrations & cores | Scheme gateways and core connections are versioned, published entities - swapping a gateway is a configuration change, not a release |
 
 Integration/gateway settings a tenant configures per version:
 
 | Setting | Options |
 |---|---|
-| Version lifecycle | `pending → ready` (published & active for traffic), `errored` (validation failed), `user_action_required` (e.g. pending OAuth consent) — the parent integration holds an `active_version_id` pointer, and published versions are immutable |
-| Authentication | Static bearer token, OAuth client-credentials grant, or OAuth password grant — credentials live in the version's auth config, not in code |
+| Version lifecycle | `pending → ready` (published & active for traffic), `errored` (validation failed), `user_action_required` (e.g. pending OAuth consent) - the parent integration holds an `active_version_id` pointer, and published versions are immutable |
+| Authentication | Static bearer token, OAuth client-credentials grant, or OAuth password grant - credentials live in the version's auth config, not in code |
 | Healthchecks | Endpoint + interval (default 30 s) + timeout (default 10 s) so dead gateways are detected, not discovered by customers |
 | Retry policy | Per-integration retry policy governs outbound gateway calls |
 | Connectivity | Per-integration connectivity configuration (e.g. mode) for the target system |
@@ -159,7 +159,7 @@ Integration/gateway settings a tenant configures per version:
 | Capability | Business rule |
 |---|---|
 | File intake | ISO payment files are registered, submitted, and processed through a per-file debatch workflow |
-| Idempotent debatch | The debatch step is idempotent on the terminal-file guard — a workflow retry never duplicates batch chunks |
+| Idempotent debatch | The debatch step is idempotent on the terminal-file guard - a workflow retry never duplicates batch chunks |
 | Specifications | File specifications + versions define the accepted formats; validation catches bad files before processing |
 | Confirmations | Confirmation files close the loop on processed payments |
 
@@ -169,7 +169,7 @@ Integration/gateway settings a tenant configures per version:
 |---|---|
 | Task queue | Work that needs a human lands in a task list with claim/approve/reject |
 | Manual decisions | Risk/compliance decisions are recorded as manual decisions with submit; decision timeout has defined interruption handling |
-| Audit | Every decision carries the actor — human intervention is fully auditable |
+| Audit | Every decision carries the actor - human intervention is fully auditable |
 
 ### 3.8 Config library & operations
 
@@ -185,7 +185,7 @@ Integration/gateway settings a tenant configures per version:
 
 ## 4. Business Events (Outbound)
 
-Event names are the business contract — consumers subscribe on these.
+Event names are the business contract - consumers subscribe on these.
 Family prefix: `bank8:payments:`; resource types × `created`/`updated`
 operations plus specific flows:
 
@@ -209,17 +209,17 @@ operations plus specific flows:
 
 | Event | Consumer behaviour |
 |---|---|
-| `bank8:payments:instruction:*` (own family, SSE) | The embedded re-drive worker turns instruction events into Flow resume/retry — terminal states are skipped (idempotent) |
+| `bank8:payments:instruction:*` (own family, SSE) | The embedded re-drive worker turns instruction events into Flow resume/retry - terminal states are skipped (idempotent) |
 
 ## 5. Business Rules & Invariants
 
 1. **A payment is idempotent.** The same instruction request twice yields
-   the original instruction — money never moves twice for one request.
+   the original instruction - money never moves twice for one request.
 2. **Terminal states are final.** A completed, failed, or cancelled
    instruction never silently changes state; every transition is
    state-machine-guarded.
 3. **Payments never touch the books directly.** All money movement goes
-   through Bank8:Ledger's public API — balance truth has exactly one
+   through Bank8:Ledger's public API - balance truth has exactly one
    writer.
 4. **Drafts never execute.** Only published rule/logic/integration/core
    versions are eligible for routing; configuration change is safe by
@@ -230,14 +230,14 @@ operations plus specific flows:
 6. **Money is never approximate.** All money values are exact decimals
    end-to-end.
 7. **Every domain change emits its event.** Events ride the outbox in the
-   same transaction as the domain change — a crash between commit and
+   same transaction as the domain change - a crash between commit and
    delivery loses nothing (at-least-once with idempotent consumers).
 8. **Human decisions are auditable.** Claims, approvals, and rejections
    carry the actor and land in the audit trail.
 9. **Tenant isolation is absolute.** Every record is environment-scoped
    with row-level security; cardholder data is additionally holder-scoped.
 10. **Availability and authorization are distinct.** A disabled feature
-    returns 503 (availability); an unauthorized caller gets 403 — never
+    returns 503 (availability); an unauthorized caller gets 403 - never
     conflated.
 11. **Re-drive is effectively-once.** The worker's terminal-state skip plus
     guarded SQL means a redelivered instruction event can never
@@ -300,7 +300,7 @@ operations plus specific flows:
 3. A failed instruction can be retried and completes; a terminal
    (completed/cancelled) instruction rejects any state-changing request.
 4. Every money movement appears as a Bank8:Ledger posting initiated
-   through the ledger's public API — Payments holds no balance-writing
+   through the ledger's public API - Payments holds no balance-writing
    path.
 5. A rule/logic/integration/core version in draft state is never used for
    routing; only published versions are.
@@ -318,13 +318,13 @@ operations plus specific flows:
     emits its `bank8:payments:*` event; the audit trail (OCSF-shaped)
     records every action.
 11. Each capability in §2 is operable through the dashboard admin pages
-    and/or the BFF-proxied API — no operator needs direct database access.
+    and/or the BFF-proxied API - no operator needs direct database access.
 
 ## 10. Open Business Questions
 
 - Recurring payments (`v1beta/scheduled-payments`) remain beta until the
   end-to-end recurring spec (create → fast-forward → instruction + posting
-  visible) lands — when does the business want GA?
+  visible) lands - when does the business want GA?
 - Which schemes are next in the certification pipeline, and what is the
   tenant-driven certification runbook cadence?
 - Should manual-decision timeout policies be per-tenant configurable

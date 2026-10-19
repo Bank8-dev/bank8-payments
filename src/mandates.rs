@@ -3,16 +3,16 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Mandates — direct debit mandate lifecycle (pain.009 / pain.008 / pain.012).
+//! Mandates - direct debit mandate lifecycle (pain.009 / pain.008 / pain.012).
 //! See `services/payments/DESIGN.md`.
 //! Provides:
 //! - `MandateStatus` lifecycle enum
 //! - `MandateFlow` (Outbound / Inbound)
-//! - `validate_mandate_pain009` — structural validation of a pain.009 message
-//! - `process_outbound_mandate` — validate and submit to debtor PSP
-//! - `process_inbound_mandate` — validate, create mandate, initiate pain.012
-//! - `resolve_mandate` — look up a mandate by scheme IDs
-//! - `process_direct_debit_collection` — match mandate, schedule pain.008
+//! - `validate_mandate_pain009` - structural validation of a pain.009 message
+//! - `process_outbound_mandate` - validate and submit to debtor PSP
+//! - `process_inbound_mandate` - validate, create mandate, initiate pain.012
+//! - `resolve_mandate` - look up a mandate by scheme IDs
+//! - `process_direct_debit_collection` - match mandate, schedule pain.008
 
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
@@ -129,7 +129,7 @@ pub fn validate_mandate_pain009(pain009: &serde_json::Value) -> Result<(), Strin
 
 // ── Processing ─────────────────────────────────────────────────────────
 
-/// Process an outbound mandate (pain.009) — validate then submit to the
+/// Process an outbound mandate (pain.009) - validate then submit to the
 /// debtor PSP. Returns the mandate ID.
 /// Story.
 pub async fn process_outbound_mandate(
@@ -227,7 +227,7 @@ pub async fn process_outbound_mandate(
     Ok(row.get("id"))
 }
 
-/// Process an inbound mandate (pain.009) — validate, create mandate, then
+/// Process an inbound mandate (pain.009) - validate, create mandate, then
 /// initiate a pain.012 (mandate acceptance) message. Returns the mandate ID.
 /// Story.
 pub async fn process_inbound_mandate(
@@ -237,7 +237,7 @@ pub async fn process_inbound_mandate(
     validate_mandate_pain009(&pain009)?;
     let mandate_id = process_outbound_mandate(pool, pain009).await?;
 
-    // Initiate pain.012 (mandate acceptance) — stub. In production this would
+    // Initiate pain.012 (mandate acceptance) - stub. In production this would
     // generate a pain.012 message and submit it to the creditor PSP.
     tracing::info!(mandate_id = %mandate_id, "initiated pain.012 mandate acceptance (stub)");
 
@@ -267,7 +267,7 @@ pub async fn resolve_mandate(
     Ok(row.map(|r| r.get("id")))
 }
 
-/// Process a direct debit collection (pain.008) — match the mandate,
+/// Process a direct debit collection (pain.008) - match the mandate,
 /// validate, determine the execution date, and schedule the instruction.
 /// Returns the instruction ID.
 /// Story.

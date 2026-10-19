@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Instruction state machine — Story.
+//! Instruction state machine - Story.
 //! Implements the full instruction lifecycle:
 //! ```text
 //! pending → processing → completed
@@ -184,7 +184,7 @@ pub async fn transition_with_audit(
         "instruction state transition"
     );
 
-    // Story — auto-sync payment status based on the new state.
+    // Story - auto-sync payment status based on the new state.
     let _ = crate::payment_context::sync_payment_status(pool, instruction_id, to.as_str()).await;
 
     Ok(true)

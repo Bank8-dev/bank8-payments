@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Sentin8 Payments — library re-exports for integration tests.
+//! Sentin8 Payments - library re-exports for integration tests.
 
 pub mod admin_data;
 pub mod admin_ui;

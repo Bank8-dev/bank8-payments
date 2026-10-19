@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Card issuing & lifecycle — state machine, encryption, tokens, orders,
+//! Card issuing & lifecycle - state machine, encryption, tokens, orders,
 //! LVT/ATC counters, simulator, decline recommendations, authorisation
 //! expiry, encrypted sessions, PIN operations, 3-D Secure records, risk
 //! evaluation, challenge methods, Outseer risk analysis integration.
@@ -21,18 +21,18 @@ use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use uuid::Uuid;
 
-// ── Story — Card lifecycle state machine ────────────────────────
+// ── Story - Card lifecycle state machine ────────────────────────
 
 /// Lifecycle state of an issued card.
 /// States follow the card-issuing lifecycle described in
 /// `services/payments/DESIGN.md`:
-/// - `PendingCreation` — card record created but not yet confirmed by the
+/// - `PendingCreation` - card record created but not yet confirmed by the
 ///
 /// issuer.
-/// - `Inactive` — card exists but is not usable for transactions.
-/// - `Active` — card may authorise.
-/// - `Suspended` — temporarily blocked (freeze).
-/// - `Disabled` — terminal state; the card can no longer transition.
+/// - `Inactive` - card exists but is not usable for transactions.
+/// - `Active` - card may authorise.
+/// - `Suspended` - temporarily blocked (freeze).
+/// - `Disabled` - terminal state; the card can no longer transition.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CardState {
@@ -72,7 +72,7 @@ impl CardState {
 /// - `Inactive → Active | Disabled`
 /// - `Active → Suspended | Inactive | Disabled`
 /// - `Suspended → Active | Disabled`
-/// - `Disabled` is terminal — no outgoing transitions.
+/// - `Disabled` is terminal - no outgoing transitions.
 pub fn validate_card_transition(from: CardState, to: CardState) -> Result<(), String> {
     if from == to {
         // No-op transitions are always allowed (idempotent re-activation, etc.).
@@ -155,10 +155,10 @@ pub async fn transition_card_state(
     Ok(true)
 }
 
-// ── Story — Card encryption (PLACEHOLDER) ───────────────────────
+// ── Story - Card encryption (PLACEHOLDER) ───────────────────────
 
 /// Placeholder card encryption helper.
-/// `generate_key_pair` returns *simulated* ECDH P-256 key material — the
+/// `generate_key_pair` returns *simulated* ECDH P-256 key material - the
 /// "public" and "private" keys are random-looking base64 strings rather
 /// than real P-256 points. `encrypt_pan` / `decrypt_pan` perform a
 /// deterministic base64+XOR obfuscation. This is NOT secure; it exists so
@@ -183,7 +183,7 @@ impl CardEncryption {
         }
         let private_key = B64.encode(private_bytes);
         // Derive a "public" placeholder by XOR-ing the private bytes with a
-        // fixed mask — purely so the two keys differ.
+        // fixed mask - purely so the two keys differ.
         let mut public_bytes = private_bytes;
         for b in public_bytes.iter_mut() {
             *b ^= 0x5a;
@@ -224,21 +224,21 @@ impl CardEncryption {
     }
 }
 
-// ── Story — Card activation/deactivation ────────────────────────
+// ── Story - Card activation/deactivation ────────────────────────
 
-/// Activate a card — transition to `Active`.
+/// Activate a card - transition to `Active`.
 pub async fn activate_card(pool: &sqlx::PgPool, card_id: Uuid) -> Result<(), String> {
     transition_card_state(pool, card_id, CardState::Active).await?;
     Ok(())
 }
 
-/// Freeze a card — transition to `Suspended`.
+/// Freeze a card - transition to `Suspended`.
 pub async fn freeze_card(pool: &sqlx::PgPool, card_id: Uuid) -> Result<(), String> {
     transition_card_state(pool, card_id, CardState::Suspended).await?;
     Ok(())
 }
 
-/// Unfreeze a card — transition from `Suspended` to `Active`.
+/// Unfreeze a card - transition from `Suspended` to `Active`.
 pub async fn unfreeze_card(pool: &sqlx::PgPool, card_id: Uuid) -> Result<(), String> {
     let from = load_card_state(pool, card_id).await?;
     if from != CardState::Suspended {
@@ -251,7 +251,7 @@ pub async fn unfreeze_card(pool: &sqlx::PgPool, card_id: Uuid) -> Result<(), Str
     Ok(())
 }
 
-// ── Story — Card replacement flow ───────────────────────────────
+// ── Story - Card replacement flow ───────────────────────────────
 
 /// Replace a card.
 /// Loads the old card's `cardholder_id` and `card_product_id`, creates a
@@ -314,7 +314,7 @@ pub async fn replace_card(
     Ok(new_id)
 }
 
-// ── Story — Card tokens ─────────────────────────────────────────
+// ── Story - Card tokens ─────────────────────────────────────────
 
 /// API response for a card token.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -384,7 +384,7 @@ pub async fn list_card_tokens(
         .collect())
 }
 
-// ── Story — Card orders ─────────────────────────────────────────
+// ── Story - Card orders ─────────────────────────────────────────
 
 /// Create a card order (manufacturing/fulfilment request) with
 /// `status = 'pending'`.
@@ -430,7 +430,7 @@ pub async fn update_card_order_status(
     Ok(())
 }
 
-// ── Story — LVT counter ────────────────────────────────────────
+// ── Story - LVT counter ────────────────────────────────────────
 
 /// Low-Value Transaction (LVT) status for a card.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -480,7 +480,7 @@ pub async fn get_lvt_status(pool: &sqlx::PgPool, card_id: Uuid) -> Result<LvtSta
     })
 }
 
-// ── Story — ATC (Application Transaction Counter) ───────────────
+// ── Story - ATC (Application Transaction Counter) ───────────────
 
 /// Increment the ATC counter by 1 and return the new value.
 pub async fn increment_atc(pool: &sqlx::PgPool, card_id: Uuid) -> Result<i32, String> {
@@ -498,7 +498,7 @@ pub async fn increment_atc(pool: &sqlx::PgPool, card_id: Uuid) -> Result<i32, St
     Ok(row.get("atc_counter"))
 }
 
-// ── Story — Card simulator ─────────────────────────────────────
+// ── Story - Card simulator ─────────────────────────────────────
 
 /// Result of a simulated card transaction.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -574,7 +574,7 @@ impl CardSimulator {
     }
 }
 
-// ── Story — Decline recommendations ─────────────────────────────
+// ── Story - Decline recommendations ─────────────────────────────
 
 /// Reason a card transaction was declined.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -622,7 +622,7 @@ pub fn get_decline_recommendation(reason: DeclineReason) -> &'static str {
     match reason {
         DeclineReason::InsufficientFunds => "51",
         // `41` and `43` are both "stolen card" variants in different schemes;
-        // the spec asks for either — we return `41` (lost card) for
+        // the spec asks for either - we return `41` (lost card) for
         // `StolenCard` consistently.
         DeclineReason::StolenCard => "41",
         DeclineReason::ExpiredCard => "54",
@@ -633,7 +633,7 @@ pub fn get_decline_recommendation(reason: DeclineReason) -> &'static str {
     }
 }
 
-// ── Story — Authorisation expiry ───────────────────────────────
+// ── Story - Authorisation expiry ───────────────────────────────
 
 /// Maximum age of an un-presented authorisation before it is expired.
 pub const AUTH_MAX_AGE: Duration = Duration::days(7);
@@ -711,7 +711,7 @@ pub async fn expire_stale_authorisations(pool: &sqlx::PgPool) -> Result<Vec<Stri
         .collect())
 }
 
-// ── Story — Card operations: encrypted sessions, PIN, card tokens, 3DS ─
+// ── Story - Card operations: encrypted sessions, PIN, card tokens, 3DS ─
 
 /// Type of encrypted card session.
 /// Sessions are short-lived cryptographic contexts negotiated between the
@@ -1007,7 +1007,7 @@ pub async fn change_pin(
     })
 }
 
-// ── Story — 3DS Records ─────────────────────────────────────────
+// ── Story - 3DS Records ─────────────────────────────────────────
 
 /// Lifecycle status of a 3DS authentication record.
 /// States follow the `threeds_records.authentication_status` CHECK
@@ -1148,14 +1148,14 @@ pub async fn get_3ds_record(
     }))
 }
 
-// ── Story — 3DS authentication logics ───────────────────────────
+// ── Story - 3DS authentication logics ───────────────────────────
 
 /// Outcome of a 3DS risk evaluation.
 /// The bands correspond to the frictionless/challenge/decline flow
 /// described in `services/payments/DESIGN.md` §3-D Secure:
-/// - `Green` — frictionless (no challenge).
-/// - `Amber` — challenge required.
-/// - `Red` — decline.
+/// - `Green` - frictionless (no challenge).
+/// - `Amber` - challenge required.
+/// - `Red` - decline.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ThreeDSAuthResult {
@@ -1176,11 +1176,11 @@ impl ThreeDSAuthResult {
 
 /// Evaluate the 3DS risk of a transaction.
 /// Rules (Story ):
-/// - **Green** (frictionless) — `risk_score < 0.2` AND `amount < 50` AND
+/// - **Green** (frictionless) - `risk_score < 0.2` AND `amount < 50` AND
 ///
 /// `merchant_trusted`.
-/// - **Amber** (challenge) — `risk_score < 0.7` (and not Green).
-/// - **Red** (decline) — `risk_score >= 0.7` OR `amount > 5000`.
+/// - **Amber** (challenge) - `risk_score < 0.7` (and not Green).
+/// - **Red** (decline) - `risk_score >= 0.7` OR `amount > 5000`.
 ///
 /// `Red` takes priority over the other bands.
 pub fn evaluate_3ds_risk(
@@ -1207,7 +1207,7 @@ pub fn recommend_3ds_action(result: &ThreeDSAuthResult) -> &'static str {
     }
 }
 
-// ── Story — 3DS challenge methods ───────────────────────────────
+// ── Story - 3DS challenge methods ───────────────────────────────
 
 /// Delivery method for a 3DS challenge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -1291,7 +1291,7 @@ pub async fn initiate_challenge(
     Ok(challenge_token)
 }
 
-// ── Story — Outseer risk analysis integration ──────────────────
+// ── Story - Outseer risk analysis integration ──────────────────
 
 /// Request sent to Outseer for risk analysis.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1347,7 +1347,7 @@ pub fn call_outseer_risk_analysis(
 mod tests {
     use super::*;
 
-    // Story — state machine ---------------------------------------
+    // Story - state machine ---------------------------------------
 
     #[test]
     fn card_state_round_trip() {
@@ -1413,7 +1413,7 @@ mod tests {
         }
     }
 
-    // Story — encryption -----------------------------------------
+    // Story - encryption -----------------------------------------
 
     #[test]
     fn generate_key_pair_yields_distinct_keys() {
@@ -1456,7 +1456,7 @@ mod tests {
         assert_eq!(dec, pan);
     }
 
-    // Story — decline recommendations ----------------------------
+    // Story - decline recommendations ----------------------------
 
     #[test]
     fn decline_reason_round_trip() {
@@ -1498,7 +1498,7 @@ mod tests {
         );
     }
 
-    // Story — simulator ------------------------------------------
+    // Story - simulator ------------------------------------------
 
     #[test]
     fn simulator_approves_small_amount() {
@@ -1534,7 +1534,7 @@ mod tests {
         assert!(res.auth_id.starts_with("pres-"));
     }
 
-    // Story — authorisation expiry -------------------------------
+    // Story - authorisation expiry -------------------------------
 
     #[test]
     fn fresh_unpresented_auth_not_expired() {
@@ -1565,7 +1565,7 @@ mod tests {
         assert!(!check_authorisation_expiry_at(created, false, now));
     }
 
-    // Story — encrypted sessions, PIN ----------------------------
+    // Story - encrypted sessions, PIN ----------------------------
 
     #[test]
     fn encrypted_session_type_round_trip() {
@@ -1579,7 +1579,7 @@ mod tests {
         assert!(EncryptedSessionType::from_str("unknown").is_err());
     }
 
-    // Story — 3DS records ----------------------------------------
+    // Story - 3DS records ----------------------------------------
 
     #[test]
     fn three_ds_status_round_trip() {
@@ -1597,7 +1597,7 @@ mod tests {
         assert!(ThreeDSAuthenticationStatus::from_str("done").is_err());
     }
 
-    // Story — 3DS authentication logics ---------------------------
+    // Story - 3DS authentication logics ---------------------------
 
     #[test]
     fn green_band_frictionless() {
@@ -1686,7 +1686,7 @@ mod tests {
         assert_eq!(recommend_3ds_action(&ThreeDSAuthResult::Red), "decline");
     }
 
-    // Story — challenge methods -----------------------------------
+    // Story - challenge methods -----------------------------------
 
     #[test]
     fn challenge_method_round_trip() {
@@ -1719,7 +1719,7 @@ mod tests {
         assert_eq!(c.app_id.as_deref(), Some("com.example.app"));
     }
 
-    // Story — Outseer risk analysis ------------------------------
+    // Story - Outseer risk analysis ------------------------------
 
     #[test]
     fn outseer_low_amount() {

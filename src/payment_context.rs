@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Payment context keys — Story.
+//! Payment context keys - Story.
 //! These keys are set by logic writers on the instruction context and are
 //! auto-managed by Payments for `__payment_status` (INITIATED, CANCELLED, ERRORED).
 //! See `services/payments/DESIGN.md` §4.3.

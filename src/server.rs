@@ -15,7 +15,7 @@ use crate::handlers::{self, AppState};
 /// auth DESIGN §4.3f): mint-or-load the Acme-issued pair and wrap it in
 /// a reqwest client. The receiving service's TLS layer authenticates the
 /// handshake and the enroll-published registry map authorizes the
-/// scopes — no bearer token exists on this path.
+/// scopes - no bearer token exists on this path.
 ///
 /// # Errors
 /// Returns the certificate-ensure or transport-build failure (the
@@ -43,32 +43,32 @@ pub async fn build_state(
 
     // Request-time Flow transport (CERTFREE-4V): instruction logic
     // delegation, repair, and file debatch call Flow with the
-    // `payments-worker-flow` workload CERTIFICATE — the TLS handshake IS
+    // `payments-worker-flow` workload CERTIFICATE - the TLS handshake IS
     // the identity; the registry map authorizes the flow scopes
-    // (registration.rs::M2M_GRANTS). Non-fatal — those calls degrade to
+    // (registration.rs::M2M_GRANTS). Non-fatal - those calls degrade to
     // the documented dev-plain client until the next boot.
     match build_workload_http(&config.sentin8_auth_issuer, "payments-worker-flow").await {
         Ok(http) => config.flow_http = Some(http),
         Err(e) => {
-            tracing::warn!(error = %e, "payments-worker-flow transport unavailable — request-time Flow calls degraded")
+            tracing::warn!(error = %e, "payments-worker-flow transport unavailable - request-time Flow calls degraded")
         }
     }
-    // CERTFREE-8V: the ledger posting proxy transport — the
+    // CERTFREE-8V: the ledger posting proxy transport - the
     // `bank8-payments-ledger` workload certificate presents in the TLS
     // handshake (the static BANK8_LEDGER_TOKEN dev convention is
     // retired). None → the posting step 503s loudly at the site gate.
     match build_workload_http(&config.sentin8_auth_issuer, "bank8-payments-ledger").await {
         Ok(http) => config.ledger_http = Some(http),
         Err(e) => {
-            tracing::warn!(error = %e, "payments ledger posting transport unavailable — posting steps degraded")
+            tracing::warn!(error = %e, "payments ledger posting transport unavailable - posting steps degraded")
         }
     }
     // CERTFREE-4F: the direct Func lanes (module migration + rule
-    // execution) present the `payments` workload certificate — Func's
+    // execution) present the `payments` workload certificate - Func's
     // cert-first gate resolves it against the registry map. None → the
     // lanes 503 loudly. (Flow's CallbackConfig token is a separate
-    // contract — the token Flow presents BACK to this service's
-    // internal API — and stays.)
+    // contract - the token Flow presents BACK to this service's
+    // internal API - and stays.)
     if !config.sentin8_func_url.is_empty() {
         match sentin8::auth::m2m::ensure_workload_certificate(
             &config.sentin8_auth_issuer,
@@ -86,20 +86,20 @@ pub async fn build_state(
                 ) {
                     Ok(c) => config.func_client = Some(c),
                     Err(e) => {
-                        tracing::warn!(error = %e, "payments func transport build failed — Func lanes degraded")
+                        tracing::warn!(error = %e, "payments func transport build failed - Func lanes degraded")
                     }
                 }
             }
             Err(e) => {
-                tracing::warn!(error = %e, "payments func certificate not ready — Func lanes degraded")
+                tracing::warn!(error = %e, "payments func certificate not ready - Func lanes degraded")
             }
         }
-    } // Default schedules (SDD §2.4) are declarative — the registration's
+    } // Default schedules (SDD §2.4) are declarative - the registration's
       // `schedules` section provisions them at enroll time; payments makes
       // no boot-time cron calls. The ticker proxy-backs into
       // `/v1/internal/schedules/trigger` on each fire.
 
-    // Embedded re-drive worker (payments DESIGN.md §2 — the merged-in
+    // Embedded re-drive worker (payments DESIGN.md §2 - the merged-in
     // payments-worker loop): spawn the Bus SSE consumer that turns
     // `bank8:payments:instruction:*` events into Flow resume/retry. Shares
     // the service's capped pool; runs until process shutdown.
@@ -111,8 +111,8 @@ pub async fn build_state(
     // `policy` stream as a direct consumer (design §3.2); deny/would-deny
     // decisions emit to Stat (§4.2f). The engine is stored in AppState so
     // handlers gate via `policy::require` (step 5 is the ONLY gate).
-    // ── Sentin8:Policy (§4.2b — shell-owned boot): consume the
-    // engine the shell booted in step 8 — no second engine, consumer, or
+    // ── Sentin8:Policy (§4.2b - shell-owned boot): consume the
+    // engine the shell booted in step 8 - no second engine, consumer, or
     // DCR registration here.
     let policy_engine = core.admin.policy.clone();
 
@@ -134,7 +134,7 @@ pub async fn build_state(
 /// Add this service's routes onto the shell-provided router. The shell
 /// owns the boot sequence, state binding, OpenAPI merge and the standard
 /// middleware stack; this adds ONLY routes (including the service's own
-/// `/v1/health` — custom payload).
+/// `/v1/health` - custom payload).
 pub fn routes(
     router: axum::Router<crate::handlers::AppState>,
 ) -> axum::Router<crate::handlers::AppState> {
@@ -163,12 +163,12 @@ pub fn routes(
             post(handlers::create_logic).get(handlers::list_logics),
         )
         .route("/v1/logics/{id}", get(crate::routes_missing::get_logic))
-        // Logic API — WASM migration (Story )
+        // Logic API - WASM migration (Story )
         .route(
             "/v1/logics/{id}/migrate-wasm",
             post(handlers::migrate_logic_to_wasm),
         )
-        // Routing — Payment Instruments (Story )
+        // Routing - Payment Instruments (Story )
         .route(
             "/v1/payment-instruments",
             post(handlers::create_payment_instrument).get(handlers::list_payment_instruments),
@@ -179,7 +179,7 @@ pub fn routes(
                 .patch(handlers::update_payment_instrument)
                 .delete(handlers::delete_payment_instrument),
         )
-        // Routing — Account Links (Story )
+        // Routing - Account Links (Story )
         .route(
             "/v1/account-links",
             post(handlers::create_account_link).get(handlers::list_account_links),
@@ -188,7 +188,7 @@ pub fn routes(
             "/v1/account-links/{id}",
             get(handlers::get_account_link).delete(handlers::delete_account_link),
         )
-        // Card operations — Story
+        // Card operations - Story
         .route(
             "/v1/cards/{id}/replace",
             post(crate::routes_missing::replace_card),
@@ -298,7 +298,7 @@ pub fn routes(
             "/v1/cards/{id}",
             get(handlers::get_card).patch(handlers::update_card),
         )
-        // Card operations — encrypted sessions, PIN (Story )
+        // Card operations - encrypted sessions, PIN (Story )
         .route(
             "/v1/cards/{id}/encrypted-session",
             post(handlers::create_encrypted_session),
@@ -827,7 +827,7 @@ pub fn routes(
             "/v1/openmetrics/federate",
             get(crate::pay_api::openmetrics_federate),
         )
-        // ── Sentin8:Policy admin API (§3.6 — shared
+        // ── Sentin8:Policy admin API (§3.6 - shared
         // implementation; handlers generic over this AppState).
         .route(
             "/v1/admin/policy-sets",
@@ -871,10 +871,10 @@ pub fn routes(
                 .put(sentin8::shield::admin::put_attribute::<handlers::AppState>)
                 .delete(sentin8::shield::admin::delete_attribute::<handlers::AppState>),
         )
-    // Traffic counter — counts every inbound request (excludes health checks).
+    // Traffic counter - counts every inbound request (excludes health checks).
 }
 
-/// Shared policy-admin surface accessor (§3.6) — the shared
+/// Shared policy-admin surface accessor (§3.6) - the shared
 /// handlers extract this service's admin state via [`HasPolicyAdmin`].
 impl sentin8::shield::admin::HasPolicyAdmin for handlers::AppState {
     fn policy_admin(&self) -> &sentin8::shield::admin::SharedAdminState {

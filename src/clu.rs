@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! CLU configuration packs — manifest + resource files for idempotent
+//! CLU configuration packs - manifest + resource files for idempotent
 //! provisioning of Payments resources.
 //! See `services/payments/DESIGN.md`.
 //! A CLU configuration pack is a bundle of declarative resource definitions
@@ -50,7 +50,7 @@ pub fn is_supported_resource(resource_type: &str) -> bool {
 
 // ── Types ───────────────────────────────────────────────────────────────
 
-/// CLU manifest — the `manifest.yaml` of a configuration pack.
+/// CLU manifest - the `manifest.yaml` of a configuration pack.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CluManifest {
     pub name: String,
@@ -139,7 +139,7 @@ pub fn validate_config_pack(pack: &CluConfigPack) -> Result<(), String> {
             pack.manifest.resources.iter().map(|s| s.as_str()).collect();
         for res in &pack.resources {
             if !manifest_types.remove(res.resource_type.as_str()) {
-                // Resource file present but not listed in manifest — allow but warn.
+                // Resource file present but not listed in manifest - allow but warn.
                 tracing::debug!(
                     resource_type = %res.resource_type,
                     "resource file not listed in manifest resources"

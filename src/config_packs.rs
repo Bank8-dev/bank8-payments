@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Payments
 // SPDX-License-Identifier: Apache-2.0
 
-//! Configuration packs — pre-built packs of instruction logics and parameters
+//! Configuration packs - pre-built packs of instruction logics and parameters
 //! for SEPA Instant (TIPS) and SEPA Credit Transfer schemes.
 //! See `services/payments/DESIGN.md`.
 //! A configuration pack is a declarative bundle that can be imported into a
@@ -155,7 +155,7 @@ pub fn sepa_instant_tips_pack() -> ConfigPack {
     ConfigPack {
         name: "sepa-instant-tips".into(),
         version: "1.0.0".into(),
-        description: Some("SEPA Instant (TIPS) configuration pack — 18 instruction logics".into()),
+        description: Some("SEPA Instant (TIPS) configuration pack - 18 instruction logics".into()),
         logics,
         parameters,
     }
@@ -307,7 +307,7 @@ pub fn sepa_credit_transfer_pack() -> ConfigPack {
         name: "sepa-credit-transfer".into(),
         version: "1.0.0".into(),
         description: Some(
-            "SEPA Credit Transfer configuration pack — EBA Clearing, ICF format, daily 23:00 CET"
+            "SEPA Credit Transfer configuration pack - EBA Clearing, ICF format, daily 23:00 CET"
                 .into(),
         ),
         logics,
@@ -405,7 +405,7 @@ pub fn b8_credit_transfer_pack() -> ConfigPack {
         name: "b8-credit-transfer".into(),
         version: "1.0.0".into(),
         description: Some(
-            "B8 Credit Transfer configuration pack — example ACH, UETR correlation, daily 18:00 UTC".into(),
+            "B8 Credit Transfer configuration pack - example ACH, UETR correlation, daily 18:00 UTC".into(),
         ),
         logics,
         parameters,
@@ -498,7 +498,7 @@ pub fn b8_direct_debit_pack() -> ConfigPack {
         name: "b8-direct-debit".into(),
         version: "1.0.0".into(),
         description: Some(
-            "B8 Direct Debit configuration pack — mandate flows, D-1 submission, next business day settlement".into(),
+            "B8 Direct Debit configuration pack - mandate flows, D-1 submission, next business day settlement".into(),
         ),
         logics,
         parameters,
@@ -717,7 +717,7 @@ mod tests {
         assert!(v["parameters"].is_array());
     }
 
-    // ── Story — B8 Credit Transfer pack ───────────────────────
+    // ── Story - B8 Credit Transfer pack ───────────────────────
 
     #[test]
     fn b8_credit_transfer_pack_validates() {
@@ -808,7 +808,7 @@ mod tests {
         assert_eq!(v["logics"].as_array().unwrap().len(), 3);
     }
 
-    // ── Story — B8 Direct Debit pack ─────────────────────────
+    // ── Story - B8 Direct Debit pack ─────────────────────────
 
     #[test]
     fn b8_direct_debit_pack_validates() {
