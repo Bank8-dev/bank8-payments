@@ -41,10 +41,12 @@ use sqlx::Row;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::routes_missing::{CardReplaceAck, FileSubmitAck};
 use crate::auth;
 use crate::event_streaming::{self, ResourceType};
-use crate::handlers::{EncryptedSessionResponse, bearer_token_of, err_db, set_tenant_context, AppState};
+use crate::handlers::{
+    bearer_token_of, err_db, set_tenant_context, AppState, EncryptedSessionResponse,
+};
+use crate::routes_missing::{CardReplaceAck, FileSubmitAck};
 
 // ── Decline recommendations  ──────────────────────────────────────
 

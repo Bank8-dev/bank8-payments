@@ -10,7 +10,6 @@
 //! instruction, and a set of declared inputs. Templates are versioned; one
 //! version is active at a time (`active_version_id`).
 
-use utoipa::ToSchema;
 use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
@@ -18,6 +17,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::auth;

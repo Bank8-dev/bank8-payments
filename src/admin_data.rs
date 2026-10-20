@@ -10,15 +10,15 @@
 //! matching public handler. All routes go through the standard authorization
 //! pipeline and set tenant context before querying.
 
-use serde::Serialize;
-use utoipa::ToSchema;
-use sentin8::rfw::policy_pages::AdminDataRows;
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
     Json,
 };
+use sentin8::rfw::policy_pages::AdminDataRows;
+use serde::Serialize;
 use sqlx::Row;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::handlers::{err_db, set_tenant_context, AppState};
@@ -264,13 +264,55 @@ macro_rules! admin_list_ann {
     };
 }
 
-admin_list_ann!(list_rules_admin, "rules", "id, name, status", "/v1/admin/rules", "rules");
-admin_list_ann!(list_cards_admin, "cards", "id, status, card_type", "/v1/admin/cards", "cards");
-admin_list_ann!(list_files_admin, "files", "id, filename, status", "/v1/admin/files", "files");
-admin_list_ann!(list_integrations_admin, "integrations", "id, name, status", "/v1/admin/integrations", "integrations");
-admin_list_ann!(list_parameters_admin, "parameters", "id, name, status", "/v1/admin/parameters", "parameters");
-admin_list_ann!(list_cores_admin, "cores", "id, name", "/v1/admin/cores", "cores");
-admin_list_ann!(list_mandates_admin, "mandates", "id, status, currency", "/v1/admin/mandates", "mandates");
+admin_list_ann!(
+    list_rules_admin,
+    "rules",
+    "id, name, status",
+    "/v1/admin/rules",
+    "rules"
+);
+admin_list_ann!(
+    list_cards_admin,
+    "cards",
+    "id, status, card_type",
+    "/v1/admin/cards",
+    "cards"
+);
+admin_list_ann!(
+    list_files_admin,
+    "files",
+    "id, filename, status",
+    "/v1/admin/files",
+    "files"
+);
+admin_list_ann!(
+    list_integrations_admin,
+    "integrations",
+    "id, name, status",
+    "/v1/admin/integrations",
+    "integrations"
+);
+admin_list_ann!(
+    list_parameters_admin,
+    "parameters",
+    "id, name, status",
+    "/v1/admin/parameters",
+    "parameters"
+);
+admin_list_ann!(
+    list_cores_admin,
+    "cores",
+    "id, name",
+    "/v1/admin/cores",
+    "cores"
+);
+admin_list_ann!(
+    list_mandates_admin,
+    "mandates",
+    "id, status, currency",
+    "/v1/admin/mandates",
+    "mandates"
+);
 admin_list_ann!(
     list_directories_admin,
     "membership_directories",
@@ -278,7 +320,13 @@ admin_list_ann!(
     "/v1/admin/directories",
     "directories"
 );
-admin_list_ann!(list_calendars_admin, "calendars", "id, name, timezone", "/v1/admin/calendars", "calendars");
+admin_list_ann!(
+    list_calendars_admin,
+    "calendars",
+    "id, name, timezone",
+    "/v1/admin/calendars",
+    "calendars"
+);
 admin_list_ann!(
     list_decisions_admin,
     "manual_decisions",

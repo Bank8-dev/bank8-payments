@@ -15,7 +15,6 @@
 //! - HTTP handlers for calendars and business day definitions
 //! - `TipsSweeperConfig` and `run_tips_sweeper` (Story )
 
-use utoipa::ToSchema;
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
@@ -24,6 +23,7 @@ use axum::{
 use chrono::{Datelike, NaiveDate};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::auth;

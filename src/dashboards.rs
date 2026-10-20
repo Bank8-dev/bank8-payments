@@ -10,7 +10,6 @@
 //! (Value, Table, PieChart, BarChart, LineChart) and a config that may
 //! include aggregation settings and a search query.
 
-use utoipa::ToSchema;
 use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
@@ -18,6 +17,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::auth;

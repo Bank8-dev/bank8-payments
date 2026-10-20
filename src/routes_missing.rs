@@ -16,7 +16,6 @@
 //! - Tasks API: list / get / claim / approve / reject
 //! - Aggregations query
 
-use utoipa::ToSchema;
 use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
@@ -24,12 +23,13 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::cards::CardTokenResponse;
-use crate::handlers::LogicResponse;
 use crate::auth;
+use crate::cards::CardTokenResponse;
 use crate::event_streaming::{self, ResourceType};
+use crate::handlers::LogicResponse;
 use crate::handlers::{bearer_token_of, err_db, set_tenant_context, AppState};
 
 // ── Card lifecycle operations (§5.4) ────────────────────────────────────
