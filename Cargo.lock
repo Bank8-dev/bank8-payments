@@ -640,7 +640,7 @@ dependencies = [
 [[package]]
 name = "bank8"
 version = "0.1.0"
-source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.7#c5dbff9f0c6612698c005dc17fcf5ae6ecc3a5d6"
+source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.8#0088c2cba7d7ee43e25a33165e6fee13a15a411e"
 dependencies = [
  "async-trait",
  "bank8-fdx-contracts",
@@ -660,7 +660,7 @@ dependencies = [
 [[package]]
 name = "bank8-fdx-contracts"
 version = "0.1.0"
-source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.7#c5dbff9f0c6612698c005dc17fcf5ae6ecc3a5d6"
+source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.8#0088c2cba7d7ee43e25a33165e6fee13a15a411e"
 dependencies = [
  "chrono",
  "serde",
@@ -671,7 +671,7 @@ dependencies = [
 [[package]]
 name = "bank8-ledger-contracts"
 version = "0.1.0"
-source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.7#c5dbff9f0c6612698c005dc17fcf5ae6ecc3a5d6"
+source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.8#0088c2cba7d7ee43e25a33165e6fee13a15a411e"
 dependencies = [
  "chrono",
  "serde",
@@ -716,7 +716,7 @@ dependencies = [
 [[package]]
 name = "bank8-payments-contracts"
 version = "0.1.0"
-source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.7#c5dbff9f0c6612698c005dc17fcf5ae6ecc3a5d6"
+source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.8#0088c2cba7d7ee43e25a33165e6fee13a15a411e"
 dependencies = [
  "chrono",
  "serde",
@@ -727,7 +727,7 @@ dependencies = [
 [[package]]
 name = "bank8-regulatory-contracts"
 version = "0.1.0"
-source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.7#c5dbff9f0c6612698c005dc17fcf5ae6ecc3a5d6"
+source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.8#0088c2cba7d7ee43e25a33165e6fee13a15a411e"
 dependencies = [
  "chrono",
  "rust_decimal",
@@ -4295,7 +4295,7 @@ dependencies = [
 [[package]]
 name = "sentin8-flow-client"
 version = "0.1.0"
-source = "git+https://github.com/Sentin8/sentin8-flow?tag=flow-sdk-v0.6.6#c460a513c99a2b73fbe1d4b1114dddd1cf4aa01d"
+source = "git+https://github.com/Sentin8/sentin8-flow?tag=flow-sdk-v0.6.7#be9ab18b1ac85ca90f3bd940be4146cee8d28256"
 dependencies = [
  "reqwest 0.12.28",
  "sentin8-flow-contracts",
@@ -4311,7 +4311,7 @@ dependencies = [
 [[package]]
 name = "sentin8-flow-contracts"
 version = "0.1.0"
-source = "git+https://github.com/Sentin8/sentin8-flow?tag=flow-sdk-v0.6.6#c460a513c99a2b73fbe1d4b1114dddd1cf4aa01d"
+source = "git+https://github.com/Sentin8/sentin8-flow?tag=flow-sdk-v0.6.7#be9ab18b1ac85ca90f3bd940be4146cee8d28256"
 dependencies = [
  "chrono",
  "serde",
@@ -4323,7 +4323,7 @@ dependencies = [
 [[package]]
 name = "sentin8-flow-sdk"
 version = "0.1.0"
-source = "git+https://github.com/Sentin8/sentin8-flow?tag=flow-sdk-v0.6.6#c460a513c99a2b73fbe1d4b1114dddd1cf4aa01d"
+source = "git+https://github.com/Sentin8/sentin8-flow?tag=flow-sdk-v0.6.7#be9ab18b1ac85ca90f3bd940be4146cee8d28256"
 dependencies = [
  "sentin8-flow-client",
  "sentin8-flow-contracts",
@@ -4332,7 +4332,7 @@ dependencies = [
 [[package]]
 name = "sentin8-func-client"
 version = "0.1.0"
-source = "git+https://github.com/Sentin8/sentin8-func?tag=func-sdk-v0.6.5#31b933fb0ad1f41b063608822bbc82893c9b09a3"
+source = "git+https://github.com/Sentin8/sentin8-func?tag=func-sdk-v0.6.6#d9b97b3e574ca721920b49c04237d9ea30789164"
 dependencies = [
  "reqwest 0.12.28",
  "sentin8-middleware",
@@ -4346,7 +4346,7 @@ dependencies = [
 [[package]]
 name = "sentin8-func-sdk"
 version = "0.1.0"
-source = "git+https://github.com/Sentin8/sentin8-func?tag=func-sdk-v0.6.5#31b933fb0ad1f41b063608822bbc82893c9b09a3"
+source = "git+https://github.com/Sentin8/sentin8-func?tag=func-sdk-v0.6.6#d9b97b3e574ca721920b49c04237d9ea30789164"
 dependencies = [
  "sentin8-func-client",
 ]
