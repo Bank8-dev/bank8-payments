@@ -248,7 +248,7 @@ operations plus specific flows:
 | Persona | What they do with Bank8:Payments |
 |---|---|
 | Retail customer (via eBank) | Initiates transfers, sees payment status, manages payees and mandates, uses card details/PIN via secure flows |
-| Corporate treasurer (via eFinTech) | Uploads ISO payment files, tracks batch processing, monitors task queue outcomes |
+| Corporate treasurer (via eBank) | Uploads ISO payment files, tracks batch processing, monitors task queue outcomes |
 | Bank operations staff (via eTeller) | Claims tasks, makes/approves/rejects manual decisions, retries or repairs stuck instructions, issues/replaces cards |
 | Card product manager | Defines card products, BIN ranges, velocity rules; resets LVT/ATC accumulators |
 | Payments product owner | Authors rules/rule sets/parameters/logics, publishes versions, manages templates & dashboards |

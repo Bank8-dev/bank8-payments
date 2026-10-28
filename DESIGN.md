@@ -41,7 +41,7 @@ graph TD
     end
     subgraph clients
         BFF["Sentin8:BFF /proxy/payments/*"]
-        APPS["ebank · efintech · eteller · admin"]
+        APPS["ebank · eteller · admin"]
     end
     APPS --> BFF -->|"user tokens"| PAY
     PAY <-->|"verify / certificate identity (CERTFREE-4V)"| AUTH
