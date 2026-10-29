@@ -42,7 +42,7 @@ async fn require_admin_reader(
     .await?;
     Ok(a)
 }
-/// Admin overview counters (OAPEC-9 typed body).
+/// Admin overview counters (typed body).
 #[derive(Debug, Serialize, ToSchema)]
 pub struct AdminOverviewStats {
     /// Total payment instructions.
@@ -51,7 +51,7 @@ pub struct AdminOverviewStats {
     pub payments_total: i64,
 }
 
-/// Enabled feature gates for this instance (OAPEC-9 typed body).
+/// Enabled feature gates for this instance (typed body).
 #[derive(Debug, Serialize, ToSchema)]
 pub struct AdminSettingsResponse {
     /// The service identifier.
@@ -93,7 +93,7 @@ pub struct AdminFeatures {
     pub sandbox: bool,
 }
 
-/// Simulator state (OAPEC-9 typed body).
+/// Simulator state (typed body).
 #[derive(Debug, Serialize, ToSchema)]
 pub struct AdminSimulatorState {
     /// Whether the card/insight simulator is enabled.

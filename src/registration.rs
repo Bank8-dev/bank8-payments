@@ -98,7 +98,7 @@ const M2M_GRANTS: &[M2mGrant] = &[
         workload: "payments-worker-flow",
         scopes: &["sentin8:flow:read", "sentin8:flow:write"],
     },
-    // TLS-RLS-4 (design/sentin8-vertical-data-plane-contract.md §VDC.7):
+    // (design/sentin8-vertical-data-plane-contract.md §VDC.7):
     // the database-free HostContextResolver’s resolve workload - cache
     // miss calls Sys `GET /v1/resolve/hostname`.
     M2mGrant {

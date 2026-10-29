@@ -1348,7 +1348,7 @@ pub fn call_outseer_risk_analysis(
 mod tests {
     use super::*;
 
-    // Story - state machine ---------------------------------------
+    // Story - state machine ------------------------------------
 
     #[test]
     fn card_state_round_trip() {
@@ -1414,7 +1414,7 @@ mod tests {
         }
     }
 
-    // Story - encryption -----------------------------------------
+    // Story - encryption --------------------------------------
 
     #[test]
     fn generate_key_pair_yields_distinct_keys() {
@@ -1457,7 +1457,7 @@ mod tests {
         assert_eq!(dec, pan);
     }
 
-    // Story - decline recommendations ----------------------------
+    // Story - decline recommendations -------------------------
 
     #[test]
     fn decline_reason_round_trip() {
@@ -1499,7 +1499,7 @@ mod tests {
         );
     }
 
-    // Story - simulator ------------------------------------------
+    // Story - simulator ---------------------------------------
 
     #[test]
     fn simulator_approves_small_amount() {
@@ -1535,7 +1535,7 @@ mod tests {
         assert!(res.auth_id.starts_with("pres-"));
     }
 
-    // Story - authorisation expiry -------------------------------
+    // Story - authorisation expiry ----------------------------
 
     #[test]
     fn fresh_unpresented_auth_not_expired() {
@@ -1566,7 +1566,7 @@ mod tests {
         assert!(!check_authorisation_expiry_at(created, false, now));
     }
 
-    // Story - encrypted sessions, PIN ----------------------------
+    // Story - encrypted sessions, PIN -------------------------
 
     #[test]
     fn encrypted_session_type_round_trip() {
@@ -1580,7 +1580,7 @@ mod tests {
         assert!(EncryptedSessionType::from_str("unknown").is_err());
     }
 
-    // Story - 3DS records ----------------------------------------
+    // Story - 3DS records -------------------------------------
 
     #[test]
     fn three_ds_status_round_trip() {
@@ -1598,7 +1598,7 @@ mod tests {
         assert!(ThreeDSAuthenticationStatus::from_str("done").is_err());
     }
 
-    // Story - 3DS authentication logics ---------------------------
+    // Story - 3DS authentication logics ------------------------
 
     #[test]
     fn green_band_frictionless() {
@@ -1687,7 +1687,7 @@ mod tests {
         assert_eq!(recommend_3ds_action(&ThreeDSAuthResult::Red), "decline");
     }
 
-    // Story - challenge methods -----------------------------------
+    // Story - challenge methods --------------------------------
 
     #[test]
     fn challenge_method_round_trip() {
@@ -1720,7 +1720,7 @@ mod tests {
         assert_eq!(c.app_id.as_deref(), Some("com.example.app"));
     }
 
-    // Story - Outseer risk analysis ------------------------------
+    // Story - Outseer risk analysis ---------------------------
 
     #[test]
     fn outseer_low_amount() {

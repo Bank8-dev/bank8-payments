@@ -289,7 +289,7 @@ pub struct FileSubmitAck {
     pub batches: Vec<Uuid>,
 }
 
-/// Whitelisted-SQL aggregation result (OAPEC-9 typed body).
+/// Whitelisted-SQL aggregation result (typed body).
 #[derive(Debug, Serialize, ToSchema)]
 pub struct AggregationResponse {
     /// The aggregation name that ran.

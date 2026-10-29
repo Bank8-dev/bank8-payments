@@ -2701,7 +2701,7 @@ pub async fn reset_card_lvt(
 
 /// `POST /v1/cards/sessions:initiate` - initiate an encrypted card session
 /// (client key exchange; delegates to the existing session handler).
-/// Client-initiated encrypted-session request (OAPEC-9 typed body).
+/// Client-initiated encrypted-session request (typed body).
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct InitiateCardSessionRequest {
     /// The card to open the session for.

@@ -2244,7 +2244,7 @@ pub struct ResourceIdAck {
     pub status: String,
 }
 
-/// Manual-decision submission acknowledgement (OAPEC-9 typed body).
+/// Manual-decision submission acknowledgement (typed body).
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ManualDecisionSubmitted {
     /// The decision id.
