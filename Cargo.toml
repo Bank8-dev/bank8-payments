@@ -23,9 +23,9 @@ path = "src/lib.rs"
 [dependencies]
 # Platform SDK pin (RS 2.3) - the only cross-repo dependency; carries the
 # entire shared library workspace behind the `sentin8` facade.
-sentin8 = { git = "https://github.com/Sentin8/sentin8-sdk", tag = "sdk-v0.6.7" }
+sentin8 = { git = "https://github.com/Sentin8/sentin8-sdk", tag = "sdk-v0.6.20" }
 # bank8 namespace facade pin - carries this vertical's contracts/clients.
-bank8 = { git = "https://github.com/Bank8-dev/bank8-sdk", tag = "bank8-v0.5.8" }
+bank8 = { git = "https://github.com/Bank8-dev/bank8-sdk", tag = "bank8-v0.5.9" }
 
 axum = { version = "0.8", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
@@ -50,6 +50,6 @@ futures-util = "0.3"
 base64 = "0.22"
 serde_yaml = "0.9"
 utoipa = { version = "5", features = ["chrono", "uuid", "decimal"] }
-sentin8-cron-sdk = { git = "https://github.com/Sentin8/sentin8-cron", tag = "cron-sdk-v0.6.5" }
-sentin8-flow-sdk = { git = "https://github.com/Sentin8/sentin8-flow", tag = "flow-sdk-v0.6.7" }
-sentin8-func-sdk = { git = "https://github.com/Sentin8/sentin8-func", tag = "func-sdk-v0.6.6" }
+sentin8-cron-sdk = { git = "https://github.com/Sentin8/sentin8-cron", tag = "cron-sdk-v0.6.7" }
+sentin8-flow-sdk = { git = "https://github.com/Sentin8/sentin8-flow", tag = "flow-sdk-v0.6.9" }
+sentin8-func-sdk = { git = "https://github.com/Sentin8/sentin8-func", tag = "func-sdk-v0.6.8" }
