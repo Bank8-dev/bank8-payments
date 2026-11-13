@@ -636,11 +636,10 @@ dependencies = [
 
 [[package]]
 name = "bank8"
-version = "0.1.0"
-source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.10#10e6aab6c35a258ee46178bdb4b625075e8dbe10"
+version = "1.0.0"
+source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v1.0.0#cec1b93c7391784950dc083dfcdd7a3d30cd698e"
 dependencies = [
  "async-trait",
- "bank8-fdx-contracts",
  "bank8-ledger-contracts",
  "bank8-payments-contracts",
  "bank8-regulatory-contracts",
@@ -655,20 +654,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "bank8-fdx-contracts"
-version = "0.1.0"
-source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.10#10e6aab6c35a258ee46178bdb4b625075e8dbe10"
-dependencies = [
- "chrono",
- "serde",
- "serde_json",
- "uuid",
-]
-
-[[package]]
 name = "bank8-ledger-contracts"
-version = "0.1.0"
-source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.10#10e6aab6c35a258ee46178bdb4b625075e8dbe10"
+version = "1.0.0"
+source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v1.0.0#cec1b93c7391784950dc083dfcdd7a3d30cd698e"
 dependencies = [
  "chrono",
  "serde",
@@ -712,8 +700,8 @@ dependencies = [
 
 [[package]]
 name = "bank8-payments-contracts"
-version = "0.1.0"
-source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.10#10e6aab6c35a258ee46178bdb4b625075e8dbe10"
+version = "1.0.0"
+source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v1.0.0#cec1b93c7391784950dc083dfcdd7a3d30cd698e"
 dependencies = [
  "chrono",
  "serde",
@@ -723,8 +711,8 @@ dependencies = [
 
 [[package]]
 name = "bank8-regulatory-contracts"
-version = "0.1.0"
-source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v0.5.10#10e6aab6c35a258ee46178bdb4b625075e8dbe10"
+version = "1.0.0"
+source = "git+https://github.com/Bank8-dev/bank8-sdk?tag=bank8-v1.0.0#cec1b93c7391784950dc083dfcdd7a3d30cd698e"
 dependencies = [
  "chrono",
  "rust_decimal",
