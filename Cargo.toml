@@ -52,4 +52,4 @@ serde_yaml = "0.9"
 utoipa = { version = "5", features = ["chrono", "uuid", "decimal"] }
 sentin8-cron-sdk = { git = "https://github.com/Sentin8/sentin8-cron", tag = "cron-sdk-v1.0.0" }
 sentin8-flow-sdk = { git = "https://github.com/Sentin8/sentin8-flow", tag = "flow-sdk-v1.0.0" }
-sentin8-func-sdk = { git = "https://github.com/Sentin8/sentin8-func", tag = "func-sdk-v0.6.10" }
+sentin8-func-sdk = { git = "https://github.com/Sentin8/sentin8-func", tag = "func-sdk-v1.0.0" }
