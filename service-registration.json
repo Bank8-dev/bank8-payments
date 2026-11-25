@@ -6,7 +6,8 @@
       "telemetry_property": {
         "slug": "payments",
         "name": "Bank8:Payments Telemetry"
-      }
+      },
+      "exposure": "internal"
     }
   ]
 }
